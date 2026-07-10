@@ -243,7 +243,7 @@ app.get('/', (req, res) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Hotel Media Scraper</title>
+        <title>GarimpU Finch</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     </head>
@@ -252,14 +252,14 @@ app.get('/', (req, res) => {
             
             <div class="text-center mb-12">
                 <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-2">
-                    Booking Data & Media Extractor
+                    GarimpU Finch
                 </h1>
                 <p class="text-slate-400">Pesquise hotéis, extraia coordenadas geográficas, regimes alimentares e exporte dados estruturados.</p>
             </div>
 
             <div class="bg-slate-800 p-6 rounded-2xl shadow-xl max-w-2xl mx-auto mb-12 border border-slate-700">
                 <div class="flex gap-4">
-                    <input type="text" id="hotelInput" placeholder="Introduza o nome do hotel ou resort..." 
+                    <input type="text" id="hotelInput" placeholder="Digite o nome do hotel ou resort..." 
                         class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-blue-500 transition-all"
                         onkeypress="if(event.key === 'Enter') iniciarBusca()">
                     <button id="btnBuscar" onclick="iniciarBusca()" 
