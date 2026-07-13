@@ -62,6 +62,11 @@ venv/: Pasta isolada do Python (ignorada pelo Git).
 node_modules/: Pastas de dependências do Node (ignorada pelo Git).
 
 ⚠️ Notas Importantes
+
+Aeroporto:
+
+- Mudar a latitude e longitude no scraper.js de acordo com o aeroporte da cidade desejada.
+
 Caminhos das Pastas:
 
 - Verifique se a constante PASTA_IMAGENS no ficheiro scraper.js está apontando para o caminho correto na sua máquina.
