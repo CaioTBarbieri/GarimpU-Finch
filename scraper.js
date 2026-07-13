@@ -393,6 +393,13 @@ app.get('/', (req, res) => {
                         </div>
                         
                         <div class="flex flex-wrap gap-2">
+                            <span class="bg-slate-900 border border-indigo-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 shadow-inner text-slate-300">
+                                <span class="text-indigo-400 font-semibold">ID Wix</span>
+                                <input id="resIdWix" type="text" placeholder="Cole o ID aqui"
+                                    oninput="dadosAtuais.idWix = this.value.trim()"
+                                    class="bg-slate-900 text-slate-200 outline-none min-w-[220px] placeholder:text-slate-600">
+                            </span>
+
                             <span class="bg-slate-900 border border-sky-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 w-max shadow-inner text-slate-300">
                                 <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 <span id="resAeroporto"></span>
@@ -461,7 +468,7 @@ app.get('/', (req, res) => {
                 const distanciaAeroporto = String(dadosAtuais.aeroporto).match(/\\d+(?:[.,]\\d+)?\\s*km/i)?.[0] || dadosAtuais.aeroporto;
 
                 const linha = [
-                    '',
+                    prepararCampo(dadosAtuais.idWix || ''),
                     prepararCampo(dadosAtuais.nota),
                     prepararCampo(dadosAtuais.endereco),
                     prepararCampo(dadosAtuais.plusCode),
@@ -542,8 +549,10 @@ app.get('/', (req, res) => {
                     if (!response.ok) throw new Error(dados.erro || 'Falha no pedido');
 
                     dadosAtuais = dados;
+                    dadosAtuais.idWix = '';
 
                     document.getElementById('resNome').innerText = dados.nome;
+                    document.getElementById('resIdWix').value = '';
                     document.getElementById('resEndereco').innerText = "🏢 " + dados.endereco;
                     document.getElementById('resNota').innerText = dados.nota;
                     document.getElementById('resAeroporto').innerText = dados.aeroporto;
