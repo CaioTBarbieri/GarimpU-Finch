@@ -12,9 +12,10 @@ const olc = new OpenLocationCode();
 puppeteer.use(StealthPlugin());
 const app = express();
 const PORT = 3000;
+const PASTA_IMAGENS = 'C:\\Users\\Resorts Online\\Downloads\\Trabaio\\Software\\DOWNLOADS HOTEIS';
 
 app.use(express.json());
-app.use('/img', express.static(path.join(__dirname, 'img')));
+app.use('/img', express.static(PASTA_IMAGENS));
 
 // ==========================================
 // FUNÇÃO MATEMÁTICA CORRIGIDA (Com Fator de Sinuosidade)
@@ -155,38 +156,94 @@ async function rasparDadosHotel(nomeHotel) {
         let coordenadas = (lat && lng) ? `${lat}, ${lng}` : 'GPS não disponível';
 
         const textoPagina = $('body').text().replace(/\s+/g, ' ');
-        const textoPaginaLower = textoPagina.toLowerCase();
+
+        // Busca somente a descrição específica do hotel. Evita capturar textos de
+        // filtros, menus e sugestões de outros hotéis espalhados pelo <body>.
+        let descricaoHotel = $('[data-testid="property-description"], #property_description_content, .hp-description').first().text().replace(/\s+/g, ' ').trim();
+
+        const procurarDescricaoNoJson = (valor, chavePai = '') => {
+            if (!valor || typeof valor !== 'object') return '';
+
+            if (
+                typeof valor.description === 'string' &&
+                (valor.__typename === 'HotelTranslation' || chavePai === 'HotelTranslation')
+            ) {
+                return valor.description;
+            }
+
+            for (const [chave, filho] of Object.entries(valor)) {
+                const encontrada = procurarDescricaoNoJson(filho, chave);
+                if (encontrada) return encontrada;
+            }
+            return '';
+        };
+
+        if (!descricaoHotel) {
+            $('script').each((_, el) => {
+                if (descricaoHotel) return false;
+                const conteudo = $(el).html()?.trim();
+                if (!conteudo || (!conteudo.startsWith('{') && !conteudo.startsWith('['))) return;
+
+                try {
+                    descricaoHotel = procurarDescricaoNoJson(JSON.parse(conteudo));
+                } catch (e) { }
+            });
+        }
 
         // --- AEROPORTO ---
         let aeroportoFinal = 'Não informado';
+
+        const extrairDistanciaKm = (texto) => {
+            const match = texto.match(/(\d+(?:[.,]\d+)?)\s*(km|m)\b/i);
+            if (!match) return null;
+
+            const distancia = Number(match[1].replace(',', '.'));
+            const distanciaKm = match[2].toLowerCase() === 'm' ? distancia / 1000 : distancia;
+            const valorFormatado = Number.isInteger(distanciaKm)
+                ? String(distanciaKm)
+                : distanciaKm.toFixed(1).replace('.', ',');
+
+            return `${valorFormatado} km`;
+        };
         
         $('li, div.bui-list__item, div[data-testid="location-poi"]').each((_, el) => {
             if (aeroportoFinal !== 'Não informado') return;
             const txt = $(el).text().replace(/\s+/g, ' ').trim();
-            if (txt.toLowerCase().includes('aeroporto') && (txt.toLowerCase().includes('km') || txt.toLowerCase().includes('m'))) {
-                if (txt.length < 150) aeroportoFinal = txt;
+            if (txt.toLowerCase().includes('aeroporto') && txt.length < 150) {
+                const distancia = extrairDistanciaKm(txt);
+                if (distancia) aeroportoFinal = `${distancia} (Booking)`;
             }
         });
 
         if (aeroportoFinal === 'Não informado') {
             const matchAero = textoPagina.match(/aeroporto[a-zA-ZÀ-ÿ\s\-\/]{0,80}\d+(?:[.,]\d+)?\s*km/i);
-            if (matchAero) aeroportoFinal = matchAero[0].trim();
+            const distancia = matchAero ? extrairDistanciaKm(matchAero[0]) : null;
+            if (distancia) aeroportoFinal = `${distancia} (Booking)`;
         }
 
         if (aeroportoFinal === 'Não informado' && lat && lng && lat !== 'GPS não disponível') {
             const distCalculada = calcularDistanciaCarroKm(parseFloat(lat), parseFloat(lng), LAT_RECIFE, LNG_RECIFE);
-            aeroportoFinal = `Aeroporto do Recife a aprox. ${distCalculada} km (Rota de Carro)`;
+            aeroportoFinal = `${distCalculada} km (calculado pela equação)`;
         }
 
         // --- REGIME ---
-        let regimeFinal = dadosPesquisa.regimePesquisa;
-        if (regimeFinal === 'Não informado') {
-            if (textoPaginaLower.includes('all inclusive') || textoPaginaLower.includes('tudo incluído')) regimeFinal = 'All Inclusive';
-            else if (textoPaginaLower.includes('pensão completa')) regimeFinal = 'Pensão completa';
-            else if (textoPaginaLower.includes('meia pensão') || textoPaginaLower.includes('meia-pensão')) regimeFinal = 'Meia pensão';
-            else if (textoPaginaLower.includes('café da manhã incluído') || textoPaginaLower.includes('pequeno-almoço incluído')) regimeFinal = 'Café da manhã incluído';
-            else if (textoPaginaLower.includes('café da manhã') || textoPaginaLower.includes('pequeno-almoço')) regimeFinal = 'Café da manhã disponível';
-        }
+        const identificarRegime = (texto) => {
+            const textoLower = texto.toLowerCase();
+            if (textoLower.includes('all inclusive') || textoLower.includes('tudo incluído')) return 'All Inclusive';
+            if (textoLower.includes('pensão completa') || textoLower.includes('full board')) return 'Pensão completa';
+            if (textoLower.includes('meia pensão') || textoLower.includes('meia-pensão') || textoLower.includes('half board')) return 'Meia pensão';
+
+            const mencionaCafe = textoLower.includes('café da manhã') || textoLower.includes('pequeno-almoço');
+            const cafeIncluso = /(?:café da manhã|pequeno-almoço)[^.]{0,100}(?:incluíd[oa]|grátis|gratuito|cortesia)/i.test(texto);
+            if (mencionaCafe && cafeIncluso) return 'Café da manhã incluído';
+            if (mencionaCafe) return 'Café da manhã disponível';
+            return 'Não informado';
+        };
+
+        const regimeDaDescricao = identificarRegime(descricaoHotel);
+        const regimeFinal = regimeDaDescricao !== 'Não informado'
+            ? regimeDaDescricao
+            : dadosPesquisa.regimePesquisa;
 
         // --- FASE 3: PLUS CODE ---
         let plusCode = 'Não localizado';
@@ -220,10 +277,9 @@ async function rasparDadosHotel(nomeHotel) {
             .map(item => item.url);
 
         const nomeLimpo = nomeOficial.replace(/[^a-zA-Z0-9]/g, '_');
-        const pastaBase = path.resolve(__dirname, 'img');
+        const pastaBase = PASTA_IMAGENS;
         const pastaHotel = path.resolve(pastaBase, nomeLimpo);
-        if (!fs.existsSync(pastaBase)) fs.mkdirSync(pastaBase);
-        if (!fs.existsSync(pastaHotel)) fs.mkdirSync(pastaHotel);
+        if (!fs.existsSync(pastaHotel)) fs.mkdirSync(pastaHotel, { recursive: true });
 
         const caminhosImagensLocais = [];
 
@@ -248,7 +304,7 @@ async function rasparDadosHotel(nomeHotel) {
 
             if (resultado.sucesso) {
                 fs.writeFileSync(caminhoCompleto, Buffer.from(resultado.base64, 'base64'));
-                caminhosImagensLocais.push(`/img/${nomeLimpo}/${nomeArquivo}.jpg`);
+                caminhosImagensLocais.push(`/img/${encodeURIComponent(nomeLimpo)}/${nomeArquivo}.jpg`);
             }
         }
 
@@ -344,7 +400,15 @@ app.get('/', (req, res) => {
 
                             <span class="bg-slate-900 border border-orange-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 w-max shadow-inner text-slate-300">
                                 <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"></path></svg>
-                                <span id="resRegime"></span>
+                                <select id="resRegime" onchange="dadosAtuais.regime = this.value"
+                                    class="bg-slate-900 text-slate-300 outline-none cursor-pointer">
+                                    <option>Não informado</option>
+                                    <option>Café da manhã incluído</option>
+                                    <option>Café da manhã disponível</option>
+                                    <option>Meia pensão</option>
+                                    <option>Pensão completa</option>
+                                    <option>All Inclusive</option>
+                                </select>
                             </span>
                             
                             <span id="tagPlusCodeBase" class="bg-slate-900 border px-3 py-1.5 rounded-lg text-sm font-mono flex items-center gap-2 w-max shadow-inner">
@@ -392,14 +456,16 @@ app.get('/', (req, res) => {
             function baixarDadosCSV() {
                 if (!dadosAtuais) return;
 
-                const cabecalho = "Nota de Avaliação,Endereço da Rua,Plus Code,Distância Aeroporto,Regime de Alimentação\\n";
+                const cabecalho = "ID,Nota de Avaliação,Endereço da Rua,Plus Code,Distância Aeroporto,Regime de Alimentação\\n";
                 const prepararCampo = (str) => '"' + String(str).replace(/"/g, '""') + '"';
+                const distanciaAeroporto = String(dadosAtuais.aeroporto).match(/\\d+(?:[.,]\\d+)?\\s*km/i)?.[0] || dadosAtuais.aeroporto;
 
                 const linha = [
+                    '',
                     prepararCampo(dadosAtuais.nota),
                     prepararCampo(dadosAtuais.endereco),
                     prepararCampo(dadosAtuais.plusCode),
-                    prepararCampo(dadosAtuais.aeroporto),
+                    prepararCampo(distanciaAeroporto),
                     prepararCampo(dadosAtuais.regime)
                 ].join(',');
 
@@ -481,7 +547,11 @@ app.get('/', (req, res) => {
                     document.getElementById('resEndereco').innerText = "🏢 " + dados.endereco;
                     document.getElementById('resNota').innerText = dados.nota;
                     document.getElementById('resAeroporto').innerText = dados.aeroporto;
-                    document.getElementById('resRegime').innerText = dados.regime;
+                    const seletorRegime = document.getElementById('resRegime');
+                    seletorRegime.value = Array.from(seletorRegime.options).some(opcao => opcao.value === dados.regime)
+                        ? dados.regime
+                        : 'Não informado';
+                    dadosAtuais.regime = seletorRegime.value;
                     document.getElementById('badgeContador').innerText = dados.imagens.length + " ficheiros salvos";
 
                     const tagPlusCodeBase = document.getElementById('tagPlusCodeBase');
