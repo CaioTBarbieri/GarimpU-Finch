@@ -20,6 +20,7 @@ Para garantir que a IA não interfira com outros projetos:
 python -m venv venv
 
 # Ativar o ambiente virtual (Windows)
+
 venv\Scripts\activate
 
 3. Instalação de Dependências
@@ -62,8 +63,11 @@ node_modules/: Pastas de dependências do Node (ignorada pelo Git).
 
 ⚠️ Notas Importantes
 Caminhos das Pastas:
+
 Verifique se a constante PASTA_IMAGENS no ficheiro scraper.js está apontando para o caminho correto na sua máquina.
+
 Verifique também no organizar_hoteis.py os caminhos PASTA_EXEMPLOS (Pasta usada como fonte de conhecimento para organizar) e PASTA_HOTEIS (Pasta onde serão salvas as imagens).
+
 Os caminhos PASTA_HOTEIS e PASTA_IMAGENS devem ser os mesmos.
 
 Git: A pasta venv/ e node_modules/ não devem ser comitadas. Use o ficheiro .gitignore fornecido para garantir que o repositório se mantenha limpo.
