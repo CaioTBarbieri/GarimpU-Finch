@@ -14,7 +14,7 @@ puppeteer.use(StealthPlugin());
 const app = express();
 const PORT = 3000;
 // Altere este caminho se precisar, mantive o do seu novo ficheiro:
-const PASTA_IMAGENS = 'C:\Users\User\Downloads\Trabaio\Software\DOWNLOADS HOTEIS';
+const PASTA_IMAGENS = 'C:\\Users\\User\\Downloads\\Trabaio\\Software\\DOWNLOADS HOTEIS';
 
 app.use(express.json());
 app.use('/img', express.static(PASTA_IMAGENS));
@@ -38,8 +38,8 @@ function calcularDistanciaCarroKm(lat1, lon1, lat2, lon2) {
     return distanciaCarro.toFixed(1);
 }
 
-const LAT_RECIFE = -8.1311546;
-const LNG_RECIFE = -34.9261358;
+const LAT_RECIFE = -2.9066;
+const LNG_RECIFE = -40.3580;
 
 async function rasparDadosHotel(nomeHotel) {
     const termoFormatado = encodeURIComponent(nomeHotel);
