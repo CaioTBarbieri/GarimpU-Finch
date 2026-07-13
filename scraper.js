@@ -1,4 +1,5 @@
 const express = require('express');
+const { exec } = require('child_process');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const cheerio = require('cheerio');
@@ -14,7 +15,7 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
-app.use('/img', express.static(path.join(__dirname, 'img')));
+app.use('/img', express.static('C:\\Users\\User\\Downloads\\Trabaio\\Software\\DOWNLOADS HOTEIS'));
 
 // ==========================================
 // FUNÇÃO MATEMÁTICA CORRIGIDA (Com Fator de Sinuosidade)
@@ -35,8 +36,10 @@ function calcularDistanciaCarroKm(lat1, lon1, lat2, lon2) {
     return distanciaCarro.toFixed(1);
 }
 
-const LAT_RECIFE = -8.1311546;
-const LNG_RECIFE = -34.9261358;
+// Mudar de acordo com a região
+
+const LAT_RECIFE = 2.9066;
+const LNG_RECIFE = -40.3580;
 
 async function rasparDadosHotel(nomeHotel) {
     const termoFormatado = encodeURIComponent(nomeHotel);
@@ -220,7 +223,7 @@ async function rasparDadosHotel(nomeHotel) {
             .map(item => item.url);
 
         const nomeLimpo = nomeOficial.replace(/[^a-zA-Z0-9]/g, '_');
-        const pastaBase = path.resolve(__dirname, 'img');
+        const pastaBase = 'C:\\Users\\User\\Downloads\\Trabaio\\Software\\DOWNLOADS HOTEIS';
         const pastaHotel = path.resolve(pastaBase, nomeLimpo);
         if (!fs.existsSync(pastaBase)) fs.mkdirSync(pastaBase);
         if (!fs.existsSync(pastaHotel)) fs.mkdirSync(pastaHotel);
@@ -254,6 +257,23 @@ async function rasparDadosHotel(nomeHotel) {
 
         await browser.close();
         
+        console.log(`[+] Download concluído. Iniciando a organização por IA...`);
+        
+        await new Promise((resolve) => {
+            const scriptPython = path.resolve(__dirname, 'organizar_hoteis.py');
+            
+            // Chama o Python passando a pasta exata que acabou de ser baixada
+            exec(`python "${scriptPython}" --pasta "${pastaHotel}"`, (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`[-] Erro na organização por IA: ${error.message}`);
+                } else {
+                    console.log(`[+] IA de Organização executada com sucesso!`);
+                    console.log(stdout); // Exibe o log do Python no console do Node
+                }
+                resolve(); 
+            });
+        });
+
         return {
             sucesso: true,
             nome: nomeOficial,

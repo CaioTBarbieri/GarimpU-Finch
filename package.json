@@ -1,0 +1,24 @@
+{
+  "name": "garimpu-finch",
+  "version": "1.0.0",
+  "description": "",
+  "main": "extracao_melhorada.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CaioTBarbieri/GarimpU-Finch.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/CaioTBarbieri/GarimpU-Finch/issues"
+  },
+  "homepage": "https://github.com/CaioTBarbieri/GarimpU-Finch#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
