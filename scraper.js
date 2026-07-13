@@ -4,9 +4,8 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
-const { extrairRegime, extrairDistanciaAeroporto } = require('./extracao_melhorada');
 
-// Algoritmo offline para geração de Plus Codes a partir do GPS
+// Algoritmo offline para geração de Plus Codes
 const { OpenLocationCode } = require('open-location-code');
 const olc = new OpenLocationCode();
 
@@ -16,6 +15,28 @@ const PORT = 3000;
 
 app.use(express.json());
 app.use('/img', express.static(path.join(__dirname, 'img')));
+
+// ==========================================
+// FUNÇÃO MATEMÁTICA CORRIGIDA (Com Fator de Sinuosidade)
+// ==========================================
+function calcularDistanciaCarroKm(lat1, lon1, lat2, lon2) {
+    const R = 6371; 
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    
+    const distanciaLinhaReta = R * c;
+    const fatorCorrecaoRota = 1.23; 
+    const distanciaCarro = distanciaLinhaReta * fatorCorrecaoRota;
+
+    return distanciaCarro.toFixed(1);
+}
+
+const LAT_RECIFE = -8.1311546;
+const LNG_RECIFE = -34.9261358;
 
 async function rasparDadosHotel(nomeHotel) {
     const termoFormatado = encodeURIComponent(nomeHotel);
@@ -27,20 +48,20 @@ async function rasparDadosHotel(nomeHotel) {
     });
     const page = await browser.newPage();
 
+    // Aumentando o timeout da página para aguentar o download em massa
+    page.setDefaultNavigationTimeout(120000); 
+
     try {
         const bloqueadorDeMidia = (req) => {
-            if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) {
-                req.abort();
-            } else {
-                req.continue();
-            }
+            if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) req.abort();
+            else req.continue();
         };
 
         await page.setRequestInterception(true);
         page.on('request', bloqueadorDeMidia);
 
         // ==========================================
-        // FASE 1: BOOKING PESQUISA BÁSICA E REGIME
+        // FASE 1: PESQUISA BÁSICA
         // ==========================================
         await page.goto(urlBusca, { waitUntil: 'domcontentloaded' });
         await page.waitForSelector('[data-testid="property-card"]', { timeout: 15000 });
@@ -60,26 +81,31 @@ async function rasparDadosHotel(nomeHotel) {
                 nota = match ? match[0] : 'Sem nota';
             }
             
-            return { link, nome, enderecoBasico, nota };
+            let regimeExtraido = 'Não informado';
+            const textoCard = card.innerText.toLowerCase();
+            
+            if (textoCard.includes('all inclusive') || textoCard.includes('tudo incluído')) regimeExtraido = 'All Inclusive';
+            else if (textoCard.includes('pensão completa') || textoCard.includes('full board')) regimeExtraido = 'Pensão completa';
+            else if (textoCard.includes('meia pensão') || textoCard.includes('half board')) regimeExtraido = 'Meia pensão';
+            else if (textoCard.includes('café da manhã incluído') || textoCard.includes('pequeno-almoço incluído')) regimeExtraido = 'Café da manhã incluído';
+            else if (textoCard.includes('café da manhã')) regimeExtraido = 'Café da manhã disponível';
+            
+            return { link, nome, enderecoBasico, nota, regimePesquisa: regimeExtraido };
         });
-            // EXTRAÇÃO DE REGIME DE ALIMENTAÇÃO (Meal Plan)
-        
 
         if (!dadosPesquisa) throw new Error("Hotel não encontrado na pesquisa.");
 
         // ==========================================
-        // FASE 2: PÁGINA INTERNA (GPS E AEROPORTO)
+        // FASE 2: PÁGINA INTERNA E GPS
         // ==========================================
         await page.goto(dadosPesquisa.link, { waitUntil: 'domcontentloaded' });
         await new Promise(r => setTimeout(r, 2000));
         const html = await page.content();
 
-
         page.off('request', bloqueadorDeMidia);
         await page.setRequestInterception(false);
 
         const $ = cheerio.load(html);
-        const regime = extrairRegime($, html);
         const nomeOficial = dadosPesquisa.nome || nomeHotel;
         
         let enderecoInterno = '';
@@ -90,7 +116,6 @@ async function rasparDadosHotel(nomeHotel) {
             try {
                 const jsonData = JSON.parse($(el).html());
                 const obj = Array.isArray(jsonData) ? jsonData.find(j => j.address || j.geo) : jsonData;
-                
                 if (obj) {
                     if (obj.address) {
                         const rua = obj.address.streetAddress || '';
@@ -118,15 +143,6 @@ async function rasparDadosHotel(nomeHotel) {
             }
         }
 
-        if (!lat || !lng) {
-            const latMatch = html.match(/b_map_center_latitude\s*=\s*([-0-9.]+)/);
-            const lngMatch = html.match(/b_map_center_longitude\s*=\s*([-0-9.]+)/);
-            if (latMatch && lngMatch) {
-                lat = latMatch[1];
-                lng = lngMatch[1];
-            }
-        }
-
         let enderecoBruto = enderecoInterno || dadosPesquisa.enderecoBasico || 'Morada não localizada';
         let partesEnd = enderecoBruto.split(',').map(p => p.trim());
         let partesUnicas = [];
@@ -138,12 +154,41 @@ async function rasparDadosHotel(nomeHotel) {
         let enderecoFinal = partesUnicas.join(', ');
         let coordenadas = (lat && lng) ? `${lat}, ${lng}` : 'GPS não disponível';
 
-        // EXTRAÇÃO DA DISTÂNCIA DO AEROPORTO
-        const aeroportoFinal = extrairDistanciaAeroporto($);
+        const textoPagina = $('body').text().replace(/\s+/g, ' ');
+        const textoPaginaLower = textoPagina.toLowerCase();
 
-        // ==========================================
-        // FASE 3: CONVERSÃO MATEMÁTICA PARA PLUS CODE
-        // ==========================================
+        // --- AEROPORTO ---
+        let aeroportoFinal = 'Não informado';
+        
+        $('li, div.bui-list__item, div[data-testid="location-poi"]').each((_, el) => {
+            if (aeroportoFinal !== 'Não informado') return;
+            const txt = $(el).text().replace(/\s+/g, ' ').trim();
+            if (txt.toLowerCase().includes('aeroporto') && (txt.toLowerCase().includes('km') || txt.toLowerCase().includes('m'))) {
+                if (txt.length < 150) aeroportoFinal = txt;
+            }
+        });
+
+        if (aeroportoFinal === 'Não informado') {
+            const matchAero = textoPagina.match(/aeroporto[a-zA-ZÀ-ÿ\s\-\/]{0,80}\d+(?:[.,]\d+)?\s*km/i);
+            if (matchAero) aeroportoFinal = matchAero[0].trim();
+        }
+
+        if (aeroportoFinal === 'Não informado' && lat && lng && lat !== 'GPS não disponível') {
+            const distCalculada = calcularDistanciaCarroKm(parseFloat(lat), parseFloat(lng), LAT_RECIFE, LNG_RECIFE);
+            aeroportoFinal = `Aeroporto do Recife a aprox. ${distCalculada} km (Rota de Carro)`;
+        }
+
+        // --- REGIME ---
+        let regimeFinal = dadosPesquisa.regimePesquisa;
+        if (regimeFinal === 'Não informado') {
+            if (textoPaginaLower.includes('all inclusive') || textoPaginaLower.includes('tudo incluído')) regimeFinal = 'All Inclusive';
+            else if (textoPaginaLower.includes('pensão completa')) regimeFinal = 'Pensão completa';
+            else if (textoPaginaLower.includes('meia pensão') || textoPaginaLower.includes('meia-pensão')) regimeFinal = 'Meia pensão';
+            else if (textoPaginaLower.includes('café da manhã incluído') || textoPaginaLower.includes('pequeno-almoço incluído')) regimeFinal = 'Café da manhã incluído';
+            else if (textoPaginaLower.includes('café da manhã') || textoPaginaLower.includes('pequeno-almoço')) regimeFinal = 'Café da manhã disponível';
+        }
+
+        // --- FASE 3: PLUS CODE ---
         let plusCode = 'Não localizado';
         if (lat && lng && lat !== 'GPS não disponível') {
             try {
@@ -152,7 +197,7 @@ async function rasparDadosHotel(nomeHotel) {
         }
 
         // ==========================================
-        // EXTRAÇÃO DE IMAGENS
+        // FASE 4: IMAGENS (AGORA SEM LIMITES!)
         // ==========================================
         const codigoFonteLimpo = html.replace(/\\\//g, '/');
         const regexFotos = /https:\/\/cf\.bstatic\.com[a-zA-Z0-9_\-\/]*?\/images\/hotel[a-zA-Z0-9_\-\/]*?\.jpg[a-zA-Z0-9_\-\/\?\.\=\&\;]*/gi;
@@ -163,15 +208,16 @@ async function rasparDadosHotel(nomeHotel) {
             const urlSemQuery = url.split('?')[0];
             const idImagem = urlSemQuery.split('/').pop(); 
             let prioridade = url.includes('max1280') ? 4 : (url.includes('max1024') ? 3 : (url.includes('max500') ? 2 : 1));
+            
             if (!urlsImagens.has(idImagem) || prioridade > urlsImagens.get(idImagem).prioridade) {
                 urlsImagens.set(idImagem, { url, prioridade });
             }
         });
 
+        // Removida a restrição ".slice(0, 30)". Agora ele puxa todas as HDs disponíveis na matriz da página.
         const imagensArray = Array.from(urlsImagens.values())
             .filter(item => item.prioridade >= 3)
-            .map(item => item.url)
-            .slice(0, 30);
+            .map(item => item.url);
 
         const nomeLimpo = nomeOficial.replace(/[^a-zA-Z0-9]/g, '_');
         const pastaBase = path.resolve(__dirname, 'img');
@@ -181,6 +227,7 @@ async function rasparDadosHotel(nomeHotel) {
 
         const caminhosImagensLocais = [];
 
+        // Como agora são muitas imagens, o processo sequencial pode demorar um pouco
         for (let i = 0; i < imagensArray.length; i++) {
             const url = imagensArray[i];
             const nomeArquivo = `foto_HD_${i + 1}`;
@@ -214,10 +261,11 @@ async function rasparDadosHotel(nomeHotel) {
             coordenadas: coordenadas,
             plusCode: plusCode,
             nota: dadosPesquisa.nota,
-            regime: regime,
+            regime: regimeFinal,
             aeroporto: aeroportoFinal,
             imagens: caminhosImagensLocais
         };
+
     } catch (error) {
         if (browser) await browser.close();
         return { sucesso: false, erro: error.message };
@@ -225,6 +273,10 @@ async function rasparDadosHotel(nomeHotel) {
 }
 
 app.post('/api/buscar', async (req, res) => {
+    // Definindo um timeout estendido no Express (5 minutos) caso sejam muitas fotos
+    req.setTimeout(300000);
+    res.setTimeout(300000);
+    
     const { nome } = req.body;
     if (!nome) return res.status(400).json({ erro: 'O nome do hotel é obrigatório' });
 
@@ -254,7 +306,7 @@ app.get('/', (req, res) => {
                 <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-2">
                     GarimpU Finch
                 </h1>
-                <p class="text-slate-400">Pesquise hotéis, extraia coordenadas geográficas, regimes alimentares e exporte dados estruturados.</p>
+                <p class="text-slate-400">Pesquise hotéis, extraia coordenadas, regimes alimentares e exporte dados CSV.</p>
             </div>
 
             <div class="bg-slate-800 p-6 rounded-2xl shadow-xl max-w-2xl mx-auto mb-12 border border-slate-700">
@@ -271,7 +323,8 @@ app.get('/', (req, res) => {
 
             <div id="loader" class="hidden text-center py-12 animate-pulse">
                 <div class="inline-block w-12 h-12 border-4 border-t-blue-500 border-slate-700 rounded-full animate-spin mb-4"></div>
-                <p class="text-lg text-slate-300 font-medium">Lidando com firewalls e processando imagens em segundo plano...</p>
+                <p class="text-lg text-slate-300 font-medium">Extraindo dados e baixando toda a galeria em HD...</p>
+                <p class="text-sm text-slate-500 mt-2">Aviso: Esse processo pode levar de 1 a 3 minutos dependendo da quantidade de fotos do hotel.</p>
             </div>
 
             <div id="resultadoContainer" class="hidden space-y-8 animate-fade-in">
@@ -284,19 +337,16 @@ app.get('/', (req, res) => {
                         </div>
                         
                         <div class="flex flex-wrap gap-2">
-                            <!-- TAG AEROPORTO -->
                             <span class="bg-slate-900 border border-sky-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 w-max shadow-inner text-slate-300">
                                 <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 <span id="resAeroporto"></span>
                             </span>
 
-                            <!-- TAG REGIME -->
                             <span class="bg-slate-900 border border-orange-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 w-max shadow-inner text-slate-300">
                                 <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"></path></svg>
                                 <span id="resRegime"></span>
                             </span>
                             
-                            <!-- TAG PLUS CODE -->
                             <span id="tagPlusCodeBase" class="bg-slate-900 border px-3 py-1.5 rounded-lg text-sm font-mono flex items-center gap-2 w-max shadow-inner">
                                 <svg id="tagIcon" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
                                 <span id="resPlusCode"></span>
@@ -313,7 +363,7 @@ app.get('/', (req, res) => {
                 <div>
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                         <h3 class="text-xl font-bold text-slate-300 flex items-center gap-2">
-                            <span>Galeria em Alta Resolução</span>
+                            <span>Galeria Completa em Alta Resolução</span>
                             <span id="badgeContador" class="bg-slate-700 text-xs px-2.5 py-1 rounded-full text-slate-300"></span>
                         </h3>
                         
@@ -325,7 +375,7 @@ app.get('/', (req, res) => {
 
                             <button id="btnBaixarTodas" onclick="baixarGaleriaComoZip()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                Transferir Fotos (.ZIP)
+                                Transferir Todas as Fotos (.ZIP)
                             </button>
                         </div>
                     </div>
@@ -342,9 +392,7 @@ app.get('/', (req, res) => {
             function baixarDadosCSV() {
                 if (!dadosAtuais) return;
 
-                // CABEÇALHO ATUALIZADO COM AS 5 COLUNAS ESPECÍFICAS
                 const cabecalho = "Nota de Avaliação,Endereço da Rua,Plus Code,Distância Aeroporto,Regime de Alimentação\\n";
-                
                 const prepararCampo = (str) => '"' + String(str).replace(/"/g, '""') + '"';
 
                 const linha = [
@@ -356,7 +404,6 @@ app.get('/', (req, res) => {
                 ].join(',');
 
                 const conteudoCSV = cabecalho + linha;
-                
                 const blob = new Blob(["\\uFEFF" + conteudoCSV], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a");
                 const url = URL.createObjectURL(blob);
@@ -375,7 +422,7 @@ app.get('/', (req, res) => {
 
                 const textoOriginal = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = \`<div class="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>Criando ZIP...\`;
+                btn.innerHTML = \`<div class="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>Aguarde, compactando centenas de imagens...\`;
 
                 const zip = new JSZip();
                 const nomeHotel = document.getElementById('resNome').innerText.replace(/[^a-zA-Z0-9]/g, '_');
@@ -391,7 +438,7 @@ app.get('/', (req, res) => {
                     const conteudoZip = await zip.generateAsync({ type: 'blob' });
                     const link = document.createElement('a');
                     link.href = URL.createObjectURL(conteudoZip);
-                    link.download = \`\${nomeHotel}_galeria_HD.zip\`;
+                    link.download = \`\${nomeHotel}_galeria_HD_COMPLETA.zip\`;
                     link.click();
                 } catch (err) {
                     alert('Erro ao agrupar ficheiros: ' + err.message);
@@ -430,13 +477,12 @@ app.get('/', (req, res) => {
 
                     dadosAtuais = dados;
 
-                    // Alimenta a Interface Gráfica
                     document.getElementById('resNome').innerText = dados.nome;
                     document.getElementById('resEndereco').innerText = "🏢 " + dados.endereco;
                     document.getElementById('resNota').innerText = dados.nota;
                     document.getElementById('resAeroporto').innerText = dados.aeroporto;
                     document.getElementById('resRegime').innerText = dados.regime;
-                    document.getElementById('badgeContador').innerText = dados.imagens.length + " ficheiros";
+                    document.getElementById('badgeContador').innerText = dados.imagens.length + " ficheiros salvos";
 
                     const tagPlusCodeBase = document.getElementById('tagPlusCodeBase');
                     const tagIcon = document.getElementById('tagIcon');
@@ -470,7 +516,6 @@ app.get('/', (req, res) => {
                     });
 
                     resultadoContainer.classList.remove('hidden');
-                    
                     btnBaixarCSV.classList.remove('hidden');
                     if (dados.imagens.length > 0) btnBaixarTodas.classList.remove('hidden');
 
