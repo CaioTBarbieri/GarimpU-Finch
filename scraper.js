@@ -40,7 +40,20 @@ const LAT_RECIFE = -8.1311546;
 const LNG_RECIFE = -34.9261358;
 
 async function rasparDadosHotel(nomeHotel) {
-    const termoFormatado = encodeURIComponent(nomeHotel);
+    const entrada = nomeHotel.trim();
+    const ehLink = /^https?:\/\//i.test(entrada);
+    const ehLinkBooking = /^https?:\/\/([a-z]{2,3}\.)?booking\.com\//i.test(entrada);
+    let linkBookingNormalizado = entrada;
+
+    if (ehLinkBooking) {
+        const url = new URL(entrada);
+        if (/\/hotel\/[^/]+\/[^/.]+\/?$/i.test(url.pathname)) {
+            url.pathname = url.pathname.replace(/\/$/, '') + '.pt-br.html';
+        }
+        linkBookingNormalizado = url.toString();
+    }
+
+    const termoFormatado = encodeURIComponent(entrada);
     const urlBusca = `https://www.booking.com/searchresults.pt-br.html?ss=${termoFormatado}`;
 
     const browser = await puppeteer.launch({ 
@@ -53,6 +66,10 @@ async function rasparDadosHotel(nomeHotel) {
     page.setDefaultNavigationTimeout(120000); 
 
     try {
+        if (ehLink && !ehLinkBooking) {
+            throw new Error('Cole um link válido da Booking.com.');
+        }
+
         const bloqueadorDeMidia = (req) => {
             if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) req.abort();
             else req.continue();
@@ -64,12 +81,23 @@ async function rasparDadosHotel(nomeHotel) {
         // ==========================================
         // FASE 1: PESQUISA BÁSICA
         // ==========================================
-        await page.goto(urlBusca, { waitUntil: 'domcontentloaded' });
-        await page.waitForSelector('[data-testid="property-card"]', { timeout: 15000 });
-        
-        const dadosPesquisa = await page.evaluate(() => {
-            const card = document.querySelector('[data-testid="property-card"]');
-            if (!card) return null;
+        let dadosPesquisa;
+
+        if (ehLinkBooking) {
+            dadosPesquisa = {
+                link: linkBookingNormalizado,
+                nome: '',
+                enderecoBasico: '',
+                nota: 'Sem nota',
+                regimePesquisa: 'Não informado'
+            };
+        } else {
+            await page.goto(urlBusca, { waitUntil: 'domcontentloaded' });
+            await page.waitForSelector('[data-testid="property-card"]', { timeout: 15000 });
+            
+            dadosPesquisa = await page.evaluate(() => {
+                const card = document.querySelector('[data-testid="property-card"]');
+                if (!card) return null;
             
             const link = card.querySelector('a').href;
             const nome = card.querySelector('[data-testid="title"]')?.innerText?.trim() || '';
@@ -91,8 +119,9 @@ async function rasparDadosHotel(nomeHotel) {
             else if (textoCard.includes('café da manhã incluído') || textoCard.includes('pequeno-almoço incluído')) regimeExtraido = 'Café da manhã incluído';
             else if (textoCard.includes('café da manhã')) regimeExtraido = 'Café da manhã disponível';
             
-            return { link, nome, enderecoBasico, nota, regimePesquisa: regimeExtraido };
-        });
+                return { link, nome, enderecoBasico, nota, regimePesquisa: regimeExtraido };
+            });
+        }
 
         if (!dadosPesquisa) throw new Error("Hotel não encontrado na pesquisa.");
 
@@ -100,6 +129,7 @@ async function rasparDadosHotel(nomeHotel) {
         // FASE 2: PÁGINA INTERNA E GPS
         // ==========================================
         await page.goto(dadosPesquisa.link, { waitUntil: 'domcontentloaded' });
+        await page.waitForSelector('[data-testid="title"], h1, h2.pp-header__title', { timeout: 15000 }).catch(() => {});
         await new Promise(r => setTimeout(r, 2000));
         const html = await page.content();
 
@@ -107,17 +137,29 @@ async function rasparDadosHotel(nomeHotel) {
         await page.setRequestInterception(false);
 
         const $ = cheerio.load(html);
-        const nomeOficial = dadosPesquisa.nome || nomeHotel;
+        let nomeOficial = dadosPesquisa.nome
+            || $('[data-testid="title"], h1, h2.pp-header__title').first().text().replace(/\s+/g, ' ').trim()
+            || entrada;
         
-        let enderecoInterno = '';
+        let enderecoInterno = $('[data-testid="address"], .hp_address_subtitle').first().text().replace(/\s+/g, ' ').trim();
         let lat = '';
         let lng = '';
+
+        if (dadosPesquisa.nota === 'Sem nota') {
+            const textoNota = $('[data-testid="review-score-right-component"], [data-testid="review-score-component"]').first().text();
+            const matchNota = textoNota.match(/\d+(?:[.,]\d+)?/);
+            if (matchNota) dadosPesquisa.nota = matchNota[0].replace('.', ',');
+        }
 
         $('script[type="application/ld+json"]').each((_, el) => {
             try {
                 const jsonData = JSON.parse($(el).html());
                 const obj = Array.isArray(jsonData) ? jsonData.find(j => j.address || j.geo) : jsonData;
                 if (obj) {
+                    if (!dadosPesquisa.nome && obj.name) nomeOficial = obj.name;
+                    if (dadosPesquisa.nota === 'Sem nota' && obj.aggregateRating?.ratingValue) {
+                        dadosPesquisa.nota = String(obj.aggregateRating.ratingValue).replace('.', ',');
+                    }
                     if (obj.address) {
                         const rua = obj.address.streetAddress || '';
                         const cidade = obj.address.addressLocality || '';
@@ -132,6 +174,10 @@ async function rasparDadosHotel(nomeHotel) {
                 }
             } catch (e) { }
         });
+
+        if (ehLinkBooking && nomeOficial === entrada) {
+            throw new Error('A Booking não carregou os dados desse link. Confira se ele abre a página do hotel e tente novamente.');
+        }
 
         if (!lat || !lng) {
             const mapLink = $('a[data-atlas-latlng]').attr('data-atlas-latlng');
@@ -367,7 +413,7 @@ app.get('/', (req, res) => {
 
             <div class="bg-slate-800 p-6 rounded-2xl shadow-xl max-w-2xl mx-auto mb-12 border border-slate-700">
                 <div class="flex gap-4">
-                    <input type="text" id="hotelInput" placeholder="Digite o nome do hotel ou resort..." 
+                    <input type="text" id="hotelInput" placeholder="Digite o nome ou cole o link da Booking..." 
                         class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-blue-500 transition-all"
                         onkeypress="if(event.key === 'Enter') iniciarBusca()">
                     <button id="btnBuscar" onclick="iniciarBusca()" 
@@ -523,7 +569,7 @@ app.get('/', (req, res) => {
 
             async function iniciarBusca() {
                 const nomeInput = document.getElementById('hotelInput').value.trim();
-                if (!nomeInput) return alert('Por favor, introduza o nome de um hotel.');
+                if (!nomeInput) return alert('Digite o nome do hotel ou cole um link da Booking.');
 
                 const loader = document.getElementById('loader');
                 const resultadoContainer = document.getElementById('resultadoContainer');
