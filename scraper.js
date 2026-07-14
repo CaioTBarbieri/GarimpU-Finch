@@ -13,7 +13,7 @@ const olc = new OpenLocationCode();
 puppeteer.use(StealthPlugin());
 const app = express();
 const PORT = 3000;
-// Altere este caminho se precisar, mantive o do seu novo ficheiro:
+// Altere este caminho se precisar:
 const PASTA_IMAGENS = 'C:\\Users\\User\\Downloads\\Trabaio\\Software\\DOWNLOADS HOTEIS';
 
 app.use(express.json());
@@ -41,7 +41,7 @@ function calcularDistanciaCarroKm(lat1, lon1, lat2, lon2) {
 const LAT_RECIFE = -2.9066;
 const LNG_RECIFE = -40.3580;
 
-async function rasparDadosHotel(nomeHotel) {
+async function rasparDadosHotel(nomeHotel, baixarImagensLocal) {
     const termoFormatado = encodeURIComponent(nomeHotel);
     const urlBusca = `https://www.booking.com/searchresults.pt-br.html?ss=${termoFormatado}`;
 
@@ -253,7 +253,7 @@ async function rasparDadosHotel(nomeHotel) {
         }
 
         // ==========================================
-        // FASE 4: IMAGENS
+        // FASE 4: IMAGENS (COM OPÇÃO DE NÃO BAIXAR)
         // ==========================================
         const codigoFonteLimpo = html.replace(/\\\//g, '/');
         const regexFotos = /https:\/\/cf\.bstatic\.com[a-zA-Z0-9_\-\/]*?\/images\/hotel[a-zA-Z0-9_\-\/]*?\.jpg[a-zA-Z0-9_\-\/\?\.\=\&\;]*/gi;
@@ -277,54 +277,65 @@ async function rasparDadosHotel(nomeHotel) {
         const nomeLimpo = nomeOficial.replace(/[^a-zA-Z0-9]/g, '_');
         const pastaBase = PASTA_IMAGENS;
         const pastaHotel = path.resolve(pastaBase, nomeLimpo);
-        if (!fs.existsSync(pastaHotel)) fs.mkdirSync(pastaHotel, { recursive: true });
+        
+        const caminhosImagens = [];
 
-        const caminhosImagensLocais = [];
+        if (baixarImagensLocal) {
+            // Rotina pesada: Salvar fisicamente na máquina
+            if (!fs.existsSync(pastaHotel)) fs.mkdirSync(pastaHotel, { recursive: true });
 
-        for (let i = 0; i < imagensArray.length; i++) {
-            const url = imagensArray[i];
-            const nomeArquivo = `foto_HD_${i + 1}`;
-            const caminhoCompleto = path.resolve(pastaHotel, `${nomeArquivo}.jpg`);
+            for (let i = 0; i < imagensArray.length; i++) {
+                const url = imagensArray[i];
+                const nomeArquivo = `foto_HD_${i + 1}`;
+                const caminhoCompleto = path.resolve(pastaHotel, `${nomeArquivo}.jpg`);
 
-            const resultado = await page.evaluate(async (imageUrl) => {
-                try {
-                    const res = await fetch(imageUrl);
-                    if (!res.ok) return { sucesso: false };
-                    const blob = await res.blob();
-                    return new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve({ sucesso: true, base64: reader.result.split(',')[1] });
-                        reader.readAsDataURL(blob);
-                    });
-                } catch { return { sucesso: false }; }
-            }, url);
+                const resultado = await page.evaluate(async (imageUrl) => {
+                    try {
+                        const res = await fetch(imageUrl);
+                        if (!res.ok) return { sucesso: false };
+                        const blob = await res.blob();
+                        return new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve({ sucesso: true, base64: reader.result.split(',')[1] });
+                            reader.readAsDataURL(blob);
+                        });
+                    } catch { return { sucesso: false }; }
+                }, url);
 
-            if (resultado.sucesso) {
-                fs.writeFileSync(caminhoCompleto, Buffer.from(resultado.base64, 'base64'));
-                caminhosImagensLocais.push(`/img/${encodeURIComponent(nomeLimpo)}/${nomeArquivo}.jpg`);
+                if (resultado.sucesso) {
+                    fs.writeFileSync(caminhoCompleto, Buffer.from(resultado.base64, 'base64'));
+                    caminhosImagens.push(`/img/${encodeURIComponent(nomeLimpo)}/${nomeArquivo}.jpg`);
+                }
             }
+        } else {
+            // Rotina rápida: Apenas retorna os links originais do Booking
+            caminhosImagens.push(...imagensArray);
         }
 
         await browser.close();
         
         // ========================================================
-        // INTEGRAÇÃO COM O ORGANIZADOR EM PYTHON MANTIDA AQUI!
+        // INTEGRAÇÃO COM O ORGANIZADOR EM PYTHON
         // ========================================================
-        console.log(`[+] Download concluído. Iniciando a organização por IA...`);
-        
-        await new Promise((resolve) => {
-            const scriptPython = path.resolve(__dirname, 'organizar_hoteis.py');
+        if (baixarImagensLocal && caminhosImagens.length > 0) {
+            console.log(`\n[+] Download concluído. Iniciando a organização por IA...`);
             
-            exec(`python "${scriptPython}" --pasta "${pastaHotel}"`, (error, stdout, stderr) => {
-                if (error) {
-                    console.error(`[-] Erro na organização por IA: ${error.message}`);
-                } else {
-                    console.log(`[+] IA de Organização executada com sucesso!`);
-                    console.log(stdout); 
-                }
-                resolve(); 
+            await new Promise((resolve) => {
+                const scriptPython = path.resolve(__dirname, 'organizar_hoteis.py');
+                
+                exec(`python "${scriptPython}" --pasta "${pastaHotel}"`, (error, stdout, stderr) => {
+                    if (error) {
+                        console.error(`[-] Erro na organização por IA: ${error.message}`);
+                    } else {
+                        console.log(`[+] IA de Organização executada com sucesso!`);
+                        console.log(stdout); 
+                    }
+                    resolve(); 
+                });
             });
-        });
+        } else {
+            console.log(`\n[!] Download ignorado ou sem imagens. Organização por IA pulada.`);
+        }
         // ========================================================
 
         return {
@@ -336,7 +347,8 @@ async function rasparDadosHotel(nomeHotel) {
             nota: dadosPesquisa.nota,
             regime: regimeFinal,
             aeroporto: aeroportoFinal,
-            imagens: caminhosImagensLocais
+            imagens: caminhosImagens,
+            baixouLocal: baixarImagensLocal
         };
 
     } catch (error) {
@@ -349,10 +361,13 @@ app.post('/api/buscar', async (req, res) => {
     req.setTimeout(300000);
     res.setTimeout(300000);
     
-    const { nome } = req.body;
+    // Recebe a nova variável "baixarImagens"
+    const { nome, baixarImagens } = req.body;
     if (!nome) return res.status(400).json({ erro: 'O nome do hotel é obrigatório' });
 
-    const resultado = await rasparDadosHotel(nome);
+    const deveBaixar = baixarImagens !== undefined ? baixarImagens : true;
+
+    const resultado = await rasparDadosHotel(nome, deveBaixar);
     if (resultado.sucesso) {
         res.json(resultado);
     } else {
@@ -391,13 +406,18 @@ app.get('/', (req, res) => {
                         Pesquisar
                     </button>
                 </div>
+
+                <div class="mt-4 flex items-center gap-3 px-2">
+                    <input type="checkbox" id="checkBaixarImagens" checked 
+                        class="w-5 h-5 rounded bg-slate-900 border-slate-600 text-blue-500 focus:ring-blue-500 cursor-pointer">
+                    <label for="checkBaixarImagens" class="text-sm text-slate-300 cursor-pointer select-none">
+                        Baixar imagens localmente e executar a IA Organizadora <span class="text-slate-500">(Desative para pesquisa rápida apenas textual)</span>
+                    </label>
+                </div>
             </div>
 
             <div id="loader" class="hidden text-center py-12 animate-pulse">
-                <div class="inline-block w-12 h-12 border-4 border-t-blue-500 border-slate-700 rounded-full animate-spin mb-4"></div>
-                <p class="text-lg text-slate-300 font-medium">Extraindo dados e baixando toda a galeria em HD...</p>
-                <p class="text-sm text-slate-500 mt-2">Aviso: Esse processo pode levar de 1 a 3 minutos dependendo da quantidade de fotos do hotel.</p>
-            </div>
+                </div>
 
             <div id="resultadoContainer" class="hidden space-y-8 animate-fade-in">
                 
@@ -409,6 +429,13 @@ app.get('/', (req, res) => {
                         </div>
                         
                         <div class="flex flex-wrap gap-2">
+                            <span class="bg-slate-900 border border-indigo-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 shadow-inner text-slate-300">
+                                <span class="text-indigo-400 font-semibold">ID Wix</span>
+                                <input id="resIdWix" type="text" placeholder="Cole o ID aqui"
+                                    oninput="dadosAtuais.idWix = this.value.trim()"
+                                    class="bg-slate-900 text-slate-200 outline-none min-w-[220px] placeholder:text-slate-600">
+                            </span>
+
                             <span class="bg-slate-900 border border-sky-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 w-max shadow-inner text-slate-300">
                                 <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 <span id="resAeroporto"></span>
@@ -443,7 +470,7 @@ app.get('/', (req, res) => {
                 <div>
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                         <h3 class="text-xl font-bold text-slate-300 flex items-center gap-2">
-                            <span>Galeria Completa em Alta Resolução</span>
+                            <span>Galeria de Imagens</span>
                             <span id="badgeContador" class="bg-slate-700 text-xs px-2.5 py-1 rounded-full text-slate-300"></span>
                         </h3>
                         
@@ -477,7 +504,7 @@ app.get('/', (req, res) => {
                 const distanciaAeroporto = String(dadosAtuais.aeroporto).match(/\\d+(?:[.,]\\d+)?\\s*km/i)?.[0] || dadosAtuais.aeroporto;
 
                 const linha = [
-                    '',
+                    prepararCampo(dadosAtuais.idWix || ''), // <-- ID Wix retornado aqui
                     prepararCampo(dadosAtuais.nota),
                     prepararCampo(dadosAtuais.endereco),
                     prepararCampo(dadosAtuais.plusCode),
@@ -534,12 +561,28 @@ app.get('/', (req, res) => {
                 const nomeInput = document.getElementById('hotelInput').value.trim();
                 if (!nomeInput) return alert('Por favor, introduza o nome de um hotel.');
 
+                const baixarImagensCheckbox = document.getElementById('checkBaixarImagens').checked;
+
                 const loader = document.getElementById('loader');
                 const resultadoContainer = document.getElementById('resultadoContainer');
                 const btnBuscar = document.getElementById('btnBuscar');
                 const btnBaixarTodas = document.getElementById('btnBaixarTodas');
                 const btnBaixarCSV = document.getElementById('btnBaixarCSV');
                 
+                // Configura mensagem baseada na escolha do checkbox
+                if (baixarImagensCheckbox) {
+                    loader.innerHTML = \`
+                        <div class="inline-block w-12 h-12 border-4 border-t-blue-500 border-slate-700 rounded-full animate-spin mb-4"></div>
+                        <p class="text-lg text-slate-300 font-medium">Extraindo dados, salvando ficheiros e executando IA de Organização...</p>
+                        <p class="text-sm text-slate-500 mt-2">Aviso: Esse processo é pesado e pode levar de 1 a 3 minutos.</p>
+                    \`;
+                } else {
+                    loader.innerHTML = \`
+                        <div class="inline-block w-12 h-12 border-4 border-t-blue-500 border-slate-700 rounded-full animate-spin mb-4"></div>
+                        <p class="text-lg text-slate-300 font-medium">Extraindo dados rapidamente (Download e IA ignorados)...</p>
+                    \`;
+                }
+
                 loader.classList.remove('hidden');
                 resultadoContainer.classList.add('hidden');
                 btnBaixarTodas.classList.add('hidden');
@@ -551,15 +594,20 @@ app.get('/', (req, res) => {
                     const response = await fetch('/api/buscar', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nome: nomeInput })
+                        body: JSON.stringify({ 
+                            nome: nomeInput,
+                            baixarImagens: baixarImagensCheckbox
+                        })
                     });
 
                     const dados = await response.json();
                     if (!response.ok) throw new Error(dados.erro || 'Falha no pedido');
 
                     dadosAtuais = dados;
+                    dadosAtuais.idWix = ''; // <-- Zera o ID da memória ao buscar novo hotel
 
                     document.getElementById('resNome').innerText = dados.nome;
+                    document.getElementById('resIdWix').value = ''; // <-- Limpa o input no HTML
                     document.getElementById('resEndereco').innerText = "🏢 " + dados.endereco;
                     document.getElementById('resNota').innerText = dados.nota;
                     document.getElementById('resAeroporto').innerText = dados.aeroporto;
@@ -570,7 +618,7 @@ app.get('/', (req, res) => {
                         : 'Não informado';
                     dadosAtuais.regime = seletorRegime.value;
                     
-                    document.getElementById('badgeContador').innerText = dados.imagens.length + " ficheiros salvos";
+                    document.getElementById('badgeContador').innerText = dados.imagens.length + " ficheiros encontrados";
 
                     const tagPlusCodeBase = document.getElementById('tagPlusCodeBase');
                     const tagIcon = document.getElementById('tagIcon');
@@ -595,7 +643,7 @@ app.get('/', (req, res) => {
                         
                         div.innerHTML = \`
                             <img src="\${src}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 shadow-inner">
-                            <a href="\${src}" download="hotel_foto_\${index + 1}.jpg" title="Transferir Imagem"
+                            <a href="\${src}" target="_blank" download="hotel_foto_\${index + 1}.jpg" title="Abrir / Transferir Imagem"
                                class="absolute bottom-3 right-3 bg-blue-600 hover:bg-blue-400 text-white p-2.5 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform hover:scale-110">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             </a>
@@ -605,7 +653,11 @@ app.get('/', (req, res) => {
 
                     resultadoContainer.classList.remove('hidden');
                     btnBaixarCSV.classList.remove('hidden');
-                    if (dados.imagens.length > 0) btnBaixarTodas.classList.remove('hidden');
+                    
+                    // Só mostra o botão ZIP se existirem fotos E a pessoa optou por baixar as imagens localmente
+                    if (dados.imagens.length > 0 && dados.baixouLocal) {
+                        btnBaixarTodas.classList.remove('hidden');
+                    }
 
                 } catch (err) {
                     alert('Erro na extração: ' + err.message);
