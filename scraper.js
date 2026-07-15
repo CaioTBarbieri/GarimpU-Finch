@@ -39,7 +39,7 @@ function calcularDistanciaCarroKm(lat1, lon1, lat2, lon2) {
 const LAT_RECIFE = -8.1311546;
 const LNG_RECIFE = -34.9261358;
 
-async function rasparDadosHotel(nomeHotel) {
+async function rasparDadosHotel(nomeHotel, baixarImagens = true) {
     const entrada = nomeHotel.trim();
     const ehLink = /^https?:\/\//i.test(entrada);
     const ehLinkBooking = /^https?:\/\/([a-z]{2,3}\.)?booking\.com\//i.test(entrada);
@@ -302,6 +302,9 @@ async function rasparDadosHotel(nomeHotel) {
         // ==========================================
         // FASE 4: IMAGENS (AGORA SEM LIMITES!)
         // ==========================================
+        const caminhosImagensLocais = [];
+
+        if (baixarImagens) {
         const codigoFonteLimpo = html.replace(/\\\//g, '/');
         const regexFotos = /https:\/\/cf\.bstatic\.com[a-zA-Z0-9_\-\/]*?\/images\/hotel[a-zA-Z0-9_\-\/]*?\.jpg[a-zA-Z0-9_\-\/\?\.\=\&\;]*/gi;
         const matches = codigoFonteLimpo.match(regexFotos) || [];
@@ -327,8 +330,6 @@ async function rasparDadosHotel(nomeHotel) {
         const pastaHotel = path.resolve(pastaBase, nomeLimpo);
         if (!fs.existsSync(pastaHotel)) fs.mkdirSync(pastaHotel, { recursive: true });
 
-        const caminhosImagensLocais = [];
-
         // Como agora são muitas imagens, o processo sequencial pode demorar um pouco
         for (let i = 0; i < imagensArray.length; i++) {
             const url = imagensArray[i];
@@ -352,6 +353,8 @@ async function rasparDadosHotel(nomeHotel) {
                 fs.writeFileSync(caminhoCompleto, Buffer.from(resultado.base64, 'base64'));
                 caminhosImagensLocais.push(`/img/${encodeURIComponent(nomeLimpo)}/${nomeArquivo}.jpg`);
             }
+        }
+
         }
 
         await browser.close();
@@ -379,10 +382,10 @@ app.post('/api/buscar', async (req, res) => {
     req.setTimeout(300000);
     res.setTimeout(300000);
     
-    const { nome } = req.body;
+    const { nome, baixarImagens = true } = req.body;
     if (!nome) return res.status(400).json({ erro: 'O nome do hotel é obrigatório' });
 
-    const resultado = await rasparDadosHotel(nome);
+    const resultado = await rasparDadosHotel(nome, baixarImagens);
     if (resultado.sucesso) {
         res.json(resultado);
     } else {
@@ -400,6 +403,7 @@ app.get('/', (req, res) => {
         <title>GarimpU Finch</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     </head>
     <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
         <div class="max-w-6xl mx-auto px-4 py-12">
@@ -421,11 +425,22 @@ app.get('/', (req, res) => {
                         Pesquisar
                     </button>
                 </div>
+                <label class="flex items-center gap-3 mt-4 text-sm text-slate-300 cursor-pointer w-max">
+                    <input id="baixarImagensInput" type="checkbox" checked
+                        class="w-4 h-4 accent-emerald-500 cursor-pointer">
+                    Baixar imagens automaticamente
+                </label>
+                <div class="mt-4">
+                    <label class="text-sm text-slate-300 block mb-2">CSV completo exportado do Wix</label>
+                    <input id="csvWixInput" type="file" accept=".csv,text/csv" onchange="carregarCsvWix(this.files[0])"
+                        class="block w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-indigo-500 cursor-pointer">
+                    <p id="csvWixStatus" class="text-xs text-slate-500 mt-2">Opcional: carregue para preservar todas as colunas na atualização.</p>
+                </div>
             </div>
 
             <div id="loader" class="hidden text-center py-12 animate-pulse">
                 <div class="inline-block w-12 h-12 border-4 border-t-blue-500 border-slate-700 rounded-full animate-spin mb-4"></div>
-                <p class="text-lg text-slate-300 font-medium">Extraindo dados e baixando toda a galeria em HD...</p>
+                <p id="loaderTexto" class="text-lg text-slate-300 font-medium">Extraindo dados e baixando toda a galeria em HD...</p>
                 <p class="text-sm text-slate-500 mt-2">Aviso: Esse processo pode levar de 1 a 3 minutos dependendo da quantidade de fotos do hotel.</p>
             </div>
 
@@ -505,29 +520,96 @@ app.get('/', (req, res) => {
 
         <script>
             let dadosAtuais = null;
+            let csvWix = null;
+
+            function normalizarNome(texto) {
+                return String(texto || '')
+                    .normalize('NFD')
+                    .replace(/[\\u0300-\\u036f]/g, '')
+                    .replace(/[^a-zA-Z0-9]/g, '')
+                    .toLowerCase();
+            }
+
+            function carregarCsvWix(arquivo) {
+                const status = document.getElementById('csvWixStatus');
+                if (!arquivo) {
+                    csvWix = null;
+                    status.innerText = 'Nenhum CSV carregado.';
+                    return;
+                }
+
+                Papa.parse(arquivo, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (resultado) => {
+                        const campos = resultado.meta.fields || [];
+                        if (!campos.includes('ID') || !campos.includes('Nome_Hotel')) {
+                            csvWix = null;
+                            status.innerText = 'Arquivo inválido: faltam as colunas ID ou Nome_Hotel.';
+                            status.className = 'text-xs text-red-400 mt-2';
+                            return;
+                        }
+
+                        csvWix = resultado;
+                        status.innerText = 'CSV carregado: ' + resultado.data.length + ' hotéis e ' + campos.length + ' colunas.';
+                        status.className = 'text-xs text-emerald-400 mt-2';
+                    },
+                    error: (erro) => {
+                        csvWix = null;
+                        status.innerText = 'Erro ao ler o CSV: ' + erro.message;
+                        status.className = 'text-xs text-red-400 mt-2';
+                    }
+                });
+            }
 
             function baixarDadosCSV() {
                 if (!dadosAtuais) return;
 
-                const cabecalho = "ID,Nota de Avaliação,Endereço da Rua,Plus Code,Distância Aeroporto,Regime de Alimentação\\n";
                 const prepararCampo = (str) => '"' + String(str).replace(/"/g, '""') + '"';
                 const distanciaAeroporto = String(dadosAtuais.aeroporto).match(/\\d+(?:[.,]\\d+)?\\s*km/i)?.[0] || dadosAtuais.aeroporto;
+                let conteudoCSV;
+                let nomeArquivo;
 
-                const linha = [
-                    prepararCampo(dadosAtuais.idWix || ''),
-                    prepararCampo(dadosAtuais.nota),
-                    prepararCampo(dadosAtuais.endereco),
-                    prepararCampo(dadosAtuais.plusCode),
-                    prepararCampo(distanciaAeroporto),
-                    prepararCampo(dadosAtuais.regime)
-                ].join(',');
+                if (csvWix) {
+                    const id = dadosAtuais.idWix || '';
+                    const linha = csvWix.data.find(item => item.ID === id);
+                    if (!linha) {
+                        alert('O ID informado não foi encontrado no CSV completo do Wix.');
+                        return;
+                    }
 
-                const conteudoCSV = cabecalho + linha;
+                    linha['Nota de Avaliação'] = dadosAtuais.nota;
+                    linha['Endereço da Rua'] = dadosAtuais.endereco;
+                    linha['Plus Code'] = dadosAtuais.plusCode;
+                    linha['Distância Aeroporto'] = distanciaAeroporto;
+                    linha['Regime de Alimentação'] = dadosAtuais.regime;
+
+                    conteudoCSV = Papa.unparse({
+                        fields: csvWix.meta.fields,
+                        data: csvWix.data
+                    }, { newline: '\\r\\n' });
+                    nomeArquivo = 'Hoteis_texto_atualizado.csv';
+                } else {
+                    const cabecalho = "ID,Nota de Avaliação,Endereço da Rua,Plus Code,Distância Aeroporto,Regime de Alimentação\\n";
+
+                    const linha = [
+                        prepararCampo(dadosAtuais.idWix || ''),
+                        prepararCampo(dadosAtuais.nota),
+                        prepararCampo(dadosAtuais.endereco),
+                        prepararCampo(dadosAtuais.plusCode),
+                        prepararCampo(distanciaAeroporto),
+                        prepararCampo(dadosAtuais.regime)
+                    ].join(',');
+
+                    conteudoCSV = cabecalho + linha;
+                    nomeArquivo = dadosAtuais.nome.replace(/[^a-zA-Z0-9]/g, '_') + "_Dados.csv";
+                }
+
                 const blob = new Blob(["\\uFEFF" + conteudoCSV], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a");
                 const url = URL.createObjectURL(blob);
                 link.setAttribute("href", url);
-                link.setAttribute("download", dadosAtuais.nome.replace(/[^a-zA-Z0-9]/g, '_') + "_Dados.csv");
+                link.setAttribute("download", nomeArquivo);
                 
                 document.body.appendChild(link);
                 link.click();
@@ -569,6 +651,7 @@ app.get('/', (req, res) => {
 
             async function iniciarBusca() {
                 const nomeInput = document.getElementById('hotelInput').value.trim();
+                const baixarImagens = document.getElementById('baixarImagensInput').checked;
                 if (!nomeInput) return alert('Digite o nome do hotel ou cole um link da Booking.');
 
                 const loader = document.getElementById('loader');
@@ -576,6 +659,9 @@ app.get('/', (req, res) => {
                 const btnBuscar = document.getElementById('btnBuscar');
                 const btnBaixarTodas = document.getElementById('btnBaixarTodas');
                 const btnBaixarCSV = document.getElementById('btnBaixarCSV');
+                document.getElementById('loaderTexto').innerText = baixarImagens
+                    ? 'Extraindo dados e baixando toda a galeria em HD...'
+                    : 'Extraindo somente os dados do hotel...';
                 
                 loader.classList.remove('hidden');
                 resultadoContainer.classList.add('hidden');
@@ -588,7 +674,7 @@ app.get('/', (req, res) => {
                     const response = await fetch('/api/buscar', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nome: nomeInput })
+                        body: JSON.stringify({ nome: nomeInput, baixarImagens })
                     });
 
                     const dados = await response.json();
@@ -598,7 +684,12 @@ app.get('/', (req, res) => {
                     dadosAtuais.idWix = '';
 
                     document.getElementById('resNome').innerText = dados.nome;
-                    document.getElementById('resIdWix').value = '';
+                    if (csvWix) {
+                        const nomeNormalizado = normalizarNome(dados.nome);
+                        const itemWix = csvWix.data.find(item => normalizarNome(item.Nome_Hotel) === nomeNormalizado);
+                        if (itemWix) dadosAtuais.idWix = itemWix.ID;
+                    }
+                    document.getElementById('resIdWix').value = dadosAtuais.idWix;
                     document.getElementById('resEndereco').innerText = "🏢 " + dados.endereco;
                     document.getElementById('resNota').innerText = dados.nota;
                     document.getElementById('resAeroporto').innerText = dados.aeroporto;
