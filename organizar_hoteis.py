@@ -274,42 +274,6 @@ def treinar_classificador(modelo, pasta_exemplos):
 
     return clf, categorias_encontradas
 
-    for cat in CATEGORIAS:
-        pasta_cat = pasta_exemplos / cat
-        if not pasta_cat.exists():
-            print(f"   ⚠️  Pasta não encontrada: {pasta_cat}")
-            continue
-
-        imagens = listar_imagens(pasta_cat)
-        print(f"   📁 {cat}: {len(imagens)} imagens")
-
-        if not imagens:
-            continue
-
-        embs, validos = calcular_embeddings(modelo, imagens, desc=f"   {cat}")
-        if len(embs) > 0:
-            X_all.append(embs)
-            y_all.extend([cat] * len(embs))
-            categorias_encontradas.append(cat)
-
-    if not X_all:
-        print("\n❌ Nenhuma imagem de exemplo encontrada. Verifique PASTA_EXEMPLOS.")
-        sys.exit(1)
-
-    X = np.vstack(X_all)
-    y = np.array(y_all)
-
-    # Salva cache
-    np.savez(CACHE_EMBEDDINGS, X=X, y=y, categorias=categorias_encontradas)
-    print(f"\n💾 Cache salvo: {CACHE_EMBEDDINGS}")
-
-    # Treina KNN (leve, rápido, sem GPU)
-    clf = KNeighborsClassifier(n_neighbors=7, metric="cosine", weights="distance")
-    clf.fit(normalize(X), y)
-    print(f"✅ Classificador treinado com {len(X)} imagens!")
-
-    return clf, categorias_encontradas
-
 
 def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
     """Classifica imagens de cada hotel e organiza nas subpastas."""
@@ -355,7 +319,7 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
             print("   👤 Verificando presença de pessoas (YOLO)...")
             for arq in tqdm(imagens, desc="   Detectando pessoas", unit="img"):
                 if parece_foto_com_humano(arq, detector_yolo):
-                    # Move/copia já para _Com_Humanos
+                    # Move/copia já para _Com_Humanos (MANTÉM O NOME ORIGINAL)
                     pasta_dest = pasta_hotel / "_Com_Humanos"
                     pasta_dest.mkdir(exist_ok=True)
                     dest = pasta_dest / arq.name
@@ -411,12 +375,19 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
 
             pasta_dest = pasta_hotel / categoria_dest
             pasta_dest.mkdir(exist_ok=True)
-            dest = pasta_dest / arq.name
+            
+            # --- NOVO: Lógica de renomeio ---
+            nome_hotel = pasta_hotel.name
+            novo_nome_arquivo = f"{categoria_dest} {nome_hotel}{arq.suffix}"
+            dest = pasta_dest / novo_nome_arquivo
 
+            # Checagem caso já exista um arquivo com esse mesmo nome final
             if dest.exists():
-                stem, suffix, c = arq.stem, arq.suffix, 1
+                stem_novo = Path(novo_nome_arquivo).stem
+                suffix = arq.suffix
+                c = 1
                 while dest.exists():
-                    dest = pasta_dest / f"{stem}_{c}{suffix}"
+                    dest = pasta_dest / f"{stem_novo}_{c}{suffix}"
                     c += 1
 
             try:

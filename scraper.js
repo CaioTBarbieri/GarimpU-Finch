@@ -1,4 +1,4 @@
-const { exec } = require('child_process'); // <-- Mantido para a IA
+const { exec } = require('child_process'); // <-- Mantido para a IA do Viny
 const express = require('express');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
@@ -13,7 +13,7 @@ const olc = new OpenLocationCode();
 puppeteer.use(StealthPlugin());
 const app = express();
 const PORT = 3000;
-// Altere este caminho se precisar:
+// Caminho do Viny Restaurado:
 const PASTA_IMAGENS = 'C:\\Users\\User\\Downloads\\Trabaio\\Software\\DOWNLOADS HOTEIS';
 
 app.use(express.json());
@@ -38,11 +38,26 @@ function calcularDistanciaCarroKm(lat1, lon1, lat2, lon2) {
     return distanciaCarro.toFixed(1);
 }
 
-const LAT_RECIFE = -2.9066;
-const LNG_RECIFE = -40.3580;
+// Coordenadas do aeroporto:
+const LAT_RECIFE = -14.8150;
+const LNG_RECIFE = -39.0333;
 
 async function rasparDadosHotel(nomeHotel, baixarImagensLocal) {
-    const termoFormatado = encodeURIComponent(nomeHotel);
+    // Nova lógica do Caio: Detectar Link vs Texto
+    const entrada = nomeHotel.trim();
+    const ehLink = /^https?:\/\//i.test(entrada);
+    const ehLinkBooking = /^https?:\/\/([a-z]{2,3}\.)?booking\.com\//i.test(entrada);
+    let linkBookingNormalizado = entrada;
+
+    if (ehLinkBooking) {
+        const url = new URL(entrada);
+        if (/\/hotel\/[^/]+\/[^/.]+\/?$/i.test(url.pathname)) {
+            url.pathname = url.pathname.replace(/\/$/, '') + '.pt-br.html';
+        }
+        linkBookingNormalizado = url.toString();
+    }
+
+    const termoFormatado = encodeURIComponent(entrada);
     const urlBusca = `https://www.booking.com/searchresults.pt-br.html?ss=${termoFormatado}`;
 
     const browser = await puppeteer.launch({ 
@@ -54,6 +69,10 @@ async function rasparDadosHotel(nomeHotel, baixarImagensLocal) {
     page.setDefaultNavigationTimeout(120000); 
 
     try {
+        if (ehLink && !ehLinkBooking) {
+            throw new Error('Cole um link válido da Booking.com.');
+        }
+
         const bloqueadorDeMidia = (req) => {
             if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) req.abort();
             else req.continue();
@@ -65,35 +84,47 @@ async function rasparDadosHotel(nomeHotel, baixarImagensLocal) {
         // ==========================================
         // FASE 1: PESQUISA BÁSICA
         // ==========================================
-        await page.goto(urlBusca, { waitUntil: 'domcontentloaded' });
-        await page.waitForSelector('[data-testid="property-card"]', { timeout: 15000 });
-        
-        const dadosPesquisa = await page.evaluate(() => {
-            const card = document.querySelector('[data-testid="property-card"]');
-            if (!card) return null;
+        let dadosPesquisa;
+
+        if (ehLinkBooking) {
+            dadosPesquisa = {
+                link: linkBookingNormalizado,
+                nome: '',
+                enderecoBasico: '',
+                nota: 'Sem nota',
+                regimePesquisa: 'Não informado'
+            };
+        } else {
+            await page.goto(urlBusca, { waitUntil: 'domcontentloaded' });
+            await page.waitForSelector('[data-testid="property-card"]', { timeout: 15000 });
             
-            const link = card.querySelector('a').href;
-            const nome = card.querySelector('[data-testid="title"]')?.innerText?.trim() || '';
-            const enderecoBasico = card.querySelector('[data-testid="address"]')?.innerText?.trim() || '';
-            
-            const elementoNota = card.querySelector('[data-testid="review-score"]');
-            let nota = 'Sem nota';
-            if (elementoNota) {
-                const match = elementoNota.innerText.match(/[0-9]+,[0-9]+/);
-                nota = match ? match[0] : 'Sem nota';
-            }
-            
-            let regimeExtraido = 'Não informado';
-            const textoCard = card.innerText.toLowerCase();
-            
-            if (textoCard.includes('all inclusive') || textoCard.includes('tudo incluído')) regimeExtraido = 'All Inclusive';
-            else if (textoCard.includes('pensão completa') || textoCard.includes('full board')) regimeExtraido = 'Pensão completa';
-            else if (textoCard.includes('meia pensão') || textoCard.includes('half board')) regimeExtraido = 'Meia pensão';
-            else if (textoCard.includes('café da manhã incluído') || textoCard.includes('pequeno-almoço incluído')) regimeExtraido = 'Café da manhã incluído';
-            else if (textoCard.includes('café da manhã')) regimeExtraido = 'Café da manhã disponível';
-            
-            return { link, nome, enderecoBasico, nota, regimePesquisa: regimeExtraido };
-        });
+            dadosPesquisa = await page.evaluate(() => {
+                const card = document.querySelector('[data-testid="property-card"]');
+                if (!card) return null;
+                
+                const link = card.querySelector('a').href;
+                const nome = card.querySelector('[data-testid="title"]')?.innerText?.trim() || '';
+                const enderecoBasico = card.querySelector('[data-testid="address"]')?.innerText?.trim() || '';
+                
+                const elementoNota = card.querySelector('[data-testid="review-score"]');
+                let nota = 'Sem nota';
+                if (elementoNota) {
+                    const match = elementoNota.innerText.match(/[0-9]+,[0-9]+/);
+                    nota = match ? match[0] : 'Sem nota';
+                }
+                
+                let regimeExtraido = 'Não informado';
+                const textoCard = card.innerText.toLowerCase();
+                
+                if (textoCard.includes('all inclusive') || textoCard.includes('tudo incluído')) regimeExtraido = 'All Inclusive';
+                else if (textoCard.includes('pensão completa') || textoCard.includes('full board')) regimeExtraido = 'Pensão completa';
+                else if (textoCard.includes('meia pensão') || textoCard.includes('half board')) regimeExtraido = 'Meia pensão';
+                else if (textoCard.includes('café da manhã incluído') || textoCard.includes('pequeno-almoço incluído')) regimeExtraido = 'Café da manhã incluído';
+                else if (textoCard.includes('café da manhã')) regimeExtraido = 'Café da manhã disponível';
+                
+                return { link, nome, enderecoBasico, nota, regimePesquisa: regimeExtraido };
+            });
+        }
 
         if (!dadosPesquisa) throw new Error("Hotel não encontrado na pesquisa.");
 
@@ -101,6 +132,7 @@ async function rasparDadosHotel(nomeHotel, baixarImagensLocal) {
         // FASE 2: PÁGINA INTERNA E GPS
         // ==========================================
         await page.goto(dadosPesquisa.link, { waitUntil: 'domcontentloaded' });
+        await page.waitForSelector('[data-testid="title"], h1, h2.pp-header__title', { timeout: 15000 }).catch(() => {});
         await new Promise(r => setTimeout(r, 2000));
         const html = await page.content();
 
@@ -108,17 +140,29 @@ async function rasparDadosHotel(nomeHotel, baixarImagensLocal) {
         await page.setRequestInterception(false);
 
         const $ = cheerio.load(html);
-        const nomeOficial = dadosPesquisa.nome || nomeHotel;
+        let nomeOficial = dadosPesquisa.nome
+            || $('[data-testid="title"], h1, h2.pp-header__title').first().text().replace(/\s+/g, ' ').trim()
+            || entrada;
         
-        let enderecoInterno = '';
+        let enderecoInterno = $('[data-testid="address"], .hp_address_subtitle').first().text().replace(/\s+/g, ' ').trim();
         let lat = '';
         let lng = '';
+
+        if (dadosPesquisa.nota === 'Sem nota') {
+            const textoNota = $('[data-testid="review-score-right-component"], [data-testid="review-score-component"]').first().text();
+            const matchNota = textoNota.match(/\d+(?:[.,]\d+)?/);
+            if (matchNota) dadosPesquisa.nota = matchNota[0].replace('.', ',');
+        }
 
         $('script[type="application/ld+json"]').each((_, el) => {
             try {
                 const jsonData = JSON.parse($(el).html());
                 const obj = Array.isArray(jsonData) ? jsonData.find(j => j.address || j.geo) : jsonData;
                 if (obj) {
+                    if (!dadosPesquisa.nome && obj.name) nomeOficial = obj.name;
+                    if (dadosPesquisa.nota === 'Sem nota' && obj.aggregateRating?.ratingValue) {
+                        dadosPesquisa.nota = String(obj.aggregateRating.ratingValue).replace('.', ',');
+                    }
                     if (obj.address) {
                         const rua = obj.address.streetAddress || '';
                         const cidade = obj.address.addressLocality || '';
@@ -133,6 +177,10 @@ async function rasparDadosHotel(nomeHotel, baixarImagensLocal) {
                 }
             } catch (e) { }
         });
+
+        if (ehLinkBooking && nomeOficial === entrada) {
+            throw new Error('A Booking não carregou os dados desse link. Confira se ele abre a página do hotel e tente novamente.');
+        }
 
         if (!lat || !lng) {
             const mapLink = $('a[data-atlas-latlng]').attr('data-atlas-latlng');
@@ -217,12 +265,12 @@ async function rasparDadosHotel(nomeHotel, baixarImagensLocal) {
         if (aeroportoFinal === 'Não informado') {
             const matchAero = textoPagina.match(/aeroporto[a-zA-ZÀ-ÿ\s\-\/]{0,80}\d+(?:[.,]\d+)?\s*km/i);
             const distancia = matchAero ? extrairDistanciaKm(matchAero[0]) : null;
-            if (distancia) aeroportoFinal = `${distancia} (Booking)`;
+            if (distancia) aeroportoFinal = `${distancia}`;
         }
 
         if (aeroportoFinal === 'Não informado' && lat && lng && lat !== 'GPS não disponível') {
             const distCalculada = calcularDistanciaCarroKm(parseFloat(lat), parseFloat(lng), LAT_RECIFE, LNG_RECIFE);
-            aeroportoFinal = `${distCalculada} km (calculado pela equação)`;
+            aeroportoFinal = `${distCalculada} km`;
         }
 
         // --- REGIME ---
@@ -253,7 +301,7 @@ async function rasparDadosHotel(nomeHotel, baixarImagensLocal) {
         }
 
         // ==========================================
-        // FASE 4: IMAGENS (COM OPÇÃO DE NÃO BAIXAR)
+        // FASE 4: IMAGENS (AGORA SEM LIMITES + LÓGICA DO VINY)
         // ==========================================
         const codigoFonteLimpo = html.replace(/\\\//g, '/');
         const regexFotos = /https:\/\/cf\.bstatic\.com[a-zA-Z0-9_\-\/]*?\/images\/hotel[a-zA-Z0-9_\-\/]*?\.jpg[a-zA-Z0-9_\-\/\?\.\=\&\;]*/gi;
@@ -281,7 +329,7 @@ async function rasparDadosHotel(nomeHotel, baixarImagensLocal) {
         const caminhosImagens = [];
 
         if (baixarImagensLocal) {
-            // Rotina pesada: Salvar fisicamente na máquina
+            // Rotina pesada do Viny
             if (!fs.existsSync(pastaHotel)) fs.mkdirSync(pastaHotel, { recursive: true });
 
             for (let i = 0; i < imagensArray.length; i++) {
@@ -308,7 +356,7 @@ async function rasparDadosHotel(nomeHotel, baixarImagensLocal) {
                 }
             }
         } else {
-            // Rotina rápida: Apenas retorna os links originais do Booking
+            // Rotina rápida
             caminhosImagens.push(...imagensArray);
         }
 
@@ -361,7 +409,6 @@ app.post('/api/buscar', async (req, res) => {
     req.setTimeout(300000);
     res.setTimeout(300000);
     
-    // Recebe a nova variável "baixarImagens"
     const { nome, baixarImagens } = req.body;
     if (!nome) return res.status(400).json({ erro: 'O nome do hotel é obrigatório' });
 
@@ -385,6 +432,7 @@ app.get('/', (req, res) => {
         <title>GarimpU Finch</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     </head>
     <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
         <div class="max-w-6xl mx-auto px-4 py-12">
@@ -398,7 +446,7 @@ app.get('/', (req, res) => {
 
             <div class="bg-slate-800 p-6 rounded-2xl shadow-xl max-w-2xl mx-auto mb-12 border border-slate-700">
                 <div class="flex gap-4">
-                    <input type="text" id="hotelInput" placeholder="Digite o nome do hotel ou resort..." 
+                    <input type="text" id="hotelInput" placeholder="Digite o nome ou cole o link da Booking..." 
                         class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-blue-500 transition-all"
                         onkeypress="if(event.key === 'Enter') iniciarBusca()">
                     <button id="btnBuscar" onclick="iniciarBusca()" 
@@ -406,18 +454,25 @@ app.get('/', (req, res) => {
                         Pesquisar
                     </button>
                 </div>
-
+                
                 <div class="mt-4 flex items-center gap-3 px-2">
                     <input type="checkbox" id="checkBaixarImagens" checked 
                         class="w-5 h-5 rounded bg-slate-900 border-slate-600 text-blue-500 focus:ring-blue-500 cursor-pointer">
                     <label for="checkBaixarImagens" class="text-sm text-slate-300 cursor-pointer select-none">
-                        Baixar imagens localmente e executar a IA Organizadora <span class="text-slate-500">(Desative para pesquisa rápida apenas textual)</span>
+                        Baixar imagens localmente e executar a IA Organizadora <span class="text-slate-500">(Desative para pesquisa rápida)</span>
                     </label>
+                </div>
+
+                <div class="mt-4 px-2">
+                    <label class="text-sm text-slate-300 block mb-2">CSV completo exportado do Wix (Atualização Automática)</label>
+                    <input id="csvWixInput" type="file" accept=".csv,text/csv" onchange="carregarCsvWix(this.files[0])"
+                        class="block w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-indigo-500 cursor-pointer">
+                    <p id="csvWixStatus" class="text-xs text-slate-500 mt-2">Opcional: carregue para preservar todas as colunas ao exportar.</p>
                 </div>
             </div>
 
             <div id="loader" class="hidden text-center py-12 animate-pulse">
-                </div>
+            </div>
 
             <div id="resultadoContainer" class="hidden space-y-8 animate-fade-in">
                 
@@ -495,71 +550,155 @@ app.get('/', (req, res) => {
 
         <script>
             let dadosAtuais = null;
+            let csvWix = null;
 
-            function baixarDadosCSV() {
-                if (!dadosAtuais) return;
-
-                const cabecalho = "ID,Nota de Avaliação,Endereço da Rua,Plus Code,Distância Aeroporto,Regime de Alimentação\\n";
-                const prepararCampo = (str) => '"' + String(str).replace(/"/g, '""') + '"';
-                const distanciaAeroporto = String(dadosAtuais.aeroporto).match(/\\d+(?:[.,]\\d+)?\\s*km/i)?.[0] || dadosAtuais.aeroporto;
-
-                const linha = [
-                    prepararCampo(dadosAtuais.idWix || ''), // <-- ID Wix retornado aqui
-                    prepararCampo(dadosAtuais.nota),
-                    prepararCampo(dadosAtuais.endereco),
-                    prepararCampo(dadosAtuais.plusCode),
-                    prepararCampo(distanciaAeroporto),
-                    prepararCampo(dadosAtuais.regime)
-                ].join(',');
-
-                const conteudoCSV = cabecalho + linha;
-                const blob = new Blob(["\\uFEFF" + conteudoCSV], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", dadosAtuais.nome.replace(/[^a-zA-Z0-9]/g, '_') + "_Dados.csv");
-                
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+            function normalizarNome(texto) {
+                return String(texto || '')
+                    .normalize('NFD')
+                    .replace(/[\\u0300-\\u036f]/g, '')
+                    .replace(/[^a-zA-Z0-9]/g, '')
+                    .toLowerCase();
             }
 
-            async function baixarGaleriaComoZip() {
-                const btn = document.getElementById('btnBaixarTodas');
-                const imagens = document.querySelectorAll('#galeriaGrid img');
-                if (imagens.length === 0) return;
+            function carregarCsvWix(arquivo) {
+                const status = document.getElementById('csvWixStatus');
+                if (!arquivo) {
+                    csvWix = null;
+                    status.innerText = 'Nenhum CSV carregado.';
+                    return;
+                }
 
-                const textoOriginal = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = \`<div class="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>Aguarde, compactando...\`;
+                Papa.parse(arquivo, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (resultado) => {
+                        const campos = resultado.meta.fields || [];
+                        if (!campos.includes('ID') || !campos.includes('Nome_Hotel')) {
+                            csvWix = null;
+                            status.innerText = 'Arquivo inválido: faltam as colunas ID ou Nome_Hotel.';
+                            status.className = 'text-xs text-red-400 mt-2';
+                            return;
+                        }
 
-                const zip = new JSZip();
-                const nomeHotel = document.getElementById('resNome').innerText.replace(/[^a-zA-Z0-9]/g, '_');
+                        csvWix = resultado;
+                        status.innerText = 'CSV carregado: ' + resultado.data.length + ' hotéis e ' + campos.length + ' colunas.';
+                        status.className = 'text-xs text-emerald-400 mt-2';
+                    },
+                    error: (erro) => {
+                        csvWix = null;
+                        status.innerText = 'Erro ao ler o CSV: ' + erro.message;
+                        status.className = 'text-xs text-red-400 mt-2';
+                    }
+                });
+            }
 
+            function baixarDadosCSV() {
                 try {
-                    for (let i = 0; i < imagens.length; i++) {
-                        const src = imagens[i].src;
-                        const response = await fetch(src);
-                        const blob = await response.blob();
-                        zip.file(\`foto_HD_\${i + 1}.jpg\`, blob);
+                    if (!dadosAtuais) {
+                        alert('Nenhum dado para exportar. Faça uma pesquisa primeiro.');
+                        return;
                     }
 
-                    const conteudoZip = await zip.generateAsync({ type: 'blob' });
+                    const prepararCampo = (str) => {
+                        const limpo = String(str || '').replace(/"/g, '""');
+                        return '"' + limpo + '"';
+                    };
+
+                    // Extrai a quilometragem de forma segura
+                    let distanciaAeroporto = dadosAtuais.aeroporto || 'Não informado';
+                    const matchAero = String(distanciaAeroporto).match(/[0-9]+(?:[.,][0-9]+)?\s*km/i);
+                    if (matchAero) {
+                        distanciaAeroporto = matchAero[0];
+                    }
+
+                    let conteudoCSV = '';
+                    let nomeArquivo = '';
+
+                    // Lógica se a planilha do Wix foi carregada
+                    if (csvWix && csvWix.data) {
+                        const id = (dadosAtuais.idWix || '').trim();
+                        if (!id) {
+                            alert('Você carregou a planilha do Wix, mas não colou o ID do hotel. Preencha o ID antes de exportar.');
+                            return;
+                        }
+
+                        const linha = csvWix.data.find(item => String(item.ID).trim() === id);
+                        if (!linha) {
+                            alert('O ID "' + id + '" não foi encontrado na planilha do Wix. Confira se copiou corretamente.');
+                            return;
+                        }
+
+                        // ==========================================
+                        // CORREÇÃO: Forçar a criação das colunas no cabeçalho
+                        // ==========================================
+                        const colunasNovas = [
+                            'Nota de Avaliação', 
+                            'Endereço da Rua', 
+                            'Plus Code', 
+                            'Distância Aeroporto', 
+                            'Regime de Alimentação'
+                        ];
+
+                        colunasNovas.forEach(coluna => {
+                            if (!csvWix.meta.fields.includes(coluna)) {
+                                csvWix.meta.fields.push(coluna);
+                            }
+                        });
+
+                        // Atualiza a linha existente
+                        linha['Nota de Avaliação'] = String(dadosAtuais.nota || '');
+                        linha['Endereço da Rua'] = String(dadosAtuais.endereco || '');
+                        linha['Plus Code'] = String(dadosAtuais.plusCode || '');
+                        linha['Distância Aeroporto'] = String(distanciaAeroporto);
+                        linha['Regime de Alimentação'] = String(dadosAtuais.regime || 'Não informado');
+
+                        conteudoCSV = Papa.unparse({
+                            fields: csvWix.meta.fields,
+                            data: csvWix.data
+                        });
+                        nomeArquivo = 'Hoteis_texto_atualizado.csv';
+                    } else {
+                        // Lógica de exportação simples (Sem Wix)
+                        const cabecalho = ['ID', 'Nota de Avaliação', 'Endereço da Rua', 'Plus Code', 'Distância Aeroporto', 'Regime de Alimentação'].join(',');
+                        
+                        const linha = [
+                            prepararCampo(dadosAtuais.idWix || ''),
+                            prepararCampo(dadosAtuais.nota),
+                            prepararCampo(dadosAtuais.endereco),
+                            prepararCampo(dadosAtuais.plusCode),
+                            prepararCampo(distanciaAeroporto),
+                            prepararCampo(dadosAtuais.regime)
+                        ].join(',');
+
+                        conteudoCSV = cabecalho + '\\n' + linha;
+                        const nomeBase = (dadosAtuais.nome || 'Hotel').replace(/[^a-zA-Z0-9]/g, '_');
+                        nomeArquivo = nomeBase + '_Dados.csv';
+                    }
+
+                    // Força a codificação UTF-8 correta (BOM) em bytes para o Excel não quebrar os acentos
+                    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+                    const blob = new Blob([bom, conteudoCSV], { type: 'text/csv;charset=utf-8;' });
+                    
                     const link = document.createElement('a');
-                    link.href = URL.createObjectURL(conteudoZip);
-                    link.download = \`\${nomeHotel}_galeria_HD.zip\`;
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', nomeArquivo);
+                    link.style.display = 'none';
+                    
+                    document.body.appendChild(link);
                     link.click();
-                } catch (err) {
-                    alert('Erro ao agrupar ficheiros: ' + err.message);
-                } finally {
-                    btn.disabled = false;
-                    btn.innerHTML = textoOriginal;
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+
+                } catch (erro) {
+                    console.error(erro);
+                    alert('Erro ao gerar o CSV: ' + erro.message);
                 }
             }
 
             async function iniciarBusca() {
                 const nomeInput = document.getElementById('hotelInput').value.trim();
-                if (!nomeInput) return alert('Por favor, introduza o nome de um hotel.');
+                if (!nomeInput) return alert('Digite o nome do hotel ou cole um link da Booking.');
 
                 const baixarImagensCheckbox = document.getElementById('checkBaixarImagens').checked;
 
@@ -569,11 +708,10 @@ app.get('/', (req, res) => {
                 const btnBaixarTodas = document.getElementById('btnBaixarTodas');
                 const btnBaixarCSV = document.getElementById('btnBaixarCSV');
                 
-                // Configura mensagem baseada na escolha do checkbox
                 if (baixarImagensCheckbox) {
                     loader.innerHTML = \`
                         <div class="inline-block w-12 h-12 border-4 border-t-blue-500 border-slate-700 rounded-full animate-spin mb-4"></div>
-                        <p class="text-lg text-slate-300 font-medium">Extraindo dados, salvando ficheiros e executando IA de Organização...</p>
+                        <p class="text-lg text-slate-300 font-medium">Extraindo dados, baixando toda a galeria e executando IA de Organização...</p>
                         <p class="text-sm text-slate-500 mt-2">Aviso: Esse processo é pesado e pode levar de 1 a 3 minutos.</p>
                     \`;
                 } else {
@@ -604,10 +742,17 @@ app.get('/', (req, res) => {
                     if (!response.ok) throw new Error(dados.erro || 'Falha no pedido');
 
                     dadosAtuais = dados;
-                    dadosAtuais.idWix = ''; // <-- Zera o ID da memória ao buscar novo hotel
+                    dadosAtuais.idWix = ''; 
 
                     document.getElementById('resNome').innerText = dados.nome;
-                    document.getElementById('resIdWix').value = ''; // <-- Limpa o input no HTML
+                    
+                    if (csvWix) {
+                        const nomeNormalizado = normalizarNome(dados.nome);
+                        const itemWix = csvWix.data.find(item => normalizarNome(item.Nome_Hotel) === nomeNormalizado);
+                        if (itemWix) dadosAtuais.idWix = itemWix.ID;
+                    }
+                    
+                    document.getElementById('resIdWix').value = dadosAtuais.idWix; 
                     document.getElementById('resEndereco').innerText = "🏢 " + dados.endereco;
                     document.getElementById('resNota').innerText = dados.nota;
                     document.getElementById('resAeroporto').innerText = dados.aeroporto;
@@ -654,7 +799,6 @@ app.get('/', (req, res) => {
                     resultadoContainer.classList.remove('hidden');
                     btnBaixarCSV.classList.remove('hidden');
                     
-                    // Só mostra o botão ZIP se existirem fotos E a pessoa optou por baixar as imagens localmente
                     if (dados.imagens.length > 0 && dados.baixouLocal) {
                         btnBaixarTodas.classList.remove('hidden');
                     }
