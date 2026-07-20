@@ -1,0 +1,333 @@
+{
+  "versao": 1,
+  "idioma_das_descricoes": "pt-BR",
+  "idioma_dos_prompts_clip": "en",
+  "modelo_do_alt": "{descricao} {preposicao} {hotel}",
+  "orientacoes_seo": [
+    "Começar pelo conteúdo visual mais importante.",
+    "Incluir o nome da hospedagem apenas uma vez.",
+    "Não incluir o número sequencial do arquivo no alt text.",
+    "Não usar palavras como melhor, luxo, exclusivo, cinco estrelas ou promoção.",
+    "Não afirmar características invisíveis, como piscina aquecida, cama king ou varanda privativa.",
+    "Preferir uma descrição curta, natural e fiel à imagem."
+  ],
+  "categorias": {
+    "entretenimento": {
+      "nome_generico": "Área de lazer",
+      "cenas": [
+        {
+          "id": "piscina_externa",
+          "descricao": "Piscina externa",
+          "prompts": [
+            "an outdoor swimming pool at a hotel",
+            "an outdoor resort pool under the sky",
+            "a hotel swimming pool surrounded by outdoor furniture"
+          ]
+        },
+        {
+          "id": "piscina_interna",
+          "descricao": "Piscina interna",
+          "prompts": [
+            "an indoor swimming pool at a hotel",
+            "a covered resort swimming pool",
+            "an indoor hotel pool inside a building"
+          ]
+        },
+        {
+          "id": "piscina_borda_infinita",
+          "descricao": "Piscina com borda infinita",
+          "prompts": [
+            "an infinity pool at a luxury hotel",
+            "a resort infinity swimming pool overlooking a landscape",
+            "a swimming pool with an infinity edge"
+          ]
+        },
+        {
+          "id": "academia",
+          "descricao": "Academia",
+          "prompts": [
+            "a hotel gym with exercise equipment",
+            "a fitness room with treadmills and weights",
+            "a resort fitness center"
+          ]
+        },
+        {
+          "id": "spa",
+          "descricao": "Spa",
+          "prompts": [
+            "a hotel spa and wellness area",
+            "a resort spa interior",
+            "a tranquil wellness spa inside a hotel"
+          ]
+        },
+        {
+          "id": "sala_massagem",
+          "descricao": "Sala de massagem",
+          "prompts": [
+            "a massage room with a massage table",
+            "a hotel spa treatment room",
+            "a wellness treatment room inside a resort"
+          ]
+        },
+        {
+          "id": "sauna",
+          "descricao": "Sauna",
+          "prompts": [
+            "a wooden sauna room",
+            "a hotel steam room or sauna",
+            "the interior of a resort sauna"
+          ]
+        },
+        {
+          "id": "praia",
+          "descricao": "Praia",
+          "prompts": [
+            "a sandy beach in front of a hotel",
+            "a tropical resort beach by the sea",
+            "a beach with ocean and sand"
+          ]
+        },
+        {
+          "id": "jardim",
+          "descricao": "Jardim",
+          "prompts": [
+            "a landscaped hotel garden",
+            "a tropical resort garden with plants",
+            "a garden area at a hotel"
+          ]
+        },
+        {
+          "id": "sala_jogos",
+          "descricao": "Sala de jogos",
+          "prompts": [
+            "a hotel game room",
+            "a recreation room with games",
+            "a games room with a billiard table"
+          ]
+        },
+        {
+          "id": "recepcao_lobby",
+          "descricao": "Recepção e lobby",
+          "prompts": [
+            "a hotel reception desk and lobby",
+            "a resort entrance lobby",
+            "a hotel lobby with a reception counter"
+          ]
+        },
+        {
+          "id": "fachada",
+          "descricao": "Fachada da hospedagem",
+          "prompts": [
+            "the exterior facade of a hotel building",
+            "the front entrance of a resort",
+            "a hotel building viewed from outside"
+          ]
+        },
+        {
+          "id": "area_externa",
+          "descricao": "Área externa",
+          "prompts": [
+            "an outdoor lounge area at a hotel",
+            "a resort exterior with outdoor seating",
+            "an outdoor common area of a hotel"
+          ]
+        }
+      ]
+    },
+    "acomodacoes": {
+      "nome_generico": "Acomodação",
+      "cenas": [
+        {
+          "id": "quarto_cama",
+          "descricao": "Quarto com cama",
+          "prompts": [
+            "a hotel bedroom with one bed",
+            "a guest room with a large bed",
+            "a hotel room interior centered on a bed"
+          ]
+        },
+        {
+          "id": "quarto_duas_camas",
+          "descricao": "Quarto com duas camas",
+          "prompts": [
+            "a hotel bedroom with two separate beds",
+            "a twin bed hotel room",
+            "a guest room containing two beds"
+          ]
+        },
+        {
+          "id": "banheiro_chuveiro",
+          "descricao": "Banheiro com chuveiro",
+          "prompts": [
+            "a hotel bathroom with a shower",
+            "a bathroom with shower sink and toilet",
+            "a guest room bathroom with a glass shower"
+          ]
+        },
+        {
+          "id": "banheiro_banheira",
+          "descricao": "Banheiro com banheira",
+          "prompts": [
+            "a hotel bathroom with a bathtub",
+            "a bathroom with a freestanding bathtub",
+            "a bathtub inside a guest room bathroom"
+          ]
+        },
+        {
+          "id": "varanda",
+          "descricao": "Varanda da acomodação",
+          "prompts": [
+            "a balcony attached to a hotel room",
+            "a hotel room balcony with outdoor furniture",
+            "a terrace directly outside a guest room"
+          ]
+        },
+        {
+          "id": "sala_acomodacao",
+          "descricao": "Sala da acomodação",
+          "prompts": [
+            "a living room inside a hotel accommodation",
+            "a guest suite lounge with a sofa",
+            "a sitting area inside a hotel room"
+          ]
+        },
+        {
+          "id": "vista_acomodacao",
+          "descricao": "Vista da acomodação",
+          "prompts": [
+            "a scenic view from inside a hotel room",
+            "a landscape viewed through a guest room window",
+            "the view from a hotel room balcony"
+          ]
+        },
+        {
+          "id": "detalhe_acomodacao",
+          "descricao": "Detalhe da acomodação",
+          "prompts": [
+            "a close-up detail of hotel room decor",
+            "a decorative detail inside a guest room",
+            "hotel room furniture and interior decoration detail"
+          ]
+        }
+      ]
+    },
+    "gastronomia": {
+      "nome_generico": "Gastronomia",
+      "cenas": [
+        {
+          "id": "buffet_cafe_manha",
+          "descricao": "Buffet de café da manhã",
+          "prompts": [
+            "a hotel breakfast buffet with many dishes",
+            "a breakfast buffet counter at a hotel",
+            "a self service breakfast buffet"
+          ]
+        },
+        {
+          "id": "cafe_manha_servido",
+          "descricao": "Café da manhã servido",
+          "prompts": [
+            "breakfast served on a table with coffee",
+            "a plated hotel breakfast",
+            "a breakfast table with coffee bread and fruit"
+          ]
+        },
+        {
+          "id": "restaurante",
+          "descricao": "Restaurante",
+          "prompts": [
+            "a restaurant dining room inside a hotel",
+            "a resort restaurant with dining tables",
+            "a hotel restaurant interior"
+          ]
+        },
+        {
+          "id": "restaurante_externo",
+          "descricao": "Área externa do restaurante",
+          "prompts": [
+            "an outdoor restaurant at a hotel",
+            "an open air resort dining area",
+            "restaurant tables on an outdoor terrace"
+          ]
+        },
+        {
+          "id": "bar",
+          "descricao": "Bar",
+          "prompts": [
+            "a hotel bar with bottles and glasses",
+            "a cocktail bar inside a resort",
+            "a bar counter with drinks"
+          ]
+        },
+        {
+          "id": "prato_servido",
+          "descricao": "Prato servido",
+          "prompts": [
+            "a prepared restaurant meal served on a plate",
+            "a close-up of a plated food dish",
+            "a plated dish served at a hotel restaurant"
+          ]
+        },
+        {
+          "id": "sobremesa",
+          "descricao": "Sobremesa",
+          "prompts": [
+            "a dessert served on a plate",
+            "a plated restaurant dessert",
+            "a close-up of a sweet dessert dish"
+          ]
+        },
+        {
+          "id": "mesa_preparada",
+          "descricao": "Mesa preparada",
+          "prompts": [
+            "a restaurant table set for dining",
+            "a dining table prepared with plates and glasses",
+            "a table setting at a hotel restaurant"
+          ]
+        }
+      ]
+    },
+    "criancas": {
+      "nome_generico": "Espaço infantil",
+      "cenas": [
+        {
+          "id": "brinquedoteca",
+          "descricao": "Brinquedoteca",
+          "prompts": [
+            "a children's playroom with toys",
+            "an indoor kids club at a hotel",
+            "a colorful playroom for children"
+          ]
+        },
+        {
+          "id": "playground",
+          "descricao": "Playground",
+          "prompts": [
+            "an outdoor children's playground",
+            "a hotel playground for kids",
+            "an outdoor play area with slides"
+          ]
+        },
+        {
+          "id": "piscina_infantil",
+          "descricao": "Piscina infantil",
+          "prompts": [
+            "a shallow swimming pool for children",
+            "a kids pool at a family resort",
+            "a children's splash pool"
+          ]
+        },
+        {
+          "id": "espaco_infantil",
+          "descricao": "Espaço infantil",
+          "prompts": [
+            "a children's area inside a hotel",
+            "a family hotel area designed for kids",
+            "a room designed for young children"
+          ]
+        }
+      ]
+    }
+  }
+}
