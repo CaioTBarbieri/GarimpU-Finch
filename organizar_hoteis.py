@@ -2,7 +2,7 @@
 =============================================================================
   ORGANIZADOR DE IMAGENS DE HOTÉIS
   Classifica imagens em: Entretenimento, Gastronomia, Acomodações, Crianças
-  
+
   - Sem API key, sem GPU necessária
   - Usa CLIP (OpenAI) via sentence-transformers, roda 100% local na CPU
   - Aprende com suas imagens já categorizadas (~3k exemplos)
@@ -46,7 +46,18 @@ import numpy as np
 from pathlib import Path
 from tqdm import tqdm
 import warnings
+
 warnings.filterwarnings("ignore")
+
+
+def emitir_status(etapa, **dados):
+    """Emite uma linha JSON que pode ser consumida incrementalmente pelo Node.js."""
+    payload = {"etapa": etapa, **dados}
+    print(
+        "STATUS_JSON:" + json.dumps(payload, ensure_ascii=False),
+        flush=True,
+    )
+
 
 # Pasta com suas ~3k imagens já categorizadas (subpastas = categorias)
 PASTA_EXEMPLOS = r"C:\Users\User\Downloads\Novo Garimpu\GarimpU-Finch\Fotos exemplos"
@@ -92,7 +103,9 @@ def verificar_dependencias():
     try:
         import torch
     except ImportError:
-        faltando.append("torch torchvision --index-url https://download.pytorch.org/whl/cpu")
+        faltando.append(
+            "torch torchvision --index-url https://download.pytorch.org/whl/cpu"
+        )
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError:
@@ -108,7 +121,9 @@ def verificar_dependencias():
     try:
         from ultralytics import YOLO
     except ImportError:
-        faltando.append("ultralytics  # detector de pessoas — muito mais preciso que CLIP")
+        faltando.append(
+            "ultralytics  # detector de pessoas — muito mais preciso que CLIP"
+        )
     try:
         import transformers
     except ImportError:
@@ -129,6 +144,7 @@ def verificar_dependencias():
 def carregar_modelo():
     """Carrega o modelo CLIP leve (ViT-B/32). ~350MB, baixa uma vez."""
     from sentence_transformers import SentenceTransformer
+
     print("\n🔄 Carregando modelo CLIP (pode demorar na primeira vez ~350MB)...")
     # clip-ViT-B-32 é rápido na CPU e excelente para imagens de hotel
     modelo = SentenceTransformer("clip-ViT-B-32")
@@ -139,10 +155,8 @@ def carregar_modelo():
 def listar_imagens(pasta):
     """Lista todos os arquivos de imagem em uma pasta (não recursivo)."""
     pasta = Path(pasta)
-    return [
-        f for f in pasta.iterdir()
-        if f.is_file() and f.suffix.lower() in EXTENSOES
-    ]
+    return [f for f in pasta.iterdir() if f.is_file() and f.suffix.lower() in EXTENSOES]
+
 
 def limpar_para_nome_arquivo(texto):
     """Limpa a descrição do Florence preservando espaços."""
@@ -157,11 +171,12 @@ def limpar_para_nome_arquivo(texto):
 
     return texto_limpo or "imagem"
 
+
 def carregar_florence():
     """Carrega o modelo Florence-2."""
     from transformers import AutoProcessor, AutoModelForCausalLM
     import transformers.dynamic_module_utils
-    
+
     # --- TRUQUE CORRIGIDO PARA RODAR NA CPU ---
     # Desativa a checagem rigorosa de pacotes da Hugging Face.
     # Retornamos uma lista vazia [] para não quebrar o loop interno da biblioteca.
@@ -213,6 +228,7 @@ def carregar_detector_yolo():
     proporção e contexto de uma pessoa fotografada de verdade.
     """
     from ultralytics import YOLO
+
     print("\n🔄 Carregando detector de pessoas (YOLOv8n, ~6MB)...")
     # yolov8n é o modelo nano — rápido na CPU e preciso o suficiente para este caso
     detector = YOLO("yolov8n.pt")
@@ -235,7 +251,7 @@ def parece_foto_com_humano(caminho_imagem, detector_yolo):
     try:
         resultados = detector_yolo(
             str(caminho_imagem),
-            classes=[0],              # classe 0 = person (COCO)
+            classes=[0],  # classe 0 = person (COCO)
             conf=CONFIANCA_YOLO_HUMANO,
             verbose=False,
         )
@@ -270,7 +286,9 @@ def treinar_classificador(modelo, pasta_exemplos):
         X = dados["X"]
         y = dados["y"]
         categorias_cache = list(dados["categorias"])
-        print(f"   ✅ Cache carregado: {len(X)} imagens, categorias: {categorias_cache}")
+        print(
+            f"   ✅ Cache carregado: {len(X)} imagens, categorias: {categorias_cache}"
+        )
 
         clf = KNeighborsClassifier(n_neighbors=7, metric="cosine", weights="distance")
         clf.fit(normalize(X), y)
@@ -324,11 +342,32 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
     from PIL import Image
 
     pasta_hoteis = Path(pasta_hoteis)
-    
+
     if listar_imagens(pasta_hoteis):
         pastas_hoteis = [pasta_hoteis]
     else:
-        pastas_hoteis = [p for p in pasta_hoteis.iterdir() if p.is_dir()]
+        pastas_hoteis = [
+            p
+            for p in pasta_hoteis.iterdir()
+            if p.is_dir() and listar_imagens(p)
+        ]
+
+    imagens_por_hotel = {
+        pasta_hotel: listar_imagens(pasta_hotel)
+        for pasta_hotel in pastas_hoteis
+    }
+    total_imagens_geral = sum(
+        len(imagens) for imagens in imagens_por_hotel.values()
+    )
+    imagens_processadas_geral = 0
+
+    emitir_status(
+        etapa="contagem_concluida",
+        totalImagensGeral=total_imagens_geral,
+        imagensProcessadasGeral=0,
+        imagensPendentesGeral=total_imagens_geral,
+        mensagem=f"{total_imagens_geral} imagens aguardando processamento.",
+    )
 
     if not pastas_hoteis:
         print(f"\n❌ Nenhuma imagem ou pasta de hotel encontrada em: {pasta_hoteis}")
@@ -336,16 +375,26 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
 
     print(f"\n🏨 {len(pastas_hoteis)} hotel(is) em processamento...")
 
+    emitir_status(
+        etapa="carregando_yolo",
+        mensagem="Carregando detector de pessoas YOLOv8.",
+    )
     detector_yolo = carregar_detector_yolo() if REMOVER_FOTOS_COM_HUMANOS else None
+
+    emitir_status(
+        etapa="carregando_florence",
+        mensagem="Carregando Florence-2.",
+    )
     modelo_florence, processador_florence = carregar_florence()
-    
+
     stats_total = {"classificadas": 0, "revisar": 0, "com_humanos": 0, "erros": 0}
+    processamento_imagens_iniciado = False
 
     for pasta_hotel in pastas_hoteis:
         print(f"\n{'─'*60}")
         print(f"🏨 Hotel: {pasta_hotel.name}")
 
-        imagens = listar_imagens(pasta_hotel)
+        imagens = imagens_por_hotel[pasta_hotel]
 
         if not imagens:
             print("   ℹ️  Nenhuma imagem solta encontrada.")
@@ -353,13 +402,24 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
 
         print(f"   📸 {len(imagens)} imagens para classificar")
 
+        if not processamento_imagens_iniciado:
+            emitir_status(
+                etapa="processamento_imagens_iniciado",
+                hotel=pasta_hotel.name,
+                mensagem="Modelos carregados. Análise das imagens iniciada.",
+            )
+            processamento_imagens_iniciado = True
+
         # ── Etapa 1: filtra humanos via YOLO ──
         sem_humanos = []
         qtd_humanos_detectados = 0
 
         if detector_yolo:
             print("   👤 Verificando presença de pessoas (YOLO)...")
-            for arq in tqdm(imagens, desc="   Detectando pessoas", unit="img"):
+            for indice, arq in enumerate(
+                tqdm(imagens, desc="   Detectando pessoas", unit="img"),
+                start=1,
+            ):
                 if parece_foto_com_humano(arq, detector_yolo):
                     pasta_dest = pasta_hotel / "_Com_Humanos"
                     pasta_dest.mkdir(exist_ok=True)
@@ -376,6 +436,24 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
                             shutil.move(str(arq), dest)
                         qtd_humanos_detectados += 1
                         stats_total["com_humanos"] += 1
+                        imagens_processadas_geral += 1
+                        emitir_status(
+                            etapa="arquivo_concluido",
+                            hotel=pasta_hotel.name,
+                            pasta=str(pasta_dest),
+                            imagem=arq.name,
+                            imagemAtual=indice,
+                            totalImagens=len(imagens),
+                            categoria="_Com_Humanos",
+                            nomeFinal=dest.name,
+                            imagensProcessadasGeral=imagens_processadas_geral,
+                            totalImagensGeral=total_imagens_geral,
+                            imagensPendentesGeral=max(
+                                total_imagens_geral - imagens_processadas_geral,
+                                0,
+                            ),
+                            mensagem=f"{arq.name} foi salvo como {dest.name}.",
+                        )
                     except Exception as e:
                         print(f"   ❌ Erro ao mover {arq.name}: {e}")
                         stats_total["erros"] += 1
@@ -391,7 +469,35 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
             continue
 
         # ── Etapa 2: classifica imagens via CLIP + Florence-2 ──
-        embs, validos = calcular_embeddings(modelo, sem_humanos, desc="   Analisando categorias")
+        imagens_concluidas_hotel = qtd_humanos_detectados
+        embs, validos = calcular_embeddings(
+            modelo, sem_humanos, desc="   Analisando categorias"
+        )
+
+        caminhos_validos = {str(arq) for arq in validos}
+        for arq in sem_humanos:
+            if str(arq) in caminhos_validos:
+                continue
+
+            imagens_processadas_geral += 1
+            imagens_concluidas_hotel += 1
+            emitir_status(
+                etapa="arquivo_concluido",
+                hotel=pasta_hotel.name,
+                pasta=str(pasta_hotel),
+                imagem=arq.name,
+                imagemAtual=imagens_concluidas_hotel,
+                totalImagens=len(imagens),
+                categoria="_Erro",
+                nomeFinal=arq.name,
+                imagensProcessadasGeral=imagens_processadas_geral,
+                totalImagensGeral=total_imagens_geral,
+                imagensPendentesGeral=max(
+                    total_imagens_geral - imagens_processadas_geral,
+                    0,
+                ),
+                mensagem=f"{arq.name} terminou com erro durante a análise.",
+            )
 
         if len(embs) == 0:
             continue
@@ -417,47 +523,51 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
 
             pasta_dest = pasta_hotel / categoria_dest
             pasta_dest.mkdir(exist_ok=True)
-            
+
             nome_hotel = pasta_hotel.name
-            
+
             # --- INTEGRAÇÃO FLORENCE-2 E TRADUÇÃO ---
             descricao_florence = "imagem"
             descricao_pt = ""
             try:
                 img_pil = Image.open(arq).convert("RGB")
                 task_prompt = "<CAPTION>"
-                inputs = processador_florence(text=task_prompt, images=img_pil, return_tensors="pt")
-                
+                inputs = processador_florence(
+                    text=task_prompt, images=img_pil, return_tensors="pt"
+                )
+
                 generated_ids = modelo_florence.generate(
                     input_ids=inputs["input_ids"],
                     pixel_values=inputs["pixel_values"],
-                    max_new_tokens=64
+                    max_new_tokens=64,
                 )
-                generated_text = processador_florence.batch_decode(generated_ids, skip_special_tokens=False)[0]
-                parsed_answer = processador_florence.post_process_generation(generated_text, task=task_prompt, image_size=(img_pil.width, img_pil.height))
-                
+                generated_text = processador_florence.batch_decode(
+                    generated_ids, skip_special_tokens=False
+                )[0]
+                parsed_answer = processador_florence.post_process_generation(
+                    generated_text,
+                    task=task_prompt,
+                    image_size=(img_pil.width, img_pil.height),
+                )
+
                 descricao_bruta_en = parsed_answer[task_prompt]
-                descricao_pt = GoogleTranslator(source='en', target='pt').translate(descricao_bruta_en)
+                descricao_pt = GoogleTranslator(source="en", target="pt").translate(
+                    descricao_bruta_en
+                )
                 descricao_florence = limpar_para_nome_arquivo(descricao_pt)
-                
+
             except Exception as e:
                 print(f"   ⚠️ Erro no Florence/Tradução para {arq.name}: {e}")
 
-                        # Remove underscores somente do nome final da imagem.
+                # Remove underscores somente do nome final da imagem.
             categoria_nome = categoria_dest.replace("_", " ").strip()
             descricao_nome = descricao_florence.replace("_", " ").strip()
             hotel_nome = nome_hotel.replace("_", " ").strip()
 
-            nome_sem_extensao = (
-                f"{categoria_nome} {descricao_nome} {hotel_nome}"
-            )
+            nome_sem_extensao = f"{categoria_nome} {descricao_nome} {hotel_nome}"
 
             # Remove espaços repetidos.
-            nome_sem_extensao = re.sub(
-                r"\s+",
-                " ",
-                nome_sem_extensao
-            ).strip()
+            nome_sem_extensao = re.sub(r"\s+", " ", nome_sem_extensao).strip()
 
             novo_nome_arquivo = f"{nome_sem_extensao}{arq.suffix}"
             dest = pasta_dest / novo_nome_arquivo
@@ -471,20 +581,57 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
                     dest = pasta_dest / f"{stem_novo} {c}{suffix}"
                     c += 1
 
-
             try:
                 if modo_copia:
                     shutil.copy2(arq, dest)
                 else:
                     shutil.move(str(arq), dest)
-                    
+
                 # Salva no dicionário JSON usando o nome final do arquivo como chave
                 if descricao_pt:
                     textos_alternativos[dest.name] = descricao_pt
-                    
+
+                imagens_processadas_geral += 1
+                imagens_concluidas_hotel += 1
+                emitir_status(
+                    etapa="arquivo_concluido",
+                    hotel=pasta_hotel.name,
+                    pasta=str(pasta_dest),
+                    imagem=arq.name,
+                    imagemAtual=imagens_concluidas_hotel,
+                    totalImagens=len(imagens),
+                    categoria=categoria_dest,
+                    nomeFinal=dest.name,
+                    imagensProcessadasGeral=imagens_processadas_geral,
+                    totalImagensGeral=total_imagens_geral,
+                    imagensPendentesGeral=max(
+                        total_imagens_geral - imagens_processadas_geral,
+                        0,
+                    ),
+                    mensagem=f"{arq.name} foi salvo como {dest.name}.",
+                )
             except Exception as e:
                 print(f"   ❌ Erro ao mover {arq.name}: {e}")
                 stats_total["erros"] += 1
+                imagens_processadas_geral += 1
+                imagens_concluidas_hotel += 1
+                emitir_status(
+                    etapa="arquivo_concluido",
+                    hotel=pasta_hotel.name,
+                    pasta=str(pasta_hotel),
+                    imagem=arq.name,
+                    imagemAtual=imagens_concluidas_hotel,
+                    totalImagens=len(imagens),
+                    categoria="_Erro",
+                    nomeFinal=arq.name,
+                    imagensProcessadasGeral=imagens_processadas_geral,
+                    totalImagensGeral=total_imagens_geral,
+                    imagensPendentesGeral=max(
+                        total_imagens_geral - imagens_processadas_geral,
+                        0,
+                    ),
+                    mensagem=f"{arq.name} terminou com erro ao salvar.",
+                )
 
         # Salva o JSON com os Alt Texts na pasta do hotel
         caminho_json = pasta_hotel / "alt_texts.json"
@@ -495,8 +642,10 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
         # Resumo do hotel
         print(f"   ✅ Resultado:")
         emoji_map = {
-            "entretenimento": "🎭", "gastronomia": "🍽️",
-            "acomodacoes": "🛏️", "criancas": "🧒",
+            "entretenimento": "🎭",
+            "gastronomia": "🍽️",
+            "acomodacoes": "🛏️",
+            "criancas": "🧒",
             "_Revisar": "⚠️",
         }
         for cat, qtd in stats.items():
@@ -508,8 +657,12 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
     print(f"\n{'═'*60}")
     print(f"🏁 CONCLUÍDO!")
     print(f"   ✅ Classificadas e Renomeadas: {stats_total['classificadas']}")
-    print(f"   👤 Com humanos:   {stats_total['com_humanos']}  (separadas em _Com_Humanos)")
-    print(f"   ⚠️  Para revisar: {stats_total['revisar']}  (confiança < {CONFIANCA_MINIMA:.0%})")
+    print(
+        f"   👤 Com humanos:   {stats_total['com_humanos']}  (separadas em _Com_Humanos)"
+    )
+    print(
+        f"   ⚠️  Para revisar: {stats_total['revisar']}  (confiança < {CONFIANCA_MINIMA:.0%})"
+    )
     print(f"   ❌ Erros: {stats_total['erros']}")
     if stats_total["revisar"] > 0:
         print(f"\n   💡 Dica: Verifique as pastas '_Revisar' e mova manualmente.")
@@ -527,7 +680,9 @@ def main():
 
     # Configuração para receber a pasta do Node.js
     parser = argparse.ArgumentParser()
-    parser.add_argument('--pasta', type=str, default=None, help='Pasta do hotel a ser organizada')
+    parser.add_argument(
+        "--pasta", type=str, default=None, help="Pasta do hotel a ser organizada"
+    )
     args = parser.parse_args()
 
     # 1. Verifica dependências
@@ -546,17 +701,28 @@ def main():
     # 3. Configuração de modo automático
     print(f"\n📂 Pasta de exemplos: {PASTA_EXEMPLOS}")
     print(f"🏨 Pasta alvo:  {pasta_alvo}")
-    print("   → Modo Automático: MOVER (arquivos originais serão movidos para as categorias)")
-    modo_copia = False # Força o script a sempre mover as imagens
+    print(
+        "   → Modo Automático: MOVER (arquivos originais serão movidos para as categorias)"
+    )
+    modo_copia = False  # Força o script a sempre mover as imagens
 
     # 4. Carrega modelo
+    emitir_status(
+        etapa="carregando_clip",
+        mensagem="Carregando modelo CLIP.",
+    )
     modelo = carregar_modelo()
 
     # 5. Treina classificador (com cache automático)
+    emitir_status(
+        etapa="carregando_classificador",
+        mensagem="Carregando ou treinando o classificador de imagens.",
+    )
     clf, categorias = treinar_classificador(modelo, PASTA_EXEMPLOS)
 
     # 6. Classifica e organiza a pasta alvo específica
     classificar_e_organizar(modelo, clf, pasta_alvo, modo_copia=modo_copia)
+
 
 if __name__ == "__main__":
     main()

@@ -1,608 +1,925 @@
-const { exec } = require('child_process'); // Mantido para a organização por IA
-const express = require('express');
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-const cheerio = require('cheerio');
-const fs = require('fs');
-const path = require('path');
+const { spawn } = require("child_process");
+const express = require("express");
+const puppeteer = require("puppeteer-extra");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+const cheerio = require("cheerio");
+const fs = require("fs");
+const path = require("path");
 
 // Algoritmo offline para geração de Plus Codes
-const { OpenLocationCode } = require('open-location-code');
+const { OpenLocationCode } = require("open-location-code");
 const olc = new OpenLocationCode();
 
 puppeteer.use(StealthPlugin());
 const app = express();
 const PORT = 3000;
-const PASTA_IMAGENS = 'C:\\Users\\User\\Downloads\\Trabaio\\Software\\DOWNLOADS HOTEIS';
+const PASTA_IMAGENS =
+  "C:\\Users\\User\\Downloads\\Trabaio\\Software\\DOWNLOADS HOTEIS";
 
 app.use(express.json());
-app.use('/img', express.static(PASTA_IMAGENS));
+app.use("/img", express.static(PASTA_IMAGENS));
+
+const criarStatusOrganizacao = () => ({
+  estado: "ocioso",
+  etapa: null,
+  mensagem: "Aguardando início da organização.",
+  hotel: null,
+  imagem: null,
+  imagemAtual: 0,
+  totalImagens: 0,
+  inicioProcessamento: null,
+  inicioProcessamentoImagens: null,
+  fimProcessamento: null,
+  tempoDecorridoSegundos: 0,
+  tempoMedioPorImagemSegundos: null,
+  tempoEstimadoRestanteSegundos: null,
+  previsaoTermino: null,
+  imagensProcessadasGeral: 0,
+  totalImagensGeral: 0,
+  imagensPendentesGeral: 0,
+  temposRecentesImagens: [],
+});
+
+let statusOrganizacao = criarStatusOrganizacao();
+let ultimaConclusaoImagem = null;
+let processoOrganizacao = null;
+
+function atualizarTempoDecorridoOrganizacao(instanteFinal = Date.now()) {
+  if (!statusOrganizacao.inicioProcessamento) return;
+  statusOrganizacao.tempoDecorridoSegundos = Math.max(
+    Math.floor(
+      (instanteFinal - statusOrganizacao.inicioProcessamento) / 1000,
+    ),
+    0,
+  );
+}
+
+function receberStatusPython(status) {
+  const agora = Date.now();
+  Object.assign(statusOrganizacao, status);
+
+  if (
+    status.etapa === "processamento_imagens_iniciado" &&
+    !statusOrganizacao.inicioProcessamentoImagens
+  ) {
+    statusOrganizacao.inicioProcessamentoImagens = agora;
+  }
+
+  if (status.etapa === "arquivo_concluido") {
+    if (ultimaConclusaoImagem !== null) {
+      const tempoImagemSegundos = (agora - ultimaConclusaoImagem) / 1000;
+      if (
+        Number.isFinite(tempoImagemSegundos) &&
+        tempoImagemSegundos > 0
+      ) {
+        statusOrganizacao.temposRecentesImagens.push(tempoImagemSegundos);
+        statusOrganizacao.temposRecentesImagens =
+          statusOrganizacao.temposRecentesImagens.slice(-10);
+      }
+    }
+    ultimaConclusaoImagem = agora;
+
+    // O primeiro intervalo só existe após a segunda imagem ser concluída.
+    if (
+      statusOrganizacao.imagensProcessadasGeral >= 2 &&
+      statusOrganizacao.temposRecentesImagens.length > 0
+    ) {
+      const soma = statusOrganizacao.temposRecentesImagens.reduce(
+        (total, tempo) => total + tempo,
+        0,
+      );
+      statusOrganizacao.tempoMedioPorImagemSegundos =
+        soma / statusOrganizacao.temposRecentesImagens.length;
+      statusOrganizacao.tempoEstimadoRestanteSegundos =
+        statusOrganizacao.tempoMedioPorImagemSegundos *
+        statusOrganizacao.imagensPendentesGeral;
+      statusOrganizacao.previsaoTermino =
+        agora + statusOrganizacao.tempoEstimadoRestanteSegundos * 1000;
+    } else {
+      statusOrganizacao.tempoMedioPorImagemSegundos = null;
+      statusOrganizacao.tempoEstimadoRestanteSegundos = null;
+      statusOrganizacao.previsaoTermino = null;
+    }
+  }
+
+  atualizarTempoDecorridoOrganizacao(agora);
+}
 
 // ==========================================
 // FUNÇÃO MATEMÁTICA CORRIGIDA (Com Fator de Sinuosidade)
 // ==========================================
 function calcularDistanciaCarroKm(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    const distanciaLinhaReta = R * c;
-    const fatorCorrecaoRota = 1.23;
-    const distanciaCarro = distanciaLinhaReta * fatorCorrecaoRota;
+  const distanciaLinhaReta = R * c;
+  const fatorCorrecaoRota = 1.23;
+  const distanciaCarro = distanciaLinhaReta * fatorCorrecaoRota;
 
-    return distanciaCarro.toFixed(1);
+  return distanciaCarro.toFixed(1);
 }
 
-const LAT_RECIFE = -14.8150;
+const LAT_RECIFE = -14.815;
 const LNG_RECIFE = -39.0333;
 
 async function rasparDadosHotel(
-    nomeHotel,
-    baixarImagens = true,
-    latitudeReferencia = LAT_RECIFE,
-    longitudeReferencia = LNG_RECIFE
+  nomeHotel,
+  baixarImagens = true,
+  latitudeReferencia = LAT_RECIFE,
+  longitudeReferencia = LNG_RECIFE,
 ) {
-    const entrada = nomeHotel.trim();
+  const entrada = nomeHotel.trim();
 
-    latitudeReferencia = Number(latitudeReferencia);
-    longitudeReferencia = Number(longitudeReferencia);
+  latitudeReferencia = Number(latitudeReferencia);
+  longitudeReferencia = Number(longitudeReferencia);
 
-    if (
-        !Number.isFinite(latitudeReferencia) ||
-        latitudeReferencia < -90 ||
-        latitudeReferencia > 90
-    ) {
-        throw new Error('Latitude de referência inválida.');
+  if (
+    !Number.isFinite(latitudeReferencia) ||
+    latitudeReferencia < -90 ||
+    latitudeReferencia > 90
+  ) {
+    throw new Error("Latitude de referência inválida.");
+  }
+
+  if (
+    !Number.isFinite(longitudeReferencia) ||
+    longitudeReferencia < -180 ||
+    longitudeReferencia > 180
+  ) {
+    throw new Error("Longitude de referência inválida.");
+  }
+  const ehLink = /^https?:\/\//i.test(entrada);
+  const ehLinkBooking = /^https?:\/\/([a-z]{2,3}\.)?booking\.com\//i.test(
+    entrada,
+  );
+  let linkBookingNormalizado = entrada;
+
+  if (ehLinkBooking) {
+    const url = new URL(entrada);
+    if (/\/hotel\/[^/]+\/[^/.]+\/?$/i.test(url.pathname)) {
+      url.pathname = url.pathname.replace(/\/$/, "") + ".pt-br.html";
+    }
+    linkBookingNormalizado = url.toString();
+  }
+
+  const termoFormatado = encodeURIComponent(entrada);
+  const urlBusca = `https://www.booking.com/searchresults.pt-br.html?ss=${termoFormatado}`;
+
+  const browser = await puppeteer.launch({
+    headless: "new",
+    args: ["--disable-web-security", "--no-sandbox"],
+  });
+  const page = await browser.newPage();
+
+  // Aumentando o timeout da página para aguentar o download em massa
+  page.setDefaultNavigationTimeout(120000);
+
+  try {
+    if (ehLink && !ehLinkBooking) {
+      throw new Error("Cole um link válido da Booking.com.");
     }
 
-    if (
-        !Number.isFinite(longitudeReferencia) ||
-        longitudeReferencia < -180 ||
-        longitudeReferencia > 180
-    ) {
-        throw new Error('Longitude de referência inválida.');
-    }
-    const ehLink = /^https?:\/\//i.test(entrada);
-    const ehLinkBooking = /^https?:\/\/([a-z]{2,3}\.)?booking\.com\//i.test(entrada);
-    let linkBookingNormalizado = entrada;
+    const bloqueadorDeMidia = (req) => {
+      if (["image", "stylesheet", "font", "media"].includes(req.resourceType()))
+        req.abort();
+      else req.continue();
+    };
+
+    await page.setRequestInterception(true);
+    page.on("request", bloqueadorDeMidia);
+
+    // ==========================================
+    // FASE 1: PESQUISA BÁSICA
+    // ==========================================
+    let dadosPesquisa;
 
     if (ehLinkBooking) {
-        const url = new URL(entrada);
-        if (/\/hotel\/[^/]+\/[^/.]+\/?$/i.test(url.pathname)) {
-            url.pathname = url.pathname.replace(/\/$/, '') + '.pt-br.html';
-        }
-        linkBookingNormalizado = url.toString();
-    }
+      dadosPesquisa = {
+        link: linkBookingNormalizado,
+        nome: "",
+        enderecoBasico: "",
+        nota: "Sem nota",
+        regimePesquisa: "Não informado",
+      };
+    } else {
+      await page.goto(urlBusca, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector('[data-testid="property-card"]', {
+        timeout: 15000,
+      });
 
-    const termoFormatado = encodeURIComponent(entrada);
-    const urlBusca = `https://www.booking.com/searchresults.pt-br.html?ss=${termoFormatado}`;
+      dadosPesquisa = await page.evaluate(() => {
+        const card = document.querySelector('[data-testid="property-card"]');
+        if (!card) return null;
 
-    const browser = await puppeteer.launch({
-        headless: 'new',
-        args: ['--disable-web-security', '--no-sandbox']
-    });
-    const page = await browser.newPage();
+        const link = card.querySelector("a").href;
+        const nome =
+          card.querySelector('[data-testid="title"]')?.innerText?.trim() || "";
+        const enderecoBasico =
+          card.querySelector('[data-testid="address"]')?.innerText?.trim() ||
+          "";
 
-    // Aumentando o timeout da página para aguentar o download em massa
-    page.setDefaultNavigationTimeout(120000);
-
-    try {
-        if (ehLink && !ehLinkBooking) {
-            throw new Error('Cole um link válido da Booking.com.');
-        }
-
-        const bloqueadorDeMidia = (req) => {
-            if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) req.abort();
-            else req.continue();
-        };
-
-        await page.setRequestInterception(true);
-        page.on('request', bloqueadorDeMidia);
-
-        // ==========================================
-        // FASE 1: PESQUISA BÁSICA
-        // ==========================================
-        let dadosPesquisa;
-
-        if (ehLinkBooking) {
-            dadosPesquisa = {
-                link: linkBookingNormalizado,
-                nome: '',
-                enderecoBasico: '',
-                nota: 'Sem nota',
-                regimePesquisa: 'Não informado'
-            };
-        } else {
-            await page.goto(urlBusca, { waitUntil: 'domcontentloaded' });
-            await page.waitForSelector('[data-testid="property-card"]', { timeout: 15000 });
-
-            dadosPesquisa = await page.evaluate(() => {
-                const card = document.querySelector('[data-testid="property-card"]');
-                if (!card) return null;
-
-                const link = card.querySelector('a').href;
-                const nome = card.querySelector('[data-testid="title"]')?.innerText?.trim() || '';
-                const enderecoBasico = card.querySelector('[data-testid="address"]')?.innerText?.trim() || '';
-
-                const elementoNota = card.querySelector('[data-testid="review-score"]');
-                let nota = 'Sem nota';
-                if (elementoNota) {
-                    const match = elementoNota.innerText.match(/(?:10|[0-9])[.,][0-9]\b/);
-                    nota = match ? match[0] : 'Sem nota';
-                }
-
-                let regimeExtraido = 'Não informado';
-                const textoCard = card.innerText.toLowerCase();
-
-                if (textoCard.includes('all inclusive') || textoCard.includes('tudo incluído')) regimeExtraido = 'All Inclusive';
-                else if (textoCard.includes('pensão completa') || textoCard.includes('full board')) regimeExtraido = 'Pensão completa';
-                else if (textoCard.includes('meia pensão') || textoCard.includes('half board')) regimeExtraido = 'Meia pensão';
-                else if (textoCard.includes('café da manhã incluído') || textoCard.includes('pequeno-almoço incluído')) regimeExtraido = 'Café da manhã incluído';
-                else if (textoCard.includes('café da manhã')) regimeExtraido = 'Café da manhã disponível';
-
-                return { link, nome, enderecoBasico, nota, regimePesquisa: regimeExtraido };
-            });
+        const elementoNota = card.querySelector('[data-testid="review-score"]');
+        let nota = "Sem nota";
+        if (elementoNota) {
+          const match = elementoNota.innerText.match(/(?:10|[0-9])[.,][0-9]\b/);
+          nota = match ? match[0] : "Sem nota";
         }
 
-        if (!dadosPesquisa) throw new Error("Hotel não encontrado na pesquisa.");
+        let regimeExtraido = "Não informado";
+        const textoCard = card.innerText.toLowerCase();
 
-        // ==========================================
-        // FASE 2: PÁGINA INTERNA E GPS
-        // ==========================================
-        await page.goto(dadosPesquisa.link, { waitUntil: 'domcontentloaded' });
-        await page.waitForSelector('[data-testid="title"], h1, h2.pp-header__title', { timeout: 15000 }).catch(() => { });
-        await new Promise(r => setTimeout(r, 2000));
-        const html = await page.content();
-
-        page.off('request', bloqueadorDeMidia);
-        await page.setRequestInterception(false);
-
-        const $ = cheerio.load(html);
-        let nomeOficial = dadosPesquisa.nome
-            || $('[data-testid="title"], h1, h2.pp-header__title').first().text().replace(/\s+/g, ' ').trim()
-            || entrada;
-
-        let enderecoInterno = $('[data-testid="address"], .hp_address_subtitle').first().text().replace(/\s+/g, ' ').trim();
-        let lat = '';
-        let lng = '';
-
-        if (dadosPesquisa.nota === 'Sem nota') {
-            const textoNota = $('[data-testid="review-score-right-component"], [data-testid="review-score-component"]').first().text();
-            const matchNota = textoNota.match(/(?:10|[0-9])[.,][0-9]\b/);
-            if (matchNota) dadosPesquisa.nota = matchNota[0].replace('.', ',');
-        }
-
-        $('script[type="application/ld+json"]').each((_, el) => {
-            try {
-                const jsonData = JSON.parse($(el).html());
-                const obj = Array.isArray(jsonData) ? jsonData.find(j => j.address || j.geo) : jsonData;
-                if (obj) {
-                    if (!dadosPesquisa.nome && obj.name) nomeOficial = obj.name;
-                    if (dadosPesquisa.nota === 'Sem nota' && obj.aggregateRating?.ratingValue) {
-                        const valorNota = Number(String(obj.aggregateRating.ratingValue).replace(',', '.'));
-                        if (valorNota >= 0 && valorNota <= 10) {
-                            dadosPesquisa.nota = valorNota.toFixed(1).replace('.', ',');
-                        }
-                    }
-                    if (obj.address) {
-                        const rua = obj.address.streetAddress || '';
-                        const cidade = obj.address.addressLocality || '';
-                        const estado = obj.address.addressRegion || '';
-                        const enderecoCompleto = [rua, cidade, estado].filter(Boolean).join(', ');
-                        if (enderecoCompleto) enderecoInterno = enderecoCompleto;
-                    }
-                    if (obj.geo && obj.geo.latitude && obj.geo.longitude) {
-                        lat = obj.geo.latitude;
-                        lng = obj.geo.longitude;
-                    }
-                }
-            } catch (e) { }
-        });
-
-        if (dadosPesquisa.nota !== 'Sem nota') {
-            const notaNumerica = Number(String(dadosPesquisa.nota).replace(',', '.'));
-            if (!Number.isFinite(notaNumerica) || notaNumerica < 0 || notaNumerica > 10) {
-                dadosPesquisa.nota = 'Sem nota';
-            }
-        }
-
-        if (ehLinkBooking && nomeOficial === entrada) {
-            throw new Error('A Booking não carregou os dados desse link. Confira se ele abre a página do hotel e tente novamente.');
-        }
-
-        if (!lat || !lng) {
-            const mapLink = $('a[data-atlas-latlng]').attr('data-atlas-latlng');
-            if (mapLink) {
-                const parts = mapLink.split(',');
-                if (parts.length === 2) {
-                    lat = parts[0].trim();
-                    lng = parts[1].trim();
-                }
-            }
-        }
-
-        let enderecoBruto = enderecoInterno || dadosPesquisa.enderecoBasico || 'Morada não localizada';
-        let partesEnd = enderecoBruto.split(',').map(p => p.trim());
-        let partesUnicas = [];
-        partesEnd.forEach(p => {
-            if (p && !partesUnicas.some(pu => pu.toLowerCase() === p.toLowerCase())) {
-                partesUnicas.push(p);
-            }
-        });
-        let enderecoFinal = partesUnicas.join(', ');
-        let coordenadas = (lat && lng) ? `${lat}, ${lng}` : 'GPS não disponível';
-
-        const nomeLower = nomeOficial.toLowerCase();
-        const tipoHotel = nomeLower.includes('pousada')
-            ? 'Pousada'
-            : nomeLower.includes('resort')
-                ? 'Resort'
-                : 'Hotel';
-
-        const partesEndereco = enderecoBruto.split(',').map(parte => parte.trim()).filter(Boolean);
-        const indiceCep = partesEndereco.findIndex(parte => /\bcep\b|\b\d{5}-?\d{3}\b/i.test(parte));
-        let bairro = indiceCep > 0 ? partesEndereco[indiceCep - 1] : '';
-
-        if (!bairro) {
-            bairro = [...partesEndereco].reverse().find((parte, indiceReverso) => {
-                const indiceOriginal = partesEndereco.length - 1 - indiceReverso;
-                return indiceOriginal > 0
-                    && !/\b(?:cep|brasil|brazil|pernambuco|primeiro andar|andar|apto|apartamento)\b/i.test(parte)
-                    && !/^\s*(?:pe|br)\s*$/i.test(parte)
-                    && !/^(?:n[º°.]?\s*)?\d+/i.test(parte);
-            }) || partesEndereco[1] || 'Não informado';
-        }
-
-        const textoPagina = $('body').text().replace(/\s+/g, ' ');
-
-        // Busca somente a descrição específica do hotel. Evita capturar textos de
-        // filtros, menus e sugestões de outros hotéis espalhados pelo <body>.
-        let descricaoHotel = $('[data-testid="property-description"], #property_description_content, .hp-description').first().text().replace(/\s+/g, ' ').trim();
-
-        const procurarDescricaoNoJson = (valor, chavePai = '') => {
-            if (!valor || typeof valor !== 'object') return '';
-
-            if (
-                typeof valor.description === 'string' &&
-                (valor.__typename === 'HotelTranslation' || chavePai === 'HotelTranslation')
-            ) {
-                return valor.description;
-            }
-
-            for (const [chave, filho] of Object.entries(valor)) {
-                const encontrada = procurarDescricaoNoJson(filho, chave);
-                if (encontrada) return encontrada;
-            }
-            return '';
-        };
-
-        if (!descricaoHotel) {
-            $('script').each((_, el) => {
-                if (descricaoHotel) return false;
-                const conteudo = $(el).html()?.trim();
-                if (!conteudo || (!conteudo.startsWith('{') && !conteudo.startsWith('['))) return;
-
-                try {
-                    descricaoHotel = procurarDescricaoNoJson(JSON.parse(conteudo));
-                } catch (e) { }
-            });
-        }
-
-        const textoComodidades = $('[data-testid="property-most-popular-facilities-wrapper"], [data-testid="facility-group-container"]').text();
-        const textoBeiraMar = [nomeOficial, descricaoHotel, textoComodidades].join(' ').toLowerCase();
-        const beiraMar = /\bbeira[- ]mar\b|à beira[- ]mar|de frente para o mar|praia privativa|beachfront|private beach/i.test(textoBeiraMar)
-            ? 'Sim'
-            : 'Não';
-
-        // --- AEROPORTO ---
-        let aeroportoFinal = 'Não informado';
-
-        const extrairDistanciaKm = (texto) => {
-            const match = texto.match(/(\d+(?:[.,]\d+)?)\s*(km|m)\b/i);
-            if (!match) return null;
-
-            const distancia = Number(match[1].replace(',', '.'));
-            const distanciaKm = match[2].toLowerCase() === 'm' ? distancia / 1000 : distancia;
-            const valorFormatado = Number.isInteger(distanciaKm)
-                ? String(distanciaKm)
-                : distanciaKm.toFixed(1).replace('.', ',');
-
-            return `${valorFormatado} km`;
-        };
-
-        $('li, div.bui-list__item, div[data-testid="location-poi"]').each((_, el) => {
-            if (aeroportoFinal !== 'Não informado') return;
-            const txt = $(el).text().replace(/\s+/g, ' ').trim();
-            if (txt.toLowerCase().includes('aeroporto') && txt.length < 150) {
-                const distancia = extrairDistanciaKm(txt);
-                if (distancia) aeroportoFinal = `${distancia} (Booking)`;
-            }
-        });
-
-        if (aeroportoFinal === 'Não informado') {
-            const matchAero = textoPagina.match(/aeroporto[a-zA-ZÀ-ÿ\s\-\/]{0,80}\d+(?:[.,]\d+)?\s*km/i);
-            const distancia = matchAero ? extrairDistanciaKm(matchAero[0]) : null;
-            if (distancia) aeroportoFinal = `${distancia} (Booking)`;
-        }
-
-        if (aeroportoFinal === 'Não informado' && lat && lng && lat !== 'GPS não disponível') {
-            const distCalculada = calcularDistanciaCarroKm(
-                parseFloat(lat),
-                parseFloat(lng),
-                latitudeReferencia,
-                longitudeReferencia
-            );
-            aeroportoFinal = `${distCalculada} km (calculado pela equação)`;
-        }
-
-        // --- REGIME ---
-        const identificarRegime = (texto) => {
-            const textoLower = texto.toLowerCase();
-            if (textoLower.includes('all inclusive') || textoLower.includes('tudo incluído')) return 'All Inclusive';
-            if (textoLower.includes('pensão completa') || textoLower.includes('full board')) return 'Pensão completa';
-            if (textoLower.includes('meia pensão') || textoLower.includes('meia-pensão') || textoLower.includes('half board')) return 'Meia pensão';
-
-            const mencionaCafe = textoLower.includes('café da manhã') || textoLower.includes('pequeno-almoço');
-            const cafeIncluso = /(?:café da manhã|pequeno-almoço)[^.]{0,100}(?:incluíd[oa]|grátis|gratuito|cortesia)/i.test(texto);
-            if (mencionaCafe && cafeIncluso) return 'Café da manhã incluído';
-            if (mencionaCafe) return 'Café da manhã disponível';
-            return 'Não informado';
-        };
-
-        const regimeDaDescricao = identificarRegime(descricaoHotel);
-        const regimeFinal = regimeDaDescricao !== 'Não informado'
-            ? regimeDaDescricao
-            : dadosPesquisa.regimePesquisa;
-
-        // --- FASE 3: PLUS CODE ---
-        let plusCode = 'Não localizado';
-        if (lat && lng && lat !== 'GPS não disponível') {
-            try {
-                plusCode = olc.encode(parseFloat(lat), parseFloat(lng));
-            } catch (error) { }
-        }
-
-        // ==========================================
-        // FASE 4: IMAGENS (SEM LIMITE + SUPORTE À IA)
-        // ==========================================
-        const codigoFonteLimpo = html.replace(/\\\//g, '/');
-        const regexFotos = /https:\/\/cf\.bstatic\.com[a-zA-Z0-9_\-\/]*?\/images\/hotel[a-zA-Z0-9_\-\/]*?\.jpg[a-zA-Z0-9_\-\/\?\.\=\&\;]*/gi;
-        const matches = codigoFonteLimpo.match(regexFotos) || [];
-
-        const urlsImagens = new Map();
-        matches.forEach(url => {
-            const urlSemQuery = url.split('?')[0];
-            const idImagem = urlSemQuery.split('/').pop();
-            let prioridade = url.includes('max1280') ? 4 : (url.includes('max1024') ? 3 : (url.includes('max500') ? 2 : 1));
-
-            if (!urlsImagens.has(idImagem) || prioridade > urlsImagens.get(idImagem).prioridade) {
-                urlsImagens.set(idImagem, { url, prioridade });
-            }
-        });
-
-        const imagensArray = Array.from(urlsImagens.values())
-            .filter(item => item.prioridade >= 3)
-            .map(item => item.url);
-
-        const nomeLimpo = nomeOficial.replace(/[^a-zA-Z0-9]/g, '_');
-        const pastaBase = PASTA_IMAGENS;
-        const pastaHotel = path.resolve(pastaBase, nomeLimpo);
-
-        const caminhosImagensLocais = [];
-
-        if (baixarImagens) {
-            // Rotina pesada do Viny
-            if (!fs.existsSync(pastaHotel)) fs.mkdirSync(pastaHotel, { recursive: true });
-
-            for (let i = 0; i < imagensArray.length; i++) {
-                const url = imagensArray[i];
-                const nomeArquivo = `foto_HD_${i + 1}`;
-                const caminhoCompleto = path.resolve(pastaHotel, `${nomeArquivo}.jpg`);
-
-                const resultado = await page.evaluate(async (imageUrl) => {
-                    try {
-                        const res = await fetch(imageUrl);
-                        if (!res.ok) return { sucesso: false };
-                        const blob = await res.blob();
-                        return new Promise((resolve) => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => resolve({ sucesso: true, base64: reader.result.split(',')[1] });
-                            reader.readAsDataURL(blob);
-                        });
-                    } catch { return { sucesso: false }; }
-                }, url);
-
-                if (resultado.sucesso) {
-                    fs.writeFileSync(caminhoCompleto, Buffer.from(resultado.base64, 'base64'));
-                    caminhosImagensLocais.push(`/img/${encodeURIComponent(nomeLimpo)}/${nomeArquivo}.jpg`);
-                }
-            }
-        } else {
-            // Rotina rápida
-            caminhosImagensLocais.push(...imagensArray);
-        }
-
-        await browser.close();
-
-        // ========================================================
-        // IMAGENS LOCAIS E LEGENDAS GERADAS PELA IA
-        // ========================================================
-        // Sempre existe, mesmo antes de organizar as imagens com a IA.
-        // Isso evita o erro: "altTexts is not defined".
-        let altTexts = {};
-
-        if (baixarImagens && fs.existsSync(pastaHotel)) {
-            console.log(`\n[+] Download concluído. Imagens salvas na pasta do hotel.`);
-
-            // Refaz a lista a partir do disco para incluir imagens que já tenham
-            // sido movidas para subpastas pelo organizar_hoteis.py.
-            caminhosImagensLocais.length = 0;
-
-            const lerPastaRecursivo = (diretorio) => {
-                let imagensEncontradas = [];
-
-                for (const arquivo of fs.readdirSync(diretorio)) {
-                    const caminhoAbsoluto = path.join(diretorio, arquivo);
-                    const stat = fs.statSync(caminhoAbsoluto);
-
-                    if (stat.isDirectory()) {
-                        imagensEncontradas = imagensEncontradas.concat(
-                            lerPastaRecursivo(caminhoAbsoluto)
-                        );
-                        continue;
-                    }
-
-                    if (/\.(?:jpg|jpeg|png|webp)$/i.test(arquivo)) {
-                        const caminhoRelativo = path
-                            .relative(PASTA_IMAGENS, caminhoAbsoluto)
-                            .split(path.sep)
-                            .map(encodeURIComponent)
-                            .join('/');
-
-                        imagensEncontradas.push(`/img/${caminhoRelativo}`);
-                        continue;
-                    }
-
-                    if (arquivo.toLowerCase() === 'alt_texts.json') {
-                        try {
-                            const conteudoAltTexts = JSON.parse(
-                                fs.readFileSync(caminhoAbsoluto, 'utf8')
-                            );
-
-                            if (conteudoAltTexts && typeof conteudoAltTexts === 'object') {
-                                altTexts = { ...altTexts, ...conteudoAltTexts };
-                            }
-                        } catch (erroAltTexts) {
-                            console.warn(
-                                `[-] Não foi possível ler ${caminhoAbsoluto}: ${erroAltTexts.message}`
-                            );
-                        }
-                    }
-                }
-
-                return imagensEncontradas;
-            };
-
-            caminhosImagensLocais.push(...lerPastaRecursivo(pastaHotel));
-        }
-        // ========================================================
+        if (
+          textoCard.includes("all inclusive") ||
+          textoCard.includes("tudo incluído")
+        )
+          regimeExtraido = "All Inclusive";
+        else if (
+          textoCard.includes("pensão completa") ||
+          textoCard.includes("full board")
+        )
+          regimeExtraido = "Pensão completa";
+        else if (
+          textoCard.includes("meia pensão") ||
+          textoCard.includes("half board")
+        )
+          regimeExtraido = "Meia pensão";
+        else if (
+          textoCard.includes("café da manhã incluído") ||
+          textoCard.includes("pequeno-almoço incluído")
+        )
+          regimeExtraido = "Café da manhã incluído";
+        else if (textoCard.includes("café da manhã"))
+          regimeExtraido = "Café da manhã disponível";
 
         return {
-            sucesso: true,
-            nome: nomeOficial,
-            endereco: enderecoFinal,
-            bairro: bairro,
-            tipoHotel: tipoHotel,
-            beiraMar: beiraMar,
-            coordenadas: coordenadas,
-            plusCode: plusCode,
-            nota: dadosPesquisa.nota,
-            regime: regimeFinal,
-            aeroporto: aeroportoFinal,
-            imagens: caminhosImagensLocais,
-            altTexts,
-            baixouLocal: baixarImagens
+          link,
+          nome,
+          enderecoBasico,
+          nota,
+          regimePesquisa: regimeExtraido,
         };
-
-    } catch (error) {
-        if (browser) await browser.close();
-        return { sucesso: false, erro: error.message };
+      });
     }
+
+    if (!dadosPesquisa) throw new Error("Hotel não encontrado na pesquisa.");
+
+    // ==========================================
+    // FASE 2: PÁGINA INTERNA E GPS
+    // ==========================================
+    await page.goto(dadosPesquisa.link, { waitUntil: "domcontentloaded" });
+    await page
+      .waitForSelector('[data-testid="title"], h1, h2.pp-header__title', {
+        timeout: 15000,
+      })
+      .catch(() => {});
+    await new Promise((r) => setTimeout(r, 2000));
+    const html = await page.content();
+
+    page.off("request", bloqueadorDeMidia);
+    await page.setRequestInterception(false);
+
+    const $ = cheerio.load(html);
+    let nomeOficial =
+      dadosPesquisa.nome ||
+      $('[data-testid="title"], h1, h2.pp-header__title')
+        .first()
+        .text()
+        .replace(/\s+/g, " ")
+        .trim() ||
+      entrada;
+
+    let enderecoInterno = $('[data-testid="address"], .hp_address_subtitle')
+      .first()
+      .text()
+      .replace(/\s+/g, " ")
+      .trim();
+    let lat = "";
+    let lng = "";
+
+    if (dadosPesquisa.nota === "Sem nota") {
+      const textoNota = $(
+        '[data-testid="review-score-right-component"], [data-testid="review-score-component"]',
+      )
+        .first()
+        .text();
+      const matchNota = textoNota.match(/(?:10|[0-9])[.,][0-9]\b/);
+      if (matchNota) dadosPesquisa.nota = matchNota[0].replace(".", ",");
+    }
+
+    $('script[type="application/ld+json"]').each((_, el) => {
+      try {
+        const jsonData = JSON.parse($(el).html());
+        const obj = Array.isArray(jsonData)
+          ? jsonData.find((j) => j.address || j.geo)
+          : jsonData;
+        if (obj) {
+          if (!dadosPesquisa.nome && obj.name) nomeOficial = obj.name;
+          if (
+            dadosPesquisa.nota === "Sem nota" &&
+            obj.aggregateRating?.ratingValue
+          ) {
+            const valorNota = Number(
+              String(obj.aggregateRating.ratingValue).replace(",", "."),
+            );
+            if (valorNota >= 0 && valorNota <= 10) {
+              dadosPesquisa.nota = valorNota.toFixed(1).replace(".", ",");
+            }
+          }
+          if (obj.address) {
+            const rua = obj.address.streetAddress || "";
+            const cidade = obj.address.addressLocality || "";
+            const estado = obj.address.addressRegion || "";
+            const enderecoCompleto = [rua, cidade, estado]
+              .filter(Boolean)
+              .join(", ");
+            if (enderecoCompleto) enderecoInterno = enderecoCompleto;
+          }
+          if (obj.geo && obj.geo.latitude && obj.geo.longitude) {
+            lat = obj.geo.latitude;
+            lng = obj.geo.longitude;
+          }
+        }
+      } catch (e) {}
+    });
+
+    if (dadosPesquisa.nota !== "Sem nota") {
+      const notaNumerica = Number(String(dadosPesquisa.nota).replace(",", "."));
+      if (
+        !Number.isFinite(notaNumerica) ||
+        notaNumerica < 0 ||
+        notaNumerica > 10
+      ) {
+        dadosPesquisa.nota = "Sem nota";
+      }
+    }
+
+    if (ehLinkBooking && nomeOficial === entrada) {
+      throw new Error(
+        "A Booking não carregou os dados desse link. Confira se ele abre a página do hotel e tente novamente.",
+      );
+    }
+
+    if (!lat || !lng) {
+      const mapLink = $("a[data-atlas-latlng]").attr("data-atlas-latlng");
+      if (mapLink) {
+        const parts = mapLink.split(",");
+        if (parts.length === 2) {
+          lat = parts[0].trim();
+          lng = parts[1].trim();
+        }
+      }
+    }
+
+    let enderecoBruto =
+      enderecoInterno ||
+      dadosPesquisa.enderecoBasico ||
+      "Morada não localizada";
+    let partesEnd = enderecoBruto.split(",").map((p) => p.trim());
+    let partesUnicas = [];
+    partesEnd.forEach((p) => {
+      if (
+        p &&
+        !partesUnicas.some((pu) => pu.toLowerCase() === p.toLowerCase())
+      ) {
+        partesUnicas.push(p);
+      }
+    });
+    let enderecoFinal = partesUnicas.join(", ");
+    let coordenadas = lat && lng ? `${lat}, ${lng}` : "GPS não disponível";
+
+    const nomeLower = nomeOficial.toLowerCase();
+    const tipoHotel = nomeLower.includes("pousada")
+      ? "Pousada"
+      : nomeLower.includes("resort")
+        ? "Resort"
+        : "Hotel";
+
+    const partesEndereco = enderecoBruto
+      .split(",")
+      .map((parte) => parte.trim())
+      .filter(Boolean);
+    const indiceCep = partesEndereco.findIndex((parte) =>
+      /\bcep\b|\b\d{5}-?\d{3}\b/i.test(parte),
+    );
+    let bairro = indiceCep > 0 ? partesEndereco[indiceCep - 1] : "";
+
+    if (!bairro) {
+      bairro =
+        [...partesEndereco].reverse().find((parte, indiceReverso) => {
+          const indiceOriginal = partesEndereco.length - 1 - indiceReverso;
+          return (
+            indiceOriginal > 0 &&
+            !/\b(?:cep|brasil|brazil|pernambuco|primeiro andar|andar|apto|apartamento)\b/i.test(
+              parte,
+            ) &&
+            !/^\s*(?:pe|br)\s*$/i.test(parte) &&
+            !/^(?:n[º°.]?\s*)?\d+/i.test(parte)
+          );
+        }) ||
+        partesEndereco[1] ||
+        "Não informado";
+    }
+
+    const textoPagina = $("body").text().replace(/\s+/g, " ");
+
+    // Busca somente a descrição específica do hotel. Evita capturar textos de
+    // filtros, menus e sugestões de outros hotéis espalhados pelo <body>.
+    let descricaoHotel = $(
+      '[data-testid="property-description"], #property_description_content, .hp-description',
+    )
+      .first()
+      .text()
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const procurarDescricaoNoJson = (valor, chavePai = "") => {
+      if (!valor || typeof valor !== "object") return "";
+
+      if (
+        typeof valor.description === "string" &&
+        (valor.__typename === "HotelTranslation" ||
+          chavePai === "HotelTranslation")
+      ) {
+        return valor.description;
+      }
+
+      for (const [chave, filho] of Object.entries(valor)) {
+        const encontrada = procurarDescricaoNoJson(filho, chave);
+        if (encontrada) return encontrada;
+      }
+      return "";
+    };
+
+    if (!descricaoHotel) {
+      $("script").each((_, el) => {
+        if (descricaoHotel) return false;
+        const conteudo = $(el).html()?.trim();
+        if (
+          !conteudo ||
+          (!conteudo.startsWith("{") && !conteudo.startsWith("["))
+        )
+          return;
+
+        try {
+          descricaoHotel = procurarDescricaoNoJson(JSON.parse(conteudo));
+        } catch (e) {}
+      });
+    }
+
+    const textoComodidades = $(
+      '[data-testid="property-most-popular-facilities-wrapper"], [data-testid="facility-group-container"]',
+    ).text();
+    const textoBeiraMar = [nomeOficial, descricaoHotel, textoComodidades]
+      .join(" ")
+      .toLowerCase();
+    const beiraMar =
+      /\bbeira[- ]mar\b|à beira[- ]mar|de frente para o mar|praia privativa|beachfront|private beach/i.test(
+        textoBeiraMar,
+      )
+        ? "Sim"
+        : "Não";
+
+    // --- AEROPORTO ---
+    let aeroportoFinal = "Não informado";
+
+    const extrairDistanciaKm = (texto) => {
+      const match = texto.match(/(\d+(?:[.,]\d+)?)\s*(km|m)\b/i);
+      if (!match) return null;
+
+      const distancia = Number(match[1].replace(",", "."));
+      const distanciaKm =
+        match[2].toLowerCase() === "m" ? distancia / 1000 : distancia;
+      const valorFormatado = Number.isInteger(distanciaKm)
+        ? String(distanciaKm)
+        : distanciaKm.toFixed(1);
+
+      return `${valorFormatado} km`;
+    };
+
+    $('li, div.bui-list__item, div[data-testid="location-poi"]').each(
+      (_, el) => {
+        if (aeroportoFinal !== "Não informado") return;
+        const txt = $(el).text().replace(/\s+/g, " ").trim();
+        if (txt.toLowerCase().includes("aeroporto") && txt.length < 150) {
+          const distancia = extrairDistanciaKm(txt);
+          if (distancia) aeroportoFinal = `${distancia} (Booking)`;
+        }
+      },
+    );
+
+    if (aeroportoFinal === "Não informado") {
+      const matchAero = textoPagina.match(
+        /aeroporto[a-zA-ZÀ-ÿ\s\-\/]{0,80}\d+(?:[.,]\d+)?\s*km/i,
+      );
+      const distancia = matchAero ? extrairDistanciaKm(matchAero[0]) : null;
+      if (distancia) aeroportoFinal = `${distancia} (Booking)`;
+    }
+
+    if (
+      aeroportoFinal === "Não informado" &&
+      lat &&
+      lng &&
+      lat !== "GPS não disponível"
+    ) {
+      const distCalculada = calcularDistanciaCarroKm(
+        parseFloat(lat),
+        parseFloat(lng),
+        latitudeReferencia,
+        longitudeReferencia,
+      );
+      aeroportoFinal = `${distCalculada} km (calculado pela equação)`;
+    }
+
+    // --- REGIME ---
+    const identificarRegime = (texto) => {
+      const textoLower = texto.toLowerCase();
+      if (
+        textoLower.includes("all inclusive") ||
+        textoLower.includes("tudo incluído")
+      )
+        return "All Inclusive";
+      if (
+        textoLower.includes("pensão completa") ||
+        textoLower.includes("full board")
+      )
+        return "Pensão completa";
+      if (
+        textoLower.includes("meia pensão") ||
+        textoLower.includes("meia-pensão") ||
+        textoLower.includes("half board")
+      )
+        return "Meia pensão";
+
+      const mencionaCafe =
+        textoLower.includes("café da manhã") ||
+        textoLower.includes("pequeno-almoço");
+      const cafeIncluso =
+        /(?:café da manhã|pequeno-almoço)[^.]{0,100}(?:incluíd[oa]|grátis|gratuito|cortesia)/i.test(
+          texto,
+        );
+      if (mencionaCafe && cafeIncluso) return "Café da manhã incluído";
+      if (mencionaCafe) return "Café da manhã disponível";
+      return "Não informado";
+    };
+
+    const regimeDaDescricao = identificarRegime(descricaoHotel);
+    const regimeFinal =
+      regimeDaDescricao !== "Não informado"
+        ? regimeDaDescricao
+        : dadosPesquisa.regimePesquisa;
+
+    // --- FASE 3: PLUS CODE ---
+    let plusCode = "Não localizado";
+    if (lat && lng && lat !== "GPS não disponível") {
+      try {
+        plusCode = olc.encode(parseFloat(lat), parseFloat(lng));
+      } catch (error) {}
+    }
+
+    // ==========================================
+    // FASE 4: IMAGENS (SEM LIMITE + SUPORTE À IA)
+    // ==========================================
+    const codigoFonteLimpo = html.replace(/\\\//g, "/");
+    const regexFotos =
+      /https:\/\/cf\.bstatic\.com[a-zA-Z0-9_\-\/]*?\/images\/hotel[a-zA-Z0-9_\-\/]*?\.jpg[a-zA-Z0-9_\-\/\?\.\=\&\;]*/gi;
+    const matches = codigoFonteLimpo.match(regexFotos) || [];
+
+    const urlsImagens = new Map();
+    matches.forEach((url) => {
+      const urlSemQuery = url.split("?")[0];
+      const idImagem = urlSemQuery.split("/").pop();
+      let prioridade = url.includes("max1280")
+        ? 4
+        : url.includes("max1024")
+          ? 3
+          : url.includes("max500")
+            ? 2
+            : 1;
+
+      if (
+        !urlsImagens.has(idImagem) ||
+        prioridade > urlsImagens.get(idImagem).prioridade
+      ) {
+        urlsImagens.set(idImagem, { url, prioridade });
+      }
+    });
+
+    const imagensArray = Array.from(urlsImagens.values())
+      .filter((item) => item.prioridade >= 3)
+      .map((item) => item.url);
+
+    const nomeLimpo = nomeOficial.replace(/[^a-zA-Z0-9]/g, "_");
+    const pastaBase = PASTA_IMAGENS;
+    const pastaHotel = path.resolve(pastaBase, nomeLimpo);
+
+    const caminhosImagensLocais = [];
+
+    if (baixarImagens) {
+      // Rotina pesada do Viny
+      if (!fs.existsSync(pastaHotel))
+        fs.mkdirSync(pastaHotel, { recursive: true });
+
+      for (let i = 0; i < imagensArray.length; i++) {
+        const url = imagensArray[i];
+        const nomeArquivo = `foto_HD_${i + 1}`;
+        const caminhoCompleto = path.resolve(pastaHotel, `${nomeArquivo}.jpg`);
+
+        const resultado = await page.evaluate(async (imageUrl) => {
+          try {
+            const res = await fetch(imageUrl);
+            if (!res.ok) return { sucesso: false };
+            const blob = await res.blob();
+            return new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () =>
+                resolve({ sucesso: true, base64: reader.result.split(",")[1] });
+              reader.readAsDataURL(blob);
+            });
+          } catch {
+            return { sucesso: false };
+          }
+        }, url);
+
+        if (resultado.sucesso) {
+          fs.writeFileSync(
+            caminhoCompleto,
+            Buffer.from(resultado.base64, "base64"),
+          );
+          caminhosImagensLocais.push(
+            `/img/${encodeURIComponent(nomeLimpo)}/${nomeArquivo}.jpg`,
+          );
+        }
+      }
+    } else {
+      // Rotina rápida
+      caminhosImagensLocais.push(...imagensArray);
+    }
+
+    await browser.close();
+
+    // ========================================================
+    // IMAGENS LOCAIS E LEGENDAS GERADAS PELA IA
+    // ========================================================
+    // Sempre existe, mesmo antes de organizar as imagens com a IA.
+    // Isso evita o erro: "altTexts is not defined".
+    let altTexts = {};
+
+    if (baixarImagens && fs.existsSync(pastaHotel)) {
+      console.log(
+        `\n[+] Download concluído. Imagens salvas na pasta do hotel.`,
+      );
+
+      // Refaz a lista a partir do disco para incluir imagens que já tenham
+      // sido movidas para subpastas pelo organizar_hoteis.py.
+      caminhosImagensLocais.length = 0;
+
+      const lerPastaRecursivo = (diretorio) => {
+        let imagensEncontradas = [];
+
+        for (const arquivo of fs.readdirSync(diretorio)) {
+          const caminhoAbsoluto = path.join(diretorio, arquivo);
+          const stat = fs.statSync(caminhoAbsoluto);
+
+          if (stat.isDirectory()) {
+            imagensEncontradas = imagensEncontradas.concat(
+              lerPastaRecursivo(caminhoAbsoluto),
+            );
+            continue;
+          }
+
+          if (/\.(?:jpg|jpeg|png|webp)$/i.test(arquivo)) {
+            const caminhoRelativo = path
+              .relative(PASTA_IMAGENS, caminhoAbsoluto)
+              .split(path.sep)
+              .map(encodeURIComponent)
+              .join("/");
+
+            imagensEncontradas.push(`/img/${caminhoRelativo}`);
+            continue;
+          }
+
+          if (arquivo.toLowerCase() === "alt_texts.json") {
+            try {
+              const conteudoAltTexts = JSON.parse(
+                fs.readFileSync(caminhoAbsoluto, "utf8"),
+              );
+
+              if (conteudoAltTexts && typeof conteudoAltTexts === "object") {
+                altTexts = { ...altTexts, ...conteudoAltTexts };
+              }
+            } catch (erroAltTexts) {
+              console.warn(
+                `[-] Não foi possível ler ${caminhoAbsoluto}: ${erroAltTexts.message}`,
+              );
+            }
+          }
+        }
+
+        return imagensEncontradas;
+      };
+
+      caminhosImagensLocais.push(...lerPastaRecursivo(pastaHotel));
+    }
+    // ========================================================
+
+    return {
+      sucesso: true,
+      nome: nomeOficial,
+      endereco: enderecoFinal,
+      bairro: bairro,
+      tipoHotel: tipoHotel,
+      beiraMar: beiraMar,
+      coordenadas: coordenadas,
+      plusCode: plusCode,
+      nota: dadosPesquisa.nota,
+      regime: regimeFinal,
+      aeroporto: aeroportoFinal,
+      imagens: caminhosImagensLocais,
+      altTexts,
+      baixouLocal: baixarImagens,
+    };
+  } catch (error) {
+    if (browser) await browser.close();
+    return { sucesso: false, erro: error.message };
+  }
 }
 
 // Rota para rodar a IA em todos os hotéis da pasta raiz
-app.post('/api/organizar-tudo', (req, res) => {
-    // Timeout zerado: O servidor aguardará infinitamente
-    req.setTimeout(0);
-    res.setTimeout(0);
-
-    console.log(`\n[+] Iniciando IA de Lote para TODOS os hotéis...`);
-
-    const scriptPython = path.resolve(__dirname, 'organizar_hoteis.py');
-
-    // CORREÇÃO: maxBuffer aumentado para 50MB para suportar horas de processamento sem crashar
-    exec(`python "${scriptPython}"`, { maxBuffer: 1024 * 1024 * 50 }, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`[-] Erro no processamento em lote: ${error.message}`);
-            return res.status(500).json({ erro: error.message });
-        }
-        console.log(`[+] Processamento em Lote Concluído!`);
-        res.json({ sucesso: true, log: stdout });
+app.post("/api/organizar-tudo", (req, res) => {
+  if (processoOrganizacao) {
+    return res.status(409).json({
+      erro: "Já existe uma organização de imagens em andamento.",
     });
-});
+  }
 
-app.post('/api/buscar', async (req, res) => {
-    req.setTimeout(900000);
-    res.setTimeout(900000);
+  const inicioOrganizacao = Date.now();
+  statusOrganizacao = {
+    ...criarStatusOrganizacao(),
+    estado: "processando",
+    etapa: "iniciando",
+    mensagem: "Iniciando organização e carregamento dos modelos.",
+    inicioProcessamento: inicioOrganizacao,
+  };
+  ultimaConclusaoImagem = null;
 
-    const {
-        nome,
-        baixarImagens,
-        latitudeReferencia,
-        longitudeReferencia
-    } = req.body;
+  console.log(
+    `\n[${new Date(inicioOrganizacao).toLocaleString("pt-BR")}] ` +
+      `[+] Iniciando IA de Lote para TODOS os hotéis...`,
+  );
 
-    if (!nome) {
-        return res.status(400).json({
-            erro: 'O nome do hotel é obrigatório'
-        });
+  const scriptPython = path.resolve(__dirname, "organizar_hoteis.py");
+  processoOrganizacao = spawn("python", ["-u", scriptPython], {
+    cwd: __dirname,
+    windowsHide: true,
+    env: {
+      ...process.env,
+      PYTHONIOENCODING: "utf-8",
+    },
+  });
+
+  let bufferSaida = "";
+  processoOrganizacao.stdout.on("data", (chunk) => {
+    bufferSaida += chunk.toString("utf8");
+    const linhas = bufferSaida.split(/\r?\n/);
+    bufferSaida = linhas.pop() || "";
+
+    for (const linha of linhas) {
+      if (linha.startsWith("STATUS_JSON:")) {
+        try {
+          receberStatusPython(JSON.parse(linha.slice("STATUS_JSON:".length)));
+        } catch (erro) {
+          console.warn(`[-] Status inválido do Python: ${erro.message}`);
+        }
+      } else if (linha.trim()) {
+        console.log(linha);
+      }
     }
+  });
 
-    const deveBaixar =
-        baixarImagens !== undefined ? baixarImagens : true;
+  processoOrganizacao.stderr.on("data", (chunk) => {
+    const mensagem = chunk.toString("utf8").trim();
+    if (mensagem) console.error(mensagem);
+  });
 
-    const latitudeFinal =
-        latitudeReferencia !== undefined &&
-            latitudeReferencia !== ''
-            ? Number(latitudeReferencia)
-            : LAT_RECIFE;
+  processoOrganizacao.on("error", (erro) => {
+    const fim = Date.now();
+    statusOrganizacao.estado = "erro";
+    statusOrganizacao.etapa = "erro";
+    statusOrganizacao.mensagem = erro.message;
+    statusOrganizacao.fimProcessamento = fim;
+    atualizarTempoDecorridoOrganizacao(fim);
+    processoOrganizacao = null;
+  });
 
-    const longitudeFinal =
-        longitudeReferencia !== undefined &&
-            longitudeReferencia !== ''
-            ? Number(longitudeReferencia)
-            : LNG_RECIFE;
+  processoOrganizacao.on("close", (codigo) => {
+    const fim = Date.now();
+    statusOrganizacao.fimProcessamento = fim;
+    atualizarTempoDecorridoOrganizacao(fim);
 
-    if (
-        !Number.isFinite(latitudeFinal) ||
-        latitudeFinal < -90 ||
-        latitudeFinal > 90
-    ) {
-        return res.status(400).json({
-            erro: 'Digite uma latitude válida, entre -90 e 90.'
-        });
-    }
-
-    if (
-        !Number.isFinite(longitudeFinal) ||
-        longitudeFinal < -180 ||
-        longitudeFinal > 180
-    ) {
-        return res.status(400).json({
-            erro: 'Digite uma longitude válida, entre -180 e 180.'
-        });
-    }
-
-    const resultado = await rasparDadosHotel(
-        nome,
-        deveBaixar,
-        latitudeFinal,
-        longitudeFinal
-    );
-
-    if (resultado.sucesso) {
-        res.json(resultado);
+    if (codigo === 0) {
+      statusOrganizacao.estado = "concluido";
+      statusOrganizacao.etapa = "concluido";
+      statusOrganizacao.mensagem = "Organização concluída.";
+      statusOrganizacao.tempoEstimadoRestanteSegundos = 0;
+      statusOrganizacao.previsaoTermino = fim;
+      statusOrganizacao.imagensPendentesGeral = 0;
+      console.log(`[+] Processamento em Lote Concluído!`);
     } else {
-        res.status(500).json({ erro: resultado.erro });
+      statusOrganizacao.estado = "erro";
+      statusOrganizacao.etapa = "erro";
+      statusOrganizacao.mensagem =
+        statusOrganizacao.mensagem ||
+        `O organizador foi encerrado com o código ${codigo}.`;
     }
+
+    processoOrganizacao = null;
+  });
+
+  return res.status(202).json({
+    sucesso: true,
+    mensagem: "Organização iniciada.",
+  });
 });
 
-app.get('/', (req, res) => {
-    res.send(`
+app.get("/api/status-organizacao", (req, res) => {
+  if (
+    statusOrganizacao.estado === "processando" &&
+    statusOrganizacao.inicioProcessamento
+  ) {
+    atualizarTempoDecorridoOrganizacao();
+  }
+  res.json(statusOrganizacao);
+});
+
+app.post("/api/buscar", async (req, res) => {
+  req.setTimeout(900000);
+  res.setTimeout(900000);
+
+  const { nome, baixarImagens, latitudeReferencia, longitudeReferencia } =
+    req.body;
+
+  if (!nome) {
+    return res.status(400).json({
+      erro: "O nome do hotel é obrigatório",
+    });
+  }
+
+  const deveBaixar = baixarImagens !== undefined ? baixarImagens : true;
+
+  const latitudeFinal =
+    latitudeReferencia !== undefined && latitudeReferencia !== ""
+      ? Number(latitudeReferencia)
+      : LAT_RECIFE;
+
+  const longitudeFinal =
+    longitudeReferencia !== undefined && longitudeReferencia !== ""
+      ? Number(longitudeReferencia)
+      : LNG_RECIFE;
+
+  if (
+    !Number.isFinite(latitudeFinal) ||
+    latitudeFinal < -90 ||
+    latitudeFinal > 90
+  ) {
+    return res.status(400).json({
+      erro: "Digite uma latitude válida, entre -90 e 90.",
+    });
+  }
+
+  if (
+    !Number.isFinite(longitudeFinal) ||
+    longitudeFinal < -180 ||
+    longitudeFinal > 180
+  ) {
+    return res.status(400).json({
+      erro: "Digite uma longitude válida, entre -180 e 180.",
+    });
+  }
+
+  const resultado = await rasparDadosHotel(
+    nome,
+    deveBaixar,
+    latitudeFinal,
+    longitudeFinal,
+  );
+
+  if (resultado.sucesso) {
+    res.json(resultado);
+  } else {
+    res.status(500).json({ erro: resultado.erro });
+  }
+});
+
+app.get("/", (req, res) => {
+  res.send(`
     <!DOCTYPE html>
     <html lang="pt-br">
     <head>
@@ -636,51 +953,69 @@ app.get('/', (req, res) => {
 
                                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                    <div>
-                        <label
-                            for="latitudeReferenciaInput"
-                            class="text-sm text-slate-300 block mb-2"
-                        >
-                            Latitude de referência
-                        </label>
+                <details id="painelCoordenadas" class="group mt-4 overflow-hidden rounded-xl border border-slate-700 bg-slate-900/50 transition-colors open:border-blue-500/40">
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-left select-none hover:bg-slate-700/30 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21s7-5.1 7-12a7 7 0 10-14 0c0 6.9 7 12 7 12z"></path>
+                                    <circle cx="12" cy="9" r="2.5" stroke-width="2"></circle>
+                                </svg>
+                            </span>
+                            <div>
+                                <span class="block text-sm font-semibold text-slate-200">Coordenadas do aeroporto</span>
+                                <span class="block text-xs text-slate-500">Ajuste a referência usada no cálculo da distância</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="rounded-full bg-slate-700/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Opcional</span>
+                            <svg class="h-4 w-4 text-slate-400 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </summary>
 
-                        <input
-                            id="latitudeReferenciaInput"
-                            type="number"
-                            step="any"
-                            min="-90"
-                            max="90"
-                            value="${LAT_RECIFE}"
-                            placeholder="Ex.: -14.8150"
-                            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-blue-500 transition-all"
-                        >
+                    <div class="border-t border-slate-700/70 px-4 pb-4 pt-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="latitudeReferenciaInput" class="text-xs font-medium uppercase tracking-wide text-slate-400 block mb-2">
+                                    Latitude
+                                </label>
+                                <input
+                                    id="latitudeReferenciaInput"
+                                    type="number"
+                                    step="any"
+                                    min="-90"
+                                    max="90"
+                                    value="${LAT_RECIFE}"
+                                    placeholder="Ex.: -14.8150"
+                                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 font-mono text-sm text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
+                                >
+                            </div>
+
+                            <div>
+                                <label for="longitudeReferenciaInput" class="text-xs font-medium uppercase tracking-wide text-slate-400 block mb-2">
+                                    Longitude
+                                </label>
+                                <input
+                                    id="longitudeReferenciaInput"
+                                    type="number"
+                                    step="any"
+                                    min="-180"
+                                    max="180"
+                                    value="${LNG_RECIFE}"
+                                    placeholder="Ex.: -39.0333"
+                                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 font-mono text-sm text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
+                                >
+                            </div>
+                        </div>
+
+                        <p class="mt-3 flex items-start gap-2 text-xs leading-relaxed text-slate-500">
+                            <span class="text-blue-400">ℹ</span>
+                            Essas coordenadas são usadas somente quando a Booking.com não informa a distância do aeroporto.
+                        </p>
                     </div>
-
-                    <div>
-                        <label
-                            for="longitudeReferenciaInput"
-                            class="text-sm text-slate-300 block mb-2"
-                        >
-                            Longitude de referência
-                        </label>
-
-                        <input
-                            id="longitudeReferenciaInput"
-                            type="number"
-                            step="any"
-                            min="-180"
-                            max="180"
-                            value="${LNG_RECIFE}"
-                            placeholder="Ex.: -39.0333"
-                            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-blue-500 transition-all"
-                        >
-                    </div>
-                </div>
-
-                <p class="text-xs text-slate-500 mt-2">
-                    Coordenadas usadas como destino no cálculo da distância do aeroporto.
-                </p>
+                </details>
 
                 <div class="mt-6 pt-6 border-t border-slate-700/50 text-center">
 
@@ -823,6 +1158,7 @@ app.get('/', (req, res) => {
             let dadosAtuais = null;
             let csvWix = null;
             let itensAcumulados = [];
+            let intervaloStatusOrganizacao = null;
 
             function normalizarNome(texto) {
                 return String(texto || '')
@@ -877,7 +1213,16 @@ app.get('/', (req, res) => {
             function adicionarAoCsv() {
                 if (!dadosAtuais) return;
 
-                const distanciaAeroporto = String(dadosAtuais.aeroporto).match(/\\d+(?:[.,]\\d+)?\\s*km/i)?.[0] || dadosAtuais.aeroporto;
+                const distanciaEncontrada = String(dadosAtuais.aeroporto)
+                    .match(/(\\d+(?:[.,]\\d+)?)\\s*km/i);
+                const distanciaAeroporto = distanciaEncontrada
+                    ? distanciaEncontrada[1].replace(',', '.')
+                    : '';
+                const notaEncontrada = String(dadosAtuais.nota)
+                    .match(/(?:10|[0-9])(?:[.,][0-9])?/);
+                const notaAvaliacao = notaEncontrada
+                    ? notaEncontrada[0].replace(',', '.')
+                    : '';
                 const tinhaIdInformado = Boolean(dadosAtuais.idWix);
                 if (!dadosAtuais.idWix) {
                     dadosAtuais.idWix = crypto.randomUUID();
@@ -890,7 +1235,7 @@ app.get('/', (req, res) => {
                     'Localização_Bairro': dadosAtuais.bairro,
                     'Tipo_Hotel': dadosAtuais.tipoHotel,
                     'Beira mar': dadosAtuais.beiraMar,
-                    'Nota de Avaliação': dadosAtuais.nota,
+                    'Nota de Avaliação': notaAvaliacao,
                     'Endereço da Rua': dadosAtuais.endereco,
                     'Plus Code': dadosAtuais.plusCode,
                     'Distância Aeroporto': distanciaAeroporto,
@@ -903,6 +1248,24 @@ app.get('/', (req, res) => {
                         campoBeiraMar = 'Beira mar';
                         csvWix.meta.fields.push(campoBeiraMar);
                         csvWix.data.forEach(item => { item[campoBeiraMar] = ''; });
+                    }
+
+                    let campoDistanciaAeroporto = csvWix.meta.fields.find(
+                        campo => normalizarNome(campo) === 'distanciaaeroporto'
+                    );
+                    if (!campoDistanciaAeroporto) {
+                        campoDistanciaAeroporto = 'Distância Aeroporto';
+                        csvWix.meta.fields.push(campoDistanciaAeroporto);
+                        csvWix.data.forEach(item => { item[campoDistanciaAeroporto] = ''; });
+                    }
+
+                    let campoNotaAvaliacao = csvWix.meta.fields.find(
+                        campo => normalizarNome(campo) === 'notadeavaliacao'
+                    );
+                    if (!campoNotaAvaliacao) {
+                        campoNotaAvaliacao = 'Nota de Avaliação';
+                        csvWix.meta.fields.push(campoNotaAvaliacao);
+                        csvWix.data.forEach(item => { item[campoNotaAvaliacao] = ''; });
                     }
 
                     let linha = csvWix.data.find(item => item.ID === registro.ID);
@@ -922,10 +1285,10 @@ app.get('/', (req, res) => {
                         'Localização_Bairro': registro['Localização_Bairro'],
                         'Tipo_Hotel': registro['Tipo_Hotel'],
                         [campoBeiraMar]: registro['Beira mar'],
-                        'Nota de Avaliação': registro['Nota de Avaliação'],
+                        [campoNotaAvaliacao]: registro['Nota de Avaliação'],
                         'Endereço da Rua': registro['Endereço da Rua'],
                         'Plus Code': registro['Plus Code'],
-                        'Distância Aeroporto': registro['Distância Aeroporto'],
+                        [campoDistanciaAeroporto]: registro['Distância Aeroporto'],
                         'Regime de Alimentação': registro['Regime de Alimentação']
                     });
                 }
@@ -1017,36 +1380,137 @@ app.get('/', (req, res) => {
                 }
             }
 
+            function formatarDuracao(totalSegundos) {
+                if (totalSegundos == null || !Number.isFinite(Number(totalSegundos))) {
+                    return 'Calculando estimativa...';
+                }
+
+                const segundosValidos = Math.max(0, Math.floor(Number(totalSegundos)));
+                const horas = Math.floor(segundosValidos / 3600);
+                const minutos = Math.floor((segundosValidos % 3600) / 60);
+                const segundos = segundosValidos % 60;
+
+                return String(horas).padStart(2, '0') + ':' +
+                    String(minutos).padStart(2, '0') + ':' +
+                    String(segundos).padStart(2, '0');
+            }
+
+            function prepararPainelOrganizacao() {
+                const loader = document.getElementById('loader');
+                loader.innerHTML =
+                    '<div class="max-w-2xl mx-auto text-left bg-slate-800 border border-purple-500/30 rounded-2xl p-6 shadow-xl">' +
+                        '<div class="flex items-center gap-3 mb-5">' +
+                            '<div id="statusSpinnerIA" class="w-8 h-8 border-4 border-t-purple-500 border-slate-700 rounded-full animate-spin"></div>' +
+                            '<div><p class="text-xl text-purple-400 font-bold">Organização de imagens</p>' +
+                            '<p id="statusMensagemIA" class="text-sm text-slate-400">Iniciando...</p></div>' +
+                        '</div>' +
+                        '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">' +
+                            '<p><span id="statusRotuloTempoIA" class="text-slate-400">Tempo decorrido:</span> <span id="statusTempoDecorridoIA" class="font-mono">00:00:00</span></p>' +
+                            '<p><span class="text-slate-400">Média por imagem:</span> <span id="statusTempoMedioIA" class="font-mono">Calculando estimativa...</span></p>' +
+                            '<p><span class="text-slate-400">Tempo restante estimado:</span> <span id="statusTempoRestanteIA" class="font-mono">Calculando estimativa...</span></p>' +
+                            '<p><span class="text-slate-400">Conclusão prevista:</span> <span id="statusPrevisaoTerminoIA" class="font-mono">Calculando estimativa...</span></p>' +
+                            '<p><span class="text-slate-400">Progresso geral:</span> <span id="statusProgressoGeralIA">0 de 0 imagens</span></p>' +
+                            '<p><span class="text-slate-400">Pendentes:</span> <span id="statusImagensPendentesIA">0 imagens</span></p>' +
+                        '</div>' +
+                        '<div class="w-full bg-slate-950 rounded-full h-3 mt-5 overflow-hidden">' +
+                            '<div id="statusBarraGeralIA" class="bg-purple-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>' +
+                        '</div>' +
+                        '<p id="statusHotelAtualIA" class="text-xs text-slate-400 mt-3"></p>' +
+                        '<p class="text-xs text-slate-500 mt-4">O tempo restante é uma estimativa baseada nas últimas imagens e pode variar.</p>' +
+                    '</div>';
+                loader.classList.remove('hidden', 'animate-pulse');
+            }
+
+            async function consultarStatusOrganizacao() {
+                const response = await fetch('/api/status-organizacao');
+                if (!response.ok) throw new Error('Não foi possível consultar o progresso.');
+                const status = await response.json();
+
+                document.getElementById('statusTempoDecorridoIA').textContent =
+                    formatarDuracao(status.tempoDecorridoSegundos);
+                document.getElementById('statusTempoMedioIA').textContent =
+                    status.tempoMedioPorImagemSegundos == null
+                        ? 'Calculando estimativa...'
+                        : formatarDuracao(status.tempoMedioPorImagemSegundos);
+                document.getElementById('statusTempoRestanteIA').textContent =
+                    status.tempoEstimadoRestanteSegundos == null
+                        ? 'Calculando estimativa...'
+                        : formatarDuracao(status.tempoEstimadoRestanteSegundos);
+
+                let previsao = 'Calculando estimativa...';
+                if (status.estado === 'concluido' && status.fimProcessamento) {
+                    previsao = 'Concluído às ' + new Date(status.fimProcessamento)
+                        .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                } else if (status.previsaoTermino) {
+                    previsao = new Date(status.previsaoTermino)
+                        .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                }
+                document.getElementById('statusPrevisaoTerminoIA').textContent = previsao;
+                document.getElementById('statusProgressoGeralIA').textContent =
+                    status.imagensProcessadasGeral + ' de ' +
+                    status.totalImagensGeral + ' imagens';
+                document.getElementById('statusImagensPendentesIA').textContent =
+                    status.imagensPendentesGeral + ' imagens';
+                document.getElementById('statusMensagemIA').textContent =
+                    status.mensagem || 'Processando...';
+
+                const progressoGeral = status.totalImagensGeral > 0
+                    ? (status.imagensProcessadasGeral / status.totalImagensGeral) * 100
+                    : 0;
+                document.getElementById('statusBarraGeralIA').style.width =
+                    Math.min(Math.max(progressoGeral, 0), 100) + '%';
+                document.getElementById('statusHotelAtualIA').textContent =
+                    status.hotel
+                        ? 'Hotel atual: ' + status.hotel +
+                          (status.imagem ? ' — ' + status.imagem : '')
+                        : '';
+
+                if (status.estado === 'concluido' || status.estado === 'erro') {
+                    clearInterval(intervaloStatusOrganizacao);
+                    intervaloStatusOrganizacao = null;
+                    document.getElementById('statusSpinnerIA').classList.remove('animate-spin');
+                    document.getElementById('statusRotuloTempoIA').textContent =
+                        status.estado === 'concluido' ? 'Tempo total:' : 'Tempo decorrido:';
+
+                    const btn = document.getElementById('btnOrganizarTudo');
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                    if (status.estado === 'erro') {
+                        document.getElementById('statusMensagemIA').className =
+                            'text-sm text-red-400';
+                    }
+                }
+            }
+
             async function organizarLoteIA() {
-                const confirmacao = confirm("Isto irá ativar a IA para TODOS os hotéis salvos na sua pasta. O processo pode levar vários minutos (ou horas, dependendo do volume). Acompanhe o progresso no terminal preto. Deseja continuar?");
+                const confirmacao = confirm("Isto irá ativar a IA para TODOS os hotéis salvos na sua pasta. O processo pode levar vários minutos (ou horas, dependendo do volume). Deseja continuar?");
                 if (!confirmacao) return;
 
                 const btn = document.getElementById('btnOrganizarTudo');
-                const loader = document.getElementById('loader');
                 const resultadoContainer = document.getElementById('resultadoContainer');
-                
+
                 resultadoContainer.classList.add('hidden');
                 btn.disabled = true;
                 btn.classList.add('opacity-50', 'cursor-not-allowed');
-                
-                // Usando aspas simples e concatenação para não quebrar o res.send()
-                loader.innerHTML = '<div class="inline-block w-12 h-12 border-4 border-t-purple-500 border-slate-700 rounded-full animate-spin mb-4"></div>' +
-                    '<p class="text-xl text-purple-400 font-bold mb-2">Processamento de IA em Lote Iniciado!</p>' +
-                    '<p class="text-slate-300">O Florence-2 e o CLIP estão analisando toda a sua pasta de downloads.</p>' +
-                    '<p class="text-sm text-slate-500 mt-2 font-mono bg-slate-950 inline-block px-4 py-2 rounded-lg border border-slate-800">Abra a janela do seu terminal (CMD/PowerShell) para ver as fotos sendo processadas em tempo real.</p>';
-                loader.classList.remove('hidden');
+                prepararPainelOrganizacao();
 
                 try {
                     const response = await fetch('/api/organizar-tudo', { method: 'POST' });
                     const dados = await response.json();
-                    
                     if (!response.ok) throw new Error(dados.erro || 'Falha ao organizar em lote');
-                    
-                    alert("A IA concluiu a organização e renomeação de todos os hotéis!");
+
+                    await consultarStatusOrganizacao();
+                    intervaloStatusOrganizacao = setInterval(() => {
+                        consultarStatusOrganizacao().catch((erro) => {
+                            console.error(erro);
+                        });
+                    }, 1000);
                 } catch (err) {
-                    alert('Erro na execução da IA: ' + err.message);
-                } finally {
-                    loader.classList.add('hidden');
+                    document.getElementById('statusMensagemIA').textContent =
+                        'Erro: ' + err.message;
+                    document.getElementById('statusMensagemIA').className =
+                        'text-sm text-red-400';
                     btn.disabled = false;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
@@ -1211,6 +1675,6 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`\n[+] Servidor da Interface Gráfica iniciado com sucesso!`);
-    console.log(`[+] Aceda no seu navegador: http://localhost:${PORT}\n`);
+  console.log(`\n[+] Servidor da Interface Gráfica iniciado com sucesso!`);
+  console.log(`[+] Aceda no seu navegador: http://localhost:${PORT}\n`);
 });
