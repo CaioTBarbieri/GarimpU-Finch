@@ -210,10 +210,41 @@ async function rasparDadosHotel(
         regimePesquisa: "Não informado",
       };
     } else {
-      await page.goto(urlBusca, { waitUntil: "domcontentloaded" });
-      await page.waitForSelector('[data-testid="property-card"]', {
-        timeout: 15000,
-      });
+      const totalTentativas = 3;
+      let encontrouCard = false;
+      let ultimoErroBusca = null;
+
+      for (let tentativa = 1; tentativa <= totalTentativas; tentativa++) {
+        try {
+          console.log(
+            `[Busca] Tentativa ${tentativa}/${totalTentativas}: ${entrada}`,
+          );
+          await page.goto(urlBusca, { waitUntil: "domcontentloaded" });
+          await page.waitForSelector('[data-testid="property-card"]', {
+            timeout: 15000 + (tentativa - 1) * 10000,
+          });
+          encontrouCard = true;
+          break;
+        } catch (erroBusca) {
+          ultimoErroBusca = erroBusca;
+          console.warn(
+            `[Busca] A tentativa ${tentativa}/${totalTentativas} falhou: ${erroBusca.message}`,
+          );
+
+          if (tentativa < totalTentativas) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, tentativa * 2000),
+            );
+          }
+        }
+      }
+
+      if (!encontrouCard) {
+        throw new Error(
+          `A Booking não exibiu resultados após ${totalTentativas} tentativas. ` +
+            (ultimoErroBusca?.message || "Hotel não encontrado."),
+        );
+      }
 
       dadosPesquisa = await page.evaluate(() => {
         const card = document.querySelector('[data-testid="property-card"]');
@@ -951,6 +982,44 @@ app.get("/", (req, res) => {
                     </button>
                 </div>
 
+                <details id="painelPesquisaLote" class="group mt-4 overflow-hidden rounded-xl border border-slate-700 bg-slate-900/50 transition-colors open:border-indigo-500/40">
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-left select-none hover:bg-slate-700/30 transition-colors">
+                        <div>
+                            <span class="block text-sm font-semibold text-slate-200">Pesquisa de hotéis em lote</span>
+                            <span class="block text-xs text-slate-500">Pesquisa e adiciona automaticamente ao CSV, sem baixar imagens</span>
+                        </div>
+                        <svg class="h-4 w-4 text-slate-400 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </summary>
+                    <div class="border-t border-slate-700/70 p-4">
+                        <label for="listaHoteisInput" class="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400">
+                            Um nome ou link da Booking.com por linha
+                        </label>
+                        <textarea id="listaHoteisInput" rows="6"
+                            placeholder="Hotel Exemplo 1&#10;Hotel Exemplo 2&#10;https://www.booking.com/hotel/..."
+                            class="w-full resize-y rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/10"></textarea>
+                        <button id="btnPesquisarLote" onclick="pesquisarHoteisEmLote()"
+                            class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-500/50 bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/20 transition-all hover:bg-indigo-500">
+                            Pesquisar lista e adicionar ao CSV
+                        </button>
+                        <div id="statusPesquisaLote" class="hidden mt-4">
+                            <div class="mb-2 flex items-center justify-between text-xs text-slate-400">
+                                <span id="textoStatusPesquisaLote">Preparando...</span>
+                                <span id="contadorPesquisaLote">0 de 0</span>
+                            </div>
+                            <div class="h-2 overflow-hidden rounded-full bg-slate-950">
+                                <div id="barraPesquisaLote" class="h-2 rounded-full bg-indigo-500 transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                            <div id="resultadosPesquisaLote" class="mt-3 max-h-40 space-y-1 overflow-y-auto text-xs"></div>
+                            <button id="btnBaixarCsvLote" onclick="baixarDadosCSV()"
+                                class="hidden mt-4 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-900/20 transition-all hover:bg-emerald-500">
+                                Baixar CSV com os hotéis processados
+                            </button>
+                        </div>
+                    </div>
+                </details>
+
                                 </div>
 
                 <details id="painelCoordenadas" class="group mt-4 overflow-hidden rounded-xl border border-slate-700 bg-slate-900/50 transition-colors open:border-blue-500/40">
@@ -1014,6 +1083,58 @@ app.get("/", (req, res) => {
                             <span class="text-blue-400">ℹ</span>
                             Essas coordenadas são usadas somente quando a Booking.com não informa a distância do aeroporto.
                         </p>
+                    </div>
+                </details>
+
+                <details id="painelColunasCsv" class="group mt-3 overflow-hidden rounded-xl border border-slate-700 bg-slate-900/50 transition-colors open:border-emerald-500/40">
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-left select-none hover:bg-slate-700/30 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16M9 4v16M15 4v16"></path>
+                                </svg>
+                            </span>
+                            <div>
+                                <span class="block text-sm font-semibold text-slate-200">Nomes das colunas do CSV</span>
+                                <span class="block text-xs text-slate-500">Personalize os campos antes de adicionar hotéis</span>
+                            </div>
+                        </div>
+                        <svg class="h-4 w-4 text-slate-400 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </summary>
+
+                    <div class="border-t border-slate-700/70 px-4 pb-4 pt-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="text-xs text-slate-400">Regime alimentar
+                                <input id="colunaRegimeCsv" value="Regime de Alimentação" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                            </label>
+                            <label class="text-xs text-slate-400">Nota numérica
+                                <input id="colunaNotaCsv" value="Nota de Avaliação" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                            </label>
+                            <label class="text-xs text-slate-400">Tipo de hotel
+                                <input id="colunaTipoCsv" value="tipo_hotel" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                            </label>
+                            <label class="text-xs text-slate-400">Bairro
+                                <input id="colunaBairrosCsv" value="bairros" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                            </label>
+                            <label class="text-xs text-slate-400">Beira-mar
+                                <input id="colunaBeiraMarCsv" value="Beira mar" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                            </label>
+                            <label class="text-xs text-slate-400">Endereço
+                                <input id="colunaEnderecoCsv" value="Endereço da Rua" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                            </label>
+                            <label class="text-xs text-slate-400">Plus Code
+                                <input id="colunaPlusCodeCsv" value="Plus Code" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                            </label>
+                            <label class="text-xs text-slate-400">Distância numérica
+                                <input id="colunaDistanciaNumeroCsv" value="Distância Aeroporto N" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                            </label>
+                            <label class="text-xs text-slate-400 sm:col-span-2">Distância com unidade
+                                <input id="colunaDistanciaCsv" value="Distância Aeroporto" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
+                            </label>
+                        </div>
+                        <p class="mt-3 text-xs text-slate-500">Os campos <code>ID</code> e <code>Nome_Hotel</code> permanecem fixos para preservar a integração com o Wix.</p>
                     </div>
                 </details>
 
@@ -1159,6 +1280,7 @@ app.get("/", (req, res) => {
             let csvWix = null;
             let itensAcumulados = [];
             let intervaloStatusOrganizacao = null;
+            let assinaturaColunasCsv = null;
 
             function normalizarNome(texto) {
                 return String(texto || '')
@@ -1166,6 +1288,97 @@ app.get("/", (req, res) => {
                     .replace(/[\\u0300-\\u036f]/g, '')
                     .replace(/[^a-zA-Z0-9]/g, '')
                     .toLowerCase();
+            }
+
+            function assinaturaPalavrasNome(texto) {
+                return Array.from(new Set(
+                    String(texto || '')
+                        .normalize('NFD')
+                        .replace(/[\\u0300-\\u036f]/g, '')
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, ' ')
+                        .trim()
+                        .split(/\\s+/)
+                        .filter(Boolean)
+                )).sort().join('|');
+            }
+
+            function localizarItemWixPorNome(nomeHotel) {
+                if (!csvWix) {
+                    return { item: null, motivo: 'csv_nao_carregado' };
+                }
+
+                const nomeNormalizado = normalizarNome(nomeHotel);
+                const candidatosExatos = csvWix.data.filter(
+                    item => normalizarNome(item.Nome_Hotel) === nomeNormalizado
+                );
+                if (candidatosExatos.length === 1) {
+                    return { item: candidatosExatos[0], motivo: null };
+                }
+                if (candidatosExatos.length > 1) {
+                    return { item: null, motivo: 'repetido' };
+                }
+
+                const assinaturaHotel = assinaturaPalavrasNome(nomeHotel);
+                const candidatosMesmasPalavras = csvWix.data.filter(
+                    item => assinaturaPalavrasNome(item.Nome_Hotel) === assinaturaHotel
+                );
+                if (candidatosMesmasPalavras.length === 1) {
+                    return { item: candidatosMesmasPalavras[0], motivo: null };
+                }
+                if (candidatosMesmasPalavras.length > 1) {
+                    return { item: null, motivo: 'repetido' };
+                }
+
+                const candidatos = csvWix.data.filter(item => {
+                    const nomeWix = normalizarNome(item.Nome_Hotel);
+                    return nomeWix.length >= 6 &&
+                        (nomeNormalizado.includes(nomeWix) ||
+                            nomeWix.includes(nomeNormalizado));
+                });
+
+                if (candidatos.length === 1) {
+                    return { item: candidatos[0], motivo: null };
+                }
+
+                return {
+                    item: null,
+                    motivo: candidatos.length > 1 ? 'repetido' : 'nao_encontrado'
+                };
+            }
+
+            function encontrarItemWixPorNome(nomeHotel) {
+                return localizarItemWixPorNome(nomeHotel).item;
+            }
+
+            function obterNomesColunasCsv() {
+                const colunas = {
+                    regime: document.getElementById('colunaRegimeCsv').value.trim(),
+                    nota: document.getElementById('colunaNotaCsv').value.trim(),
+                    tipo: document.getElementById('colunaTipoCsv').value.trim(),
+                    bairros: document.getElementById('colunaBairrosCsv').value.trim(),
+                    beiraMar: document.getElementById('colunaBeiraMarCsv').value.trim(),
+                    endereco: document.getElementById('colunaEnderecoCsv').value.trim(),
+                    plusCode: document.getElementById('colunaPlusCodeCsv').value.trim(),
+                    distanciaNumero: document.getElementById('colunaDistanciaNumeroCsv').value.trim(),
+                    distancia: document.getElementById('colunaDistanciaCsv').value.trim()
+                };
+
+                const nomes = Object.values(colunas);
+                if (nomes.some(nome => !nome)) {
+                    throw new Error('Os nomes das colunas do CSV não podem ficar vazios.');
+                }
+
+                const nomesNormalizados = nomes.map(normalizarNome);
+                if (new Set(nomesNormalizados).size !== nomesNormalizados.length) {
+                    throw new Error('Cada coluna do CSV precisa ter um nome diferente.');
+                }
+
+                if (nomesNormalizados.includes('id') || nomesNormalizados.includes('nomehotel')) {
+                    throw new Error('ID e Nome_Hotel são campos reservados da integração com o Wix.');
+                }
+
+                return colunas;
             }
 
             function carregarCsvWix(arquivo) {
@@ -1190,6 +1403,7 @@ app.get("/", (req, res) => {
 
                         csvWix = resultado;
                         itensAcumulados = [];
+                        assinaturaColunasCsv = null;
                         atualizarContadorCsv();
                         status.innerText = 'CSV carregado: ' + resultado.data.length + ' hotéis e ' + campos.length + ' colunas.';
                         status.className = 'text-xs text-emerald-400 mt-2';
@@ -1211,18 +1425,41 @@ app.get("/", (req, res) => {
             }
 
             function adicionarAoCsv() {
-                if (!dadosAtuais) return;
+                if (!dadosAtuais) return false;
+
+                let colunasCsv;
+                try {
+                    colunasCsv = obterNomesColunasCsv();
+                } catch (erro) {
+                    alert(erro.message);
+                    return false;
+                }
+
+                const assinaturaAtual = JSON.stringify(colunasCsv);
+                if (assinaturaColunasCsv && assinaturaColunasCsv !== assinaturaAtual) {
+                    alert('Os nomes das colunas foram alterados depois que hotéis já foram adicionados. Exporte a lista atual antes de usar uma nova configuração.');
+                    return false;
+                }
+                assinaturaColunasCsv = assinaturaAtual;
 
                 const distanciaEncontrada = String(dadosAtuais.aeroporto)
                     .match(/(\\d+(?:[.,]\\d+)?)\\s*km/i);
-                const distanciaAeroporto = distanciaEncontrada
-                    ? distanciaEncontrada[1].replace(',', '.')
+                const distanciaAeroportoNumero = distanciaEncontrada
+                    ? Number(distanciaEncontrada[1].replace(',', '.'))
+                    : '';
+                const distanciaAeroporto = distanciaAeroportoNumero
+                    ? distanciaAeroportoNumero + ' km'
                     : '';
                 const notaEncontrada = String(dadosAtuais.nota)
                     .match(/(?:10|[0-9])(?:[.,][0-9])?/);
                 const notaAvaliacao = notaEncontrada
-                    ? notaEncontrada[0].replace(',', '.')
+                    ? Number(notaEncontrada[0].replace(',', '.'))
                     : '';
+                const regimeAlimentacao =
+                    !dadosAtuais.regime ||
+                    normalizarNome(dadosAtuais.regime) === 'naoinformado'
+                        ? 'Café da manhã disponível'
+                        : dadosAtuais.regime;
                 const tinhaIdInformado = Boolean(dadosAtuais.idWix);
                 if (!dadosAtuais.idWix) {
                     dadosAtuais.idWix = crypto.randomUUID();
@@ -1232,47 +1469,32 @@ app.get("/", (req, res) => {
                 const registro = {
                     ID: dadosAtuais.idWix,
                     Nome_Hotel: dadosAtuais.nome,
-                    'Localização_Bairro': dadosAtuais.bairro,
-                    'Tipo_Hotel': dadosAtuais.tipoHotel,
-                    'Beira mar': dadosAtuais.beiraMar,
-                    'Nota de Avaliação': notaAvaliacao,
-                    'Endereço da Rua': dadosAtuais.endereco,
-                    'Plus Code': dadosAtuais.plusCode,
-                    'Distância Aeroporto': distanciaAeroporto,
-                    'Regime de Alimentação': dadosAtuais.regime
+                    [colunasCsv.bairros]: dadosAtuais.bairro,
+                    [colunasCsv.tipo]: dadosAtuais.tipoHotel,
+                    [colunasCsv.beiraMar]: dadosAtuais.beiraMar,
+                    [colunasCsv.nota]: notaAvaliacao,
+                    [colunasCsv.endereco]: dadosAtuais.endereco,
+                    [colunasCsv.plusCode]: dadosAtuais.plusCode,
+                    [colunasCsv.distanciaNumero]: distanciaAeroportoNumero,
+                    [colunasCsv.distancia]: distanciaAeroporto,
+                    [colunasCsv.regime]: regimeAlimentacao
                 };
 
                 if (csvWix) {
-                    let campoBeiraMar = csvWix.meta.fields.find(campo => normalizarNome(campo) === 'beiramar');
-                    if (!campoBeiraMar) {
-                        campoBeiraMar = 'Beira mar';
-                        csvWix.meta.fields.push(campoBeiraMar);
-                        csvWix.data.forEach(item => { item[campoBeiraMar] = ''; });
-                    }
+                    const camposGarimpU = Object.values(colunasCsv);
 
-                    let campoDistanciaAeroporto = csvWix.meta.fields.find(
-                        campo => normalizarNome(campo) === 'distanciaaeroporto'
-                    );
-                    if (!campoDistanciaAeroporto) {
-                        campoDistanciaAeroporto = 'Distância Aeroporto';
-                        csvWix.meta.fields.push(campoDistanciaAeroporto);
-                        csvWix.data.forEach(item => { item[campoDistanciaAeroporto] = ''; });
-                    }
-
-                    let campoNotaAvaliacao = csvWix.meta.fields.find(
-                        campo => normalizarNome(campo) === 'notadeavaliacao'
-                    );
-                    if (!campoNotaAvaliacao) {
-                        campoNotaAvaliacao = 'Nota de Avaliação';
-                        csvWix.meta.fields.push(campoNotaAvaliacao);
-                        csvWix.data.forEach(item => { item[campoNotaAvaliacao] = ''; });
-                    }
+                    camposGarimpU.forEach(campo => {
+                        if (!csvWix.meta.fields.includes(campo)) {
+                            csvWix.meta.fields.push(campo);
+                            csvWix.data.forEach(item => { item[campo] = ''; });
+                        }
+                    });
 
                     let linha = csvWix.data.find(item => item.ID === registro.ID);
                     if (!linha) {
                         if (tinhaIdInformado) {
                             alert('O ID informado não existe no CSV. Apague o ID para cadastrar como hotel novo.');
-                            return;
+                            return false;
                         }
 
                         linha = Object.fromEntries(csvWix.meta.fields.map(campo => [campo, '']));
@@ -1282,14 +1504,15 @@ app.get("/", (req, res) => {
                     }
 
                     Object.assign(linha, {
-                        'Localização_Bairro': registro['Localização_Bairro'],
-                        'Tipo_Hotel': registro['Tipo_Hotel'],
-                        [campoBeiraMar]: registro['Beira mar'],
-                        [campoNotaAvaliacao]: registro['Nota de Avaliação'],
-                        'Endereço da Rua': registro['Endereço da Rua'],
-                        'Plus Code': registro['Plus Code'],
-                        [campoDistanciaAeroporto]: registro['Distância Aeroporto'],
-                        'Regime de Alimentação': registro['Regime de Alimentação']
+                        [colunasCsv.bairros]: registro[colunasCsv.bairros],
+                        [colunasCsv.tipo]: registro[colunasCsv.tipo],
+                        [colunasCsv.beiraMar]: registro[colunasCsv.beiraMar],
+                        [colunasCsv.nota]: registro[colunasCsv.nota],
+                        [colunasCsv.endereco]: registro[colunasCsv.endereco],
+                        [colunasCsv.plusCode]: registro[colunasCsv.plusCode],
+                        [colunasCsv.distanciaNumero]: registro[colunasCsv.distanciaNumero],
+                        [colunasCsv.distancia]: registro[colunasCsv.distancia],
+                        [colunasCsv.regime]: registro[colunasCsv.regime]
                     });
                 }
 
@@ -1303,6 +1526,7 @@ app.get("/", (req, res) => {
                 const textoOriginal = botao.innerText;
                 botao.innerText = '✓ Adicionado';
                 setTimeout(() => { botao.innerText = textoOriginal; }, 1200);
+                return true;
             }
 
             function baixarDadosCSV() {
@@ -1325,13 +1549,13 @@ app.get("/", (req, res) => {
                         data: linhasOrdenadas
                     }, {
                         newline: '\\r\\n',
-                        quotes: true
+                        quotes: false
                     });
                     nomeArquivo = 'Hoteis_texto_atualizado.csv';
                 } else {
                     conteudoCSV = Papa.unparse(itensAcumulados, {
                         newline: '\\r\\n',
-                        quotes: true
+                        quotes: false
                     });
                     nomeArquivo = 'Hoteis_Dados_Acumulados.csv';
                 }
@@ -1515,6 +1739,164 @@ app.get("/", (req, res) => {
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
             }
+
+            async function pesquisarHoteisEmLote() {
+                const entradas = document.getElementById('listaHoteisInput').value
+                    .split(/\\r?\\n/)
+                    .map(item => item.trim())
+                    .filter(Boolean);
+                const hoteis = Array.from(new Set(entradas));
+
+                if (hoteis.length === 0) {
+                    alert('Adicione pelo menos um hotel ou link na lista.');
+                    return;
+                }
+
+                try {
+                    obterNomesColunasCsv();
+                } catch (erro) {
+                    alert(erro.message);
+                    return;
+                }
+
+                const latitudeReferencia = Number(
+                    document.getElementById('latitudeReferenciaInput').value
+                );
+                const longitudeReferencia = Number(
+                    document.getElementById('longitudeReferenciaInput').value
+                );
+
+                if (!Number.isFinite(latitudeReferencia) ||
+                    latitudeReferencia < -90 || latitudeReferencia > 90) {
+                    alert('Digite uma latitude válida, entre -90 e 90.');
+                    return;
+                }
+                if (!Number.isFinite(longitudeReferencia) ||
+                    longitudeReferencia < -180 || longitudeReferencia > 180) {
+                    alert('Digite uma longitude válida, entre -180 e 180.');
+                    return;
+                }
+
+                const btn = document.getElementById('btnPesquisarLote');
+                const btnBuscar = document.getElementById('btnBuscar');
+                const status = document.getElementById('statusPesquisaLote');
+                const textoStatus = document.getElementById('textoStatusPesquisaLote');
+                const contador = document.getElementById('contadorPesquisaLote');
+                const barra = document.getElementById('barraPesquisaLote');
+                const resultados = document.getElementById('resultadosPesquisaLote');
+                const btnBaixarCsvLote = document.getElementById('btnBaixarCsvLote');
+                const camposBloqueados = [
+                    'csvWixInput',
+                    'latitudeReferenciaInput',
+                    'longitudeReferenciaInput',
+                    'colunaRegimeCsv',
+                    'colunaNotaCsv',
+                    'colunaTipoCsv',
+                    'colunaBairrosCsv',
+                    'colunaBeiraMarCsv',
+                    'colunaEnderecoCsv',
+                    'colunaPlusCodeCsv',
+                    'colunaDistanciaNumeroCsv',
+                    'colunaDistanciaCsv'
+                ].map(id => document.getElementById(id));
+
+                btn.disabled = true;
+                btnBuscar.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                btnBuscar.classList.add('opacity-50', 'cursor-not-allowed');
+                camposBloqueados.forEach(campo => { campo.disabled = true; });
+                status.classList.remove('hidden');
+                resultados.innerHTML = '';
+                btnBaixarCsvLote.classList.add('hidden');
+                btnBaixarCsvLote.classList.remove('flex');
+
+                let adicionados = 0;
+                let ignorados = 0;
+                let erros = 0;
+
+                try {
+                    for (let indice = 0; indice < hoteis.length; indice++) {
+                        const entrada = hoteis[indice];
+                        textoStatus.textContent = 'Pesquisando: ' + entrada;
+                        contador.textContent = indice + ' de ' + hoteis.length;
+                        barra.style.width = ((indice / hoteis.length) * 100) + '%';
+
+                        const linhaResultado = document.createElement('p');
+                        linhaResultado.className = 'text-slate-400';
+                        linhaResultado.textContent = '⏳ ' + entrada;
+                        resultados.appendChild(linhaResultado);
+
+                        try {
+                            const response = await fetch('/api/buscar', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    nome: entrada,
+                                    baixarImagens: false,
+                                    latitudeReferencia,
+                                    longitudeReferencia
+                                })
+                            });
+                            const dados = await response.json();
+                            if (!response.ok) {
+                                throw new Error(dados.erro || 'Falha na pesquisa');
+                            }
+
+                            dadosAtuais = dados;
+                            dadosAtuais.idWix = '';
+                            if (csvWix) {
+                                const localizacaoWix = localizarItemWixPorNome(dados.nome);
+                                if (!localizacaoWix.item) {
+                                    const motivo = localizacaoWix.motivo === 'repetido'
+                                        ? 'mais de uma correspondência encontrada no CSV'
+                                        : 'hotel não encontrado no CSV';
+                                    throw new Error('Ignorado: ' + motivo + '.');
+                                }
+                                if (!localizacaoWix.item.ID) {
+                                    throw new Error('Ignorado: hotel encontrado sem ID no CSV.');
+                                }
+                                dadosAtuais.idWix = localizacaoWix.item.ID;
+                            }
+
+                            if (!adicionarAoCsv()) {
+                                throw new Error('Não foi possível adicionar o hotel ao CSV.');
+                            }
+
+                            adicionados += 1;
+                            linhaResultado.className = 'text-emerald-400';
+                            linhaResultado.textContent = '✓ ' + dados.nome;
+                        } catch (erro) {
+                            if (erro.message.startsWith('Ignorado:')) {
+                                ignorados += 1;
+                                linhaResultado.className = 'text-amber-400';
+                                linhaResultado.textContent = '↷ ' + entrada + ': ' + erro.message;
+                            } else {
+                                erros += 1;
+                                linhaResultado.className = 'text-red-400';
+                                linhaResultado.textContent = '✕ ' + entrada + ': ' + erro.message;
+                            }
+                        }
+
+                        contador.textContent = (indice + 1) + ' de ' + hoteis.length;
+                        barra.style.width = (((indice + 1) / hoteis.length) * 100) + '%';
+                        resultados.scrollTop = resultados.scrollHeight;
+                    }
+
+                    textoStatus.textContent =
+                        'Concluído: ' + adicionados + ' adicionados, ' +
+                        ignorados + ' ignorados, ' + erros + ' com erro.';
+                    if (adicionados > 0) {
+                        btnBaixarCsvLote.classList.remove('hidden');
+                        btnBaixarCsvLote.classList.add('flex');
+                    }
+                } finally {
+                    btn.disabled = false;
+                    btnBuscar.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btnBuscar.classList.remove('opacity-50', 'cursor-not-allowed');
+                    camposBloqueados.forEach(campo => { campo.disabled = false; });
+                }
+            }
             
            async function iniciarBusca() {
     const nomeInput =
@@ -1598,8 +1980,7 @@ app.get("/", (req, res) => {
 
                     document.getElementById('resNome').innerText = dados.nome;
                     if (csvWix) {
-                        const nomeNormalizado = normalizarNome(dados.nome);
-                        const itemWix = csvWix.data.find(item => normalizarNome(item.Nome_Hotel) === nomeNormalizado);
+                        const itemWix = encontrarItemWixPorNome(dados.nome);
                         if (itemWix) dadosAtuais.idWix = itemWix.ID;
                     }
                     document.getElementById('resIdWix').value = dadosAtuais.idWix;
