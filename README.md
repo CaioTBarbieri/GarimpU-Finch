@@ -4,8 +4,8 @@ Aplicação local para pesquisar hotéis na Booking.com, extrair e revisar dados
 para cadastro, baixar galerias de fotos e preparar arquivos CSV compatíveis com uma
 coleção de hotéis exportada do Wix.
 
-O sistema reúne um servidor Node.js, uma interface web servida pelo próprio
-servidor e um organizador opcional de imagens em Python.
+O sistema reúne um servidor Node.js, uma interface web estática em `public/` e
+um organizador opcional de imagens em Python.
 
 ## Funcionalidades
 
@@ -62,6 +62,10 @@ A interface permite acumular vários hotéis pesquisados antes da exportação.
 Campos editáveis, como ID Wix, bairro, tipo, beira-mar e regime alimentar, podem
 ser revisados antes de adicionar o hotel ao conjunto.
 
+Também é possível informar uma lista com um hotel ou link da Booking.com por
+linha. A pesquisa em lote é executada sequencialmente, sem baixar imagens, e
+adiciona automaticamente ao acumulador os hotéis processados com sucesso.
+
 Há dois fluxos:
 
 1. **Sem CSV do Wix**: cada hotel é acumulado em memória no navegador. Se o campo
@@ -75,9 +79,13 @@ Há dois fluxos:
    exportado como `Hoteis_texto_atualizado.csv`.
 
 Ao carregar o CSV do Wix, a interface também tenta preencher automaticamente o
-ID quando o nome normalizado do hotel pesquisado coincide com `Nome_Hotel`.
-Apesar disso, a atualização efetiva da linha usa o ID, que deve ser conferido
-antes da exportação.
+ID quando encontra uma correspondência única de `Nome_Hotel`, ignorando
+maiúsculas, acentos, pontuação, ordem das palavras e complementos inequívocos.
+No modo em lote, hotéis ausentes, repetidos ou ambíguos no CSV são ignorados; a
+atualização efetiva da linha continua usando o ID do Wix.
+
+Os nomes das colunas de exportação podem ser personalizados na tela inicial. Os
+campos `ID` e `Nome_Hotel` permanecem fixos para preservar a integração.
 
 Os dados acumulados existem apenas na memória da página. Recarregar ou fechar a
 aba descarta a lista ainda não exportada.
@@ -101,6 +109,29 @@ extração principal e pode ser demorado, especialmente em CPU.
 - Python;
 - PyTorch, Sentence Transformers/CLIP, Transformers, Pillow, NumPy,
   scikit-learn, tqdm, Ultralytics/YOLOv8 e deep-translator.
+
+## Estrutura principal
+
+```text
+scraper.js
+routes/
+  buscar.routes.js
+  organizacao.routes.js
+public/
+  index.html
+  js/
+    busca.js
+    interface.js
+    organizacao.js
+organizar_hoteis.py
+```
+
+- `scraper.js`: configuração do Express e lógica de extração da Booking.com;
+- `routes/buscar.routes.js`: rota `POST /api/buscar`;
+- `routes/organizacao.routes.js`: rotas de início e status da organização;
+- `public/index.html`: estrutura visual servida pelo Express;
+- `public/js/`: lógica executada no navegador;
+- `organizar_hoteis.py`: classificação, organização e descrição das imagens.
 
 ## Pré-requisitos
 
