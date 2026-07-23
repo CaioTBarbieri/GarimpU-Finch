@@ -109,8 +109,18 @@ extração principal e pode ser demorado, especialmente em CPU.
 - acesso à internet para consultar a Booking.com, obter bibliotecas de frontend
   por CDN e, no primeiro uso, baixar modelos/dependências necessários;
 - permissão de leitura e escrita no diretório configurado em `PASTA_IMAGENS`;
-- para o organizador opcional: Python 3, ambiente virtual recomendado e espaço
-  suficiente para modelos, cache e imagens.
+- Python **3.12.x** para o organizador de imagens. Outras versões do Python não
+  são suportadas pela integração atual com o modelo Florence-2;
+- ambiente virtual recomendado e espaço suficiente para modelos, cache e
+  imagens.
+
+Confirme a versão instalada antes de criar o ambiente virtual:
+
+```powershell
+python --version
+```
+
+A saída deve indicar uma versão `3.12.x`, por exemplo `Python 3.12.10`.
 
 ## Instalação
 
