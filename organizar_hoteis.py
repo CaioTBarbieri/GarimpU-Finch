@@ -10,6 +10,7 @@
 =============================================================================
 
 INSTALAÇÃO (execute uma vez):
+    pip install sentence-transformers Pillow numpy scikit-learn tqdm ultralytics transformers accelerate deep-translator
     pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
     pip install sentence-transformers Pillow numpy scikit-learn tqdm
     pip install ultralytics   ← NOVO: detector de pessoas (YOLOv8, ~6MB)
@@ -35,6 +36,9 @@ ESTRUTURA QUE SERÁ CRIADA NOS HOTÉIS:
 """
 
 import os
+import re
+import json
+from deep_translator import GoogleTranslator
 import sys
 import shutil
 import argparse
@@ -105,6 +109,14 @@ def verificar_dependencias():
         from ultralytics import YOLO
     except ImportError:
         faltando.append("ultralytics  # detector de pessoas — muito mais preciso que CLIP")
+    try:
+        import transformers
+    except ImportError:
+        faltando.append("transformers accelerate")
+    try:
+        from deep_translator import GoogleTranslator
+    except ImportError:
+        faltando.append("deep-translator")
 
     if faltando:
         print("\n❌ Dependências faltando. Execute os comandos abaixo:\n")
@@ -131,6 +143,37 @@ def listar_imagens(pasta):
         f for f in pasta.iterdir()
         if f.is_file() and f.suffix.lower() in EXTENSOES
     ]
+
+def limpar_para_nome_arquivo(texto):
+    """Limpa a descrição do Florence preservando espaços."""
+    if not texto:
+        return "imagem"
+
+    texto_limpo = re.sub(r'[\\/*?:"<>|]', "", texto)
+
+    # Mantém a descrição criada pelo Florence e troca underscores por espaços.
+    texto_limpo = texto_limpo.replace("_", " ")
+    texto_limpo = re.sub(r"\s+", " ", texto_limpo).strip().lower()
+
+    return texto_limpo or "imagem"
+
+def carregar_florence():
+    """Carrega o modelo Florence-2."""
+    from transformers import AutoProcessor, AutoModelForCausalLM
+    import transformers.dynamic_module_utils
+    
+    # --- TRUQUE CORRIGIDO PARA RODAR NA CPU ---
+    # Desativa a checagem rigorosa de pacotes da Hugging Face.
+    # Retornamos uma lista vazia [] para não quebrar o loop interno da biblioteca.
+    transformers.dynamic_module_utils.check_imports = lambda *args, **kwargs: []
+    # --------------------------------
+
+    print("\n🔄 Carregando modelo Florence-2 (Geração de Nomes)...")
+    model_id = "microsoft/Florence-2-base-ft"
+    modelo = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True)
+    processador = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+    print("✅ Florence-2 carregado!")
+    return modelo, processador
 
 
 def calcular_embeddings(modelo, arquivos, desc="Calculando embeddings"):
@@ -278,11 +321,10 @@ def treinar_classificador(modelo, pasta_exemplos):
 def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
     """Classifica imagens de cada hotel e organiza nas subpastas."""
     from sklearn.preprocessing import normalize
+    from PIL import Image
 
     pasta_hoteis = Path(pasta_hoteis)
     
-    # NOVA LÓGICA: Se a pasta já tiver imagens soltas, é um hotel único. 
-    # Caso contrário, procura subpastas.
     if listar_imagens(pasta_hoteis):
         pastas_hoteis = [pasta_hoteis]
     else:
@@ -294,15 +336,15 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
 
     print(f"\n🏨 {len(pastas_hoteis)} hotel(is) em processamento...")
 
-    # Carrega o detector YOLO uma única vez para todos os hotéis
     detector_yolo = carregar_detector_yolo() if REMOVER_FOTOS_COM_HUMANOS else None
+    modelo_florence, processador_florence = carregar_florence()
+    
     stats_total = {"classificadas": 0, "revisar": 0, "com_humanos": 0, "erros": 0}
 
     for pasta_hotel in pastas_hoteis:
         print(f"\n{'─'*60}")
         print(f"🏨 Hotel: {pasta_hotel.name}")
 
-        # Pega apenas imagens diretamente na pasta (não em subpastas)
         imagens = listar_imagens(pasta_hotel)
 
         if not imagens:
@@ -311,7 +353,7 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
 
         print(f"   📸 {len(imagens)} imagens para classificar")
 
-        # ── Etapa 1: filtra humanos via YOLO (antes de calcular embeddings CLIP) ──
+        # ── Etapa 1: filtra humanos via YOLO ──
         sem_humanos = []
         qtd_humanos_detectados = 0
 
@@ -319,7 +361,6 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
             print("   👤 Verificando presença de pessoas (YOLO)...")
             for arq in tqdm(imagens, desc="   Detectando pessoas", unit="img"):
                 if parece_foto_com_humano(arq, detector_yolo):
-                    # Move/copia já para _Com_Humanos (MANTÉM O NOME ORIGINAL)
                     pasta_dest = pasta_hotel / "_Com_Humanos"
                     pasta_dest.mkdir(exist_ok=True)
                     dest = pasta_dest / arq.name
@@ -349,7 +390,7 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
             print("   ℹ️  Todas as imagens continham pessoas.")
             continue
 
-        # ── Etapa 2: classifica imagens sem humanos via CLIP + KNN ──
+        # ── Etapa 2: classifica imagens via CLIP + Florence-2 ──
         embs, validos = calcular_embeddings(modelo, sem_humanos, desc="   Analisando categorias")
 
         if len(embs) == 0:
@@ -362,6 +403,7 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
 
         stats = {cat: 0 for cat in CATEGORIAS}
         stats["_Revisar"] = 0
+        textos_alternativos = {}
 
         for arq, pred, conf in zip(validos, predicoes, confiancas):
             if conf < CONFIANCA_MINIMA:
@@ -376,28 +418,79 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
             pasta_dest = pasta_hotel / categoria_dest
             pasta_dest.mkdir(exist_ok=True)
             
-            # --- NOVO: Lógica de renomeio ---
             nome_hotel = pasta_hotel.name
-            novo_nome_arquivo = f"{categoria_dest} {nome_hotel}{arq.suffix}"
+            
+            # --- INTEGRAÇÃO FLORENCE-2 E TRADUÇÃO ---
+            descricao_florence = "imagem"
+            descricao_pt = ""
+            try:
+                img_pil = Image.open(arq).convert("RGB")
+                task_prompt = "<CAPTION>"
+                inputs = processador_florence(text=task_prompt, images=img_pil, return_tensors="pt")
+                
+                generated_ids = modelo_florence.generate(
+                    input_ids=inputs["input_ids"],
+                    pixel_values=inputs["pixel_values"],
+                    max_new_tokens=64
+                )
+                generated_text = processador_florence.batch_decode(generated_ids, skip_special_tokens=False)[0]
+                parsed_answer = processador_florence.post_process_generation(generated_text, task=task_prompt, image_size=(img_pil.width, img_pil.height))
+                
+                descricao_bruta_en = parsed_answer[task_prompt]
+                descricao_pt = GoogleTranslator(source='en', target='pt').translate(descricao_bruta_en)
+                descricao_florence = limpar_para_nome_arquivo(descricao_pt)
+                
+            except Exception as e:
+                print(f"   ⚠️ Erro no Florence/Tradução para {arq.name}: {e}")
+
+                        # Remove underscores somente do nome final da imagem.
+            categoria_nome = categoria_dest.replace("_", " ").strip()
+            descricao_nome = descricao_florence.replace("_", " ").strip()
+            hotel_nome = nome_hotel.replace("_", " ").strip()
+
+            nome_sem_extensao = (
+                f"{categoria_nome} {descricao_nome} {hotel_nome}"
+            )
+
+            # Remove espaços repetidos.
+            nome_sem_extensao = re.sub(
+                r"\s+",
+                " ",
+                nome_sem_extensao
+            ).strip()
+
+            novo_nome_arquivo = f"{nome_sem_extensao}{arq.suffix}"
             dest = pasta_dest / novo_nome_arquivo
 
-            # Checagem caso já exista um arquivo com esse mesmo nome final
             if dest.exists():
                 stem_novo = Path(novo_nome_arquivo).stem
                 suffix = arq.suffix
                 c = 1
+
                 while dest.exists():
-                    dest = pasta_dest / f"{stem_novo}_{c}{suffix}"
+                    dest = pasta_dest / f"{stem_novo} {c}{suffix}"
                     c += 1
+
 
             try:
                 if modo_copia:
                     shutil.copy2(arq, dest)
                 else:
                     shutil.move(str(arq), dest)
+                    
+                # Salva no dicionário JSON usando o nome final do arquivo como chave
+                if descricao_pt:
+                    textos_alternativos[dest.name] = descricao_pt
+                    
             except Exception as e:
                 print(f"   ❌ Erro ao mover {arq.name}: {e}")
                 stats_total["erros"] += 1
+
+        # Salva o JSON com os Alt Texts na pasta do hotel
+        caminho_json = pasta_hotel / "alt_texts.json"
+        with open(caminho_json, "w", encoding="utf-8") as f:
+            json.dump(textos_alternativos, f, indent=4, ensure_ascii=False)
+        print(f"   📝 Arquivo alt_texts.json gerado com sucesso!")
 
         # Resumo do hotel
         print(f"   ✅ Resultado:")
@@ -412,10 +505,9 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
         if qtd_humanos_detectados > 0:
             print(f"      👤 _Com_Humanos: {qtd_humanos_detectados} imagens")
 
-    # ── Resumo geral ──────────────────────────────────────────────────────────
     print(f"\n{'═'*60}")
     print(f"🏁 CONCLUÍDO!")
-    print(f"   ✅ Classificadas: {stats_total['classificadas']}")
+    print(f"   ✅ Classificadas e Renomeadas: {stats_total['classificadas']}")
     print(f"   👤 Com humanos:   {stats_total['com_humanos']}  (separadas em _Com_Humanos)")
     print(f"   ⚠️  Para revisar: {stats_total['revisar']}  (confiança < {CONFIANCA_MINIMA:.0%})")
     print(f"   ❌ Erros: {stats_total['erros']}")
