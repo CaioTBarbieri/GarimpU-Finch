@@ -182,24 +182,59 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 pip install sentence-transformers Pillow numpy scikit-learn tqdm ultralytics transformers accelerate deep-translator
 ```
 
-## Configuração obrigatória
+## Configuração em uma nova máquina
 
-Antes de iniciar o servidor, altere em `scraper.js` a constante
-`PASTA_IMAGENS`:
+As opções ficam centralizadas em `config/index.js`, sem `dotenv` ou dependências
+adicionais. Cada valor é obtido nesta ordem:
 
-```js
-const PASTA_IMAGENS = 'C:\\caminho\\para\\as\\imagens';
+1. variável de ambiente;
+2. `config/local.js`, se o arquivo existir;
+3. valor padrão portátil.
+
+Copie o exemplo para criar uma configuração exclusiva da máquina:
+
+```powershell
+Copy-Item config/local.example.js config/local.js
 ```
 
-Use um caminho absoluto existente ou que o processo Node.js tenha permissão para
-criar e escrever. Essa pasta é simultaneamente:
+`config/local.js` é ignorado pelo Git. Ajuste-o, por exemplo:
 
-- a raiz onde cada hotel terá suas imagens armazenadas; e
-- a origem dos arquivos publicados localmente em `/img`.
+```js
+const path = require("path");
 
-Se o organizador Python for usado, configure também `PASTA_EXEMPLOS` e
-`PASTA_HOTEIS` em `organizar_hoteis.py`. `PASTA_HOTEIS` deve apontar para o mesmo
-local de `PASTA_IMAGENS`.
+module.exports = {
+  PORT: 3000,
+  PASTA_IMAGENS: path.resolve("D:\\", "Imagens de hotéis"),
+  LATITUDE_PADRAO: -14.815,
+  LONGITUDE_PADRAO: -39.0333,
+  PYTHON_EXECUTABLE: path.resolve(".venv", "Scripts", "python.exe"),
+  PYTHON_VERSION_ESPERADA: "3.12",
+};
+```
+
+Opções disponíveis:
+
+| Opção | Padrão | Regra |
+| --- | --- | --- |
+| `PORT` | `3000` | Inteiro entre 1 e 65535. |
+| `PASTA_IMAGENS` | pasta `img` do projeto | Deve ser uma pasta existente. |
+| `LATITUDE_PADRAO` | `-14.815` | Número entre -90 e 90. |
+| `LONGITUDE_PADRAO` | `-39.0333` | Número entre -180 e 180. |
+| `PYTHON_EXECUTABLE` | descoberta automática | Comando ou caminho explícito do Python. |
+| `PYTHON_VERSION_ESPERADA` | `3.12` | Versão principal/secundária aceita pelo organizador. |
+
+Também é possível configurar a sessão atual por variáveis de ambiente:
+
+```powershell
+$env:PASTA_IMAGENS = "D:\Imagens de hotéis"
+$env:PORT = "3000"
+node scraper.js
+```
+
+Crie `PASTA_IMAGENS` antes de iniciar o servidor. Se ela não existir, o servidor
+informa o caminho inválido e onde configurá-lo. A pasta de treinamento do
+organizador continua sendo `Fotos exemplos`, resolvida relativamente à raiz do
+projeto; a pasta a organizar é sempre a mesma `PASTA_IMAGENS` usada pelo Node.
 
 ## Execução
 
@@ -209,7 +244,8 @@ Inicie o servidor diretamente:
 node scraper.js
 ```
 
-Se também for usar o organizador Python, ative antes o ambiente virtual:
+Se também for usar o organizador Python, configure `PYTHON_EXECUTABLE` ou ative
+antes o ambiente virtual:
 
 ```powershell
 venv\Scripts\Activate.ps1
@@ -220,7 +256,27 @@ Abra:
 
 <http://localhost:3000>
 
-O servidor usa a porta fixa `3000`.
+Por padrão o servidor usa a porta `3000`; ela pode ser alterada pela configuração.
+
+## Validação local
+
+O workflow `.github/workflows/validate.yml` executa as mesmas verificações em
+todo `push` e `pull_request`. Para reproduzi-las localmente:
+
+```powershell
+if (Test-Path package-lock.json) { npm ci } else { npm install }
+npm run check
+npm test
+
+python -m py_compile organizar_hoteis.py
+python -m compileall python_organizador
+python -m unittest discover
+```
+
+`npm test` é executado pelo workflow somente quando o script `test` existe no
+`package.json`. As verificações Python usam apenas compilação sintática e testes
+unitários leves: não instalam nem carregam PyTorch, Florence, CLIP ou YOLO e não
+executam scraping ou processamento de imagens.
 
 ## API
 

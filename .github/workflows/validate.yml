@@ -1,0 +1,67 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    name: Node.js
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install locked dependencies
+        if: ${{ hashFiles('package-lock.json') != '' }}
+        run: npm ci
+
+      - name: Install dependencies without lock file
+        if: ${{ hashFiles('package-lock.json') == '' }}
+        run: npm install
+
+      - name: Check JavaScript syntax
+        run: npm run check
+
+      - name: Detect Node.js tests
+        id: node-tests
+        shell: bash
+        run: |
+          if node -e "const p = require('./package.json'); process.exit(p.scripts?.test ? 0 : 1)"; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Node.js tests
+        if: ${{ steps.node-tests.outputs.available == 'true' }}
+        run: npm test
+
+  python:
+    name: Python 3.12
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check main script syntax
+        run: python -m py_compile organizar_hoteis.py
+
+      - name: Check organizer package syntax
+        run: python -m compileall python_organizador
+
+      - name: Run lightweight unit tests
+        run: python -m unittest discover

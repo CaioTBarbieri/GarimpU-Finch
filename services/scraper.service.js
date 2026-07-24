@@ -4,13 +4,16 @@ const cheerio = require("cheerio");
 const fs = require("fs");
 const path = require("path");
 const { OpenLocationCode } = require("open-location-code");
+const {
+  PASTA_IMAGENS,
+  LATITUDE_PADRAO,
+  LONGITUDE_PADRAO,
+} = require("../config");
 
 const olc = new OpenLocationCode();
 
 puppeteer.use(StealthPlugin());
 
-const PASTA_IMAGENS =
-  "C:\\Users\\User\\Downloads\\Trabaio\\Software\\DOWNLOADS HOTEIS";
 // ==========================================
 function calcularDistanciaCarroKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -31,14 +34,11 @@ function calcularDistanciaCarroKm(lat1, lon1, lat2, lon2) {
   return distanciaCarro.toFixed(1);
 }
 
-const LAT_RECIFE = -14.815;
-const LNG_RECIFE = -39.0333;
-
 async function rasparDadosHotel(
   nomeHotel,
   baixarImagens = true,
-  latitudeReferencia = LAT_RECIFE,
-  longitudeReferencia = LNG_RECIFE,
+  latitudeReferencia = LATITUDE_PADRAO,
+  longitudeReferencia = LONGITUDE_PADRAO,
 ) {
   const entrada = nomeHotel.trim();
 

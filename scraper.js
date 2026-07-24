@@ -1,15 +1,30 @@
 const express = require("express");
+const fs = require("fs");
 const path = require("path");
+const {
+  PORT,
+  PASTA_IMAGENS,
+  LATITUDE_PADRAO,
+  LONGITUDE_PADRAO,
+} = require("./config");
 const criarBuscarRouter = require("./routes/buscar.routes");
 const organizacaoRouter = require("./routes/organizacao.routes");
 const { rasparDadosHotel } = require("./services/scraper.service");
 
 const app = express();
-const PORT = 3000;
-const PASTA_IMAGENS =
-  "C:\\Users\\User\\Downloads\\Trabaio\\Software\\DOWNLOADS HOTEIS";
-const LAT_RECIFE = -14.815;
-const LNG_RECIFE = -39.0333;
+if (!fs.existsSync(PASTA_IMAGENS)) {
+  throw new Error(
+    `PASTA_IMAGENS não existe: ${PASTA_IMAGENS}\n` +
+      "Configure-a pela variável de ambiente PASTA_IMAGENS ou em config/local.js.",
+  );
+}
+
+if (!fs.statSync(PASTA_IMAGENS).isDirectory()) {
+  throw new Error(
+    `PASTA_IMAGENS não é uma pasta: ${PASTA_IMAGENS}\n` +
+      "Configure-a pela variável de ambiente PASTA_IMAGENS ou em config/local.js.",
+  );
+}
 
 app.use(express.json());
 app.use("/img", express.static(PASTA_IMAGENS));
@@ -18,8 +33,8 @@ app.use(organizacaoRouter);
 app.use(
   criarBuscarRouter({
     rasparDadosHotel,
-    latitudePadrao: LAT_RECIFE,
-    longitudePadrao: LNG_RECIFE,
+    latitudePadrao: LATITUDE_PADRAO,
+    longitudePadrao: LONGITUDE_PADRAO,
   }),
 );
 

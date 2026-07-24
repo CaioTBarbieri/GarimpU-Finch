@@ -35,66 +35,40 @@ ESTRUTURA QUE SERÁ CRIADA NOS HOTÉIS:
         Crianças/
 """
 
-import os
-import re
-import json
 from deep_translator import GoogleTranslator
+import os
 import sys
-import shutil
 import argparse
 import numpy as np
 from pathlib import Path
 from tqdm import tqdm
 import warnings
 
+from python_organizador.arquivos import (
+    criar_pasta,
+    escrever_alt_texts,
+    listar_hoteis,
+    listar_imagens_soltas,
+    mover_ou_copiar,
+)
+from python_organizador.config import (
+    CACHE_EMBEDDINGS,
+    CATEGORIAS,
+    CONFIANCA_MINIMA,
+    CONFIANCA_YOLO_HUMANO,
+    PASTA_EXEMPLOS,
+    PASTA_HOTEIS,
+    REMOVER_FOTOS_COM_HUMANOS,
+    TAMANHO_MINIMO_PESSOA,
+)
+from python_organizador.nomes import (
+    criar_nome_final,
+    limpar_para_nome_arquivo,
+    resolver_nome_duplicado,
+)
+from python_organizador.status import emitir_status
+
 warnings.filterwarnings("ignore")
-
-
-def emitir_status(etapa, **dados):
-    """Emite uma linha JSON que pode ser consumida incrementalmente pelo Node.js."""
-    payload = {"etapa": etapa, **dados}
-    print(
-        "STATUS_JSON:" + json.dumps(payload, ensure_ascii=False),
-        flush=True,
-    )
-
-
-# Pasta com suas ~3k imagens já categorizadas (subpastas = categorias)
-PASTA_EXEMPLOS = r"C:\Users\User\Downloads\Novo Garimpu\GarimpU-Finch\Fotos exemplos"
-
-# Pasta raiz com as pastas dos hotéis a organizar
-PASTA_HOTEIS = r"C:\Users\User\Downloads\Trabaio\Software\DOWNLOADS HOTEIS"
-
-# Categorias (devem coincidir com as subpastas em PASTA_EXEMPLOS)
-CATEGORIAS = ["entretenimento", "gastronomia", "acomodacoes", "criancas"]
-
-# Extensões de imagem aceitas
-EXTENSOES = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff", ".tif"}
-
-# Confiança mínima para classificar (0.0 a 1.0)
-# Imagens abaixo disso vão para a pasta "_Revisar"
-CONFIANCA_MINIMA = 0.45
-
-# Arquivo para salvar/carregar os embeddings de treino (evita recalcular)
-CACHE_EMBEDDINGS = "cache_embeddings_treino.npz"
-
-# Se True, fotos reais com humanos saem da classificação normal
-# e vão para a pasta "_Com_Humanos".
-REMOVER_FOTOS_COM_HUMANOS = True
-
-# ── Configurações do detector YOLO ────────────────────────────────────────────
-# Confiança mínima para o YOLO considerar que encontrou uma pessoa (0.0 a 1.0).
-# 0.45 já é bem preciso; abaixe para 0.35 se estiver perdendo casos reais,
-# ou suba para 0.60 se estiver marcando imagens sem pessoas.
-CONFIANCA_YOLO_HUMANO = 0.45
-
-# Tamanho mínimo da bounding box da pessoa detectada, como fração da área total.
-# Filtra silhuetas minúsculas ou ícones residuais que o YOLO classificar como
-# "person" mas que são pequenos demais para ser uma foto real de pessoa.
-# Ex.: 0.01 = a caixa da pessoa ocupa ao menos 1% da área total da imagem.
-TAMANHO_MINIMO_PESSOA = 0.01
-
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def verificar_dependencias():
@@ -150,26 +124,6 @@ def carregar_modelo():
     modelo = SentenceTransformer("clip-ViT-B-32")
     print("✅ Modelo carregado!")
     return modelo
-
-
-def listar_imagens(pasta):
-    """Lista todos os arquivos de imagem em uma pasta (não recursivo)."""
-    pasta = Path(pasta)
-    return [f for f in pasta.iterdir() if f.is_file() and f.suffix.lower() in EXTENSOES]
-
-
-def limpar_para_nome_arquivo(texto):
-    """Limpa a descrição do Florence preservando espaços."""
-    if not texto:
-        return "imagem"
-
-    texto_limpo = re.sub(r'[\\/*?:"<>|]', "", texto)
-
-    # Mantém a descrição criada pelo Florence e troca underscores por espaços.
-    texto_limpo = texto_limpo.replace("_", " ")
-    texto_limpo = re.sub(r"\s+", " ", texto_limpo).strip().lower()
-
-    return texto_limpo or "imagem"
 
 
 def carregar_florence():
@@ -305,7 +259,7 @@ def treinar_classificador(modelo, pasta_exemplos):
             print(f"   ⚠️  Pasta não encontrada: {pasta_cat}")
             continue
 
-        imagens = listar_imagens(pasta_cat)
+        imagens = listar_imagens_soltas(pasta_cat)
         print(f"   📁 {cat}: {len(imagens)} imagens")
 
         if not imagens:
@@ -343,17 +297,10 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
 
     pasta_hoteis = Path(pasta_hoteis)
 
-    if listar_imagens(pasta_hoteis):
-        pastas_hoteis = [pasta_hoteis]
-    else:
-        pastas_hoteis = [
-            p
-            for p in pasta_hoteis.iterdir()
-            if p.is_dir() and listar_imagens(p)
-        ]
+    pastas_hoteis = listar_hoteis(pasta_hoteis)
 
     imagens_por_hotel = {
-        pasta_hotel: listar_imagens(pasta_hotel)
+        pasta_hotel: listar_imagens_soltas(pasta_hotel)
         for pasta_hotel in pastas_hoteis
     }
     total_imagens_geral = sum(
@@ -421,19 +368,20 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
                 start=1,
             ):
                 if parece_foto_com_humano(arq, detector_yolo):
-                    pasta_dest = pasta_hotel / "_Com_Humanos"
-                    pasta_dest.mkdir(exist_ok=True)
-                    dest = pasta_dest / arq.name
-                    if dest.exists():
-                        stem, suffix, c = arq.stem, arq.suffix, 1
-                        while dest.exists():
-                            dest = pasta_dest / f"{stem}_{c}{suffix}"
-                            c += 1
+                    pasta_dest = criar_pasta(
+                        pasta_hotel / "_Com_Humanos"
+                    )
+                    dest = resolver_nome_duplicado(
+                        pasta_dest,
+                        arq.name,
+                        separador="_",
+                    )
                     try:
-                        if modo_copia:
-                            shutil.copy2(arq, dest)
-                        else:
-                            shutil.move(str(arq), dest)
+                        mover_ou_copiar(
+                            arq,
+                            dest,
+                            modo_copia=modo_copia,
+                        )
                         qtd_humanos_detectados += 1
                         stats_total["com_humanos"] += 1
                         imagens_processadas_geral += 1
@@ -521,8 +469,9 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
                 stats[pred] = stats.get(pred, 0) + 1
                 stats_total["classificadas"] += 1
 
-            pasta_dest = pasta_hotel / categoria_dest
-            pasta_dest.mkdir(exist_ok=True)
+            pasta_dest = criar_pasta(
+                pasta_hotel / categoria_dest
+            )
 
             nome_hotel = pasta_hotel.name
 
@@ -560,32 +509,23 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
                 print(f"   ⚠️ Erro no Florence/Tradução para {arq.name}: {e}")
 
                 # Remove underscores somente do nome final da imagem.
-            categoria_nome = categoria_dest.replace("_", " ").strip()
-            descricao_nome = descricao_florence.replace("_", " ").strip()
-            hotel_nome = nome_hotel.replace("_", " ").strip()
-
-            nome_sem_extensao = f"{categoria_nome} {descricao_nome} {hotel_nome}"
-
-            # Remove espaços repetidos.
-            nome_sem_extensao = re.sub(r"\s+", " ", nome_sem_extensao).strip()
-
-            novo_nome_arquivo = f"{nome_sem_extensao}{arq.suffix}"
-            dest = pasta_dest / novo_nome_arquivo
-
-            if dest.exists():
-                stem_novo = Path(novo_nome_arquivo).stem
-                suffix = arq.suffix
-                c = 1
-
-                while dest.exists():
-                    dest = pasta_dest / f"{stem_novo} {c}{suffix}"
-                    c += 1
+            novo_nome_arquivo = criar_nome_final(
+                categoria_dest,
+                descricao_florence,
+                nome_hotel,
+                arq.suffix,
+            )
+            dest = resolver_nome_duplicado(
+                pasta_dest,
+                novo_nome_arquivo,
+            )
 
             try:
-                if modo_copia:
-                    shutil.copy2(arq, dest)
-                else:
-                    shutil.move(str(arq), dest)
+                mover_ou_copiar(
+                    arq,
+                    dest,
+                    modo_copia=modo_copia,
+                )
 
                 # Salva no dicionário JSON usando o nome final do arquivo como chave
                 if descricao_pt:
@@ -634,9 +574,7 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
                 )
 
         # Salva o JSON com os Alt Texts na pasta do hotel
-        caminho_json = pasta_hotel / "alt_texts.json"
-        with open(caminho_json, "w", encoding="utf-8") as f:
-            json.dump(textos_alternativos, f, indent=4, ensure_ascii=False)
+        escrever_alt_texts(pasta_hotel, textos_alternativos)
         print(f"   📝 Arquivo alt_texts.json gerado com sucesso!")
 
         # Resumo do hotel
@@ -684,6 +622,16 @@ def main():
         "--pasta", type=str, default=None, help="Pasta do hotel a ser organizada"
     )
     args = parser.parse_args()
+
+    versao_esperada = os.environ.get("PYTHON_VERSION_ESPERADA")
+    versao_atual = f"{sys.version_info.major}.{sys.version_info.minor}"
+    if versao_esperada and versao_atual != versao_esperada:
+        print(
+            f"\n❌ Versão do Python incompatível: esperada {versao_esperada}.x, "
+            f"encontrada {versao_atual}.{sys.version_info.micro}.",
+            flush=True,
+        )
+        sys.exit(1)
 
     # 1. Verifica dependências
     verificar_dependencias()

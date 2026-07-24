@@ -216,6 +216,63 @@
                 <p class="text-sm text-slate-500 mt-2">Aviso: Esse processo pode levar de 1 a 3 minutos dependendo da quantidade de fotos do hotel.</p>
             </div>
 
+            <section id="painelOrganizacaoIA" class="hidden py-12">
+                <div id="statusCardIA" class="max-w-2xl mx-auto text-left bg-slate-800 border border-slate-600 rounded-2xl p-6 shadow-xl">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div id="statusSpinnerIA" class="w-8 h-8 shrink-0 border-4 border-t-slate-500 border-slate-700 rounded-full"></div>
+                        <div>
+                            <p id="statusTituloIA" class="text-xl text-slate-400 font-bold">Organização de imagens</p>
+                            <p id="statusMensagemIA" class="text-sm text-slate-400">Aguardando início...</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <p><span class="text-slate-400">Etapa:</span> <span id="statusEtapaIA">Ocioso</span></p>
+                        <p><span id="statusRotuloTempoIA" class="text-slate-400">Tempo decorrido:</span> <span id="statusTempoDecorridoIA" class="font-mono">00:00:00</span></p>
+                        <p><span class="text-slate-400">Média por imagem:</span> <span id="statusTempoMedioIA" class="font-mono">Calculando estimativa...</span></p>
+                        <p><span class="text-slate-400">Tempo restante estimado:</span> <span id="statusTempoRestanteIA" class="font-mono">Calculando estimativa...</span></p>
+                        <p><span class="text-slate-400">Conclusão prevista:</span> <span id="statusPrevisaoTerminoIA" class="font-mono">Calculando estimativa...</span></p>
+                        <p><span class="text-slate-400">Progresso geral:</span> <span id="statusProgressoGeralIA">0 de 0 imagens</span></p>
+                        <p><span class="text-slate-400">Pendentes:</span> <span id="statusImagensPendentesIA">0 imagens</span></p>
+                    </div>
+
+                    <div class="mt-5">
+                        <div class="flex justify-between gap-3 text-xs text-slate-400 mb-1">
+                            <span>Progresso geral</span>
+                            <span><span id="statusProgressoGeralContagemIA">0</span>%</span>
+                        </div>
+                        <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden">
+                            <div id="statusBarraGeralIA" class="bg-slate-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5">
+                        <div class="flex justify-between gap-3 text-xs text-slate-400 mb-1">
+                            <span>Progresso do hotel</span>
+                            <span><span id="statusImagemAtualIA">0</span> de <span id="statusTotalImagensIA">0</span></span>
+                        </div>
+                        <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden">
+                            <div id="statusBarraHotelIA" class="bg-slate-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 space-y-2 text-sm">
+                        <p><span class="text-slate-400">Hotel atual:</span> <span id="statusHotelIA">—</span></p>
+                        <p><span class="text-slate-400">Pasta:</span> <span id="statusPastaIA" class="break-all">—</span></p>
+                        <p><span class="text-slate-400">Imagem atual:</span> <span id="statusImagemIA">—</span></p>
+                        <p><span class="text-slate-400">Categoria:</span> <span id="statusCategoriaIA">—</span></p>
+                        <p><span class="text-slate-400">Nome final:</span> <span id="statusNomeFinalIA">—</span></p>
+                    </div>
+
+                    <div class="mt-5 pt-4 border-t border-slate-700">
+                        <p class="text-sm font-semibold text-slate-300 mb-2">Últimas mensagens</p>
+                        <p id="historicoStatusIA" class="text-xs text-slate-400 whitespace-pre-line">Nenhuma mensagem recebida.</p>
+                    </div>
+
+                    <p class="text-xs text-slate-500 mt-4">O tempo restante é uma estimativa baseada nas últimas imagens e pode variar.</p>
+                </div>
+            </section>
+
             <div id="resultadoContainer" class="hidden space-y-8 animate-fade-in">
                 
                 <div class="bg-slate-800 p-8 rounded-3xl shadow-xl border border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -328,4 +385,3 @@
         <script src="/js/busca.js"></script>
     </body>
     </html>
-    
