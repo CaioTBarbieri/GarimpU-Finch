@@ -335,15 +335,51 @@
                         O processamento pode levar vários minutos ou horas, dependendo do volume.
                     </p>
                 </div>
-                <button
-                    id="btnOrganizarTudo"
-                    type="button"
-                    onclick="organizarLoteIA()"
-                    class="app-button app-button-ai w-full lg:w-auto"
-                >
-                    <span class="button-spinner" aria-hidden="true"></span>
-                    <span>Iniciar organização</span>
-                </button>
+                <div class="flex w-full flex-col gap-3 lg:w-auto">
+                    <button
+                        id="btnOrganizarTudo"
+                        type="button"
+                        onclick="organizarLoteIA()"
+                        class="app-button app-button-ai w-full lg:w-auto"
+                    >
+                        <span class="button-spinner" aria-hidden="true"></span>
+                        <span>Iniciar organização</span>
+                    </button>
+                    <button
+                        id="btnBaixarLogFlorence"
+                        type="button"
+                        onclick="baixarLogFlorence()"
+                        class="app-button app-button-tertiary w-full lg:w-auto"
+                    >
+                        Baixar log Florence
+                    </button>
+                    <p id="statusLogFlorence" class="hidden text-xs" role="status" aria-live="polite"></p>
+                </div>
+            </div>
+
+            <div class="mt-6 rounded-xl border border-slate-800 bg-slate-950/45 p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <p class="text-xs font-medium uppercase tracking-wider text-purple-300">
+                            Estimativa baseada nos logs
+                        </p>
+                        <p id="estimativaHistoricaFlorence" class="mt-2 text-lg font-semibold text-slate-100" aria-live="polite">
+                            Calculando...
+                        </p>
+                        <p id="detalhesEstimativaFlorence" class="mt-1 text-xs leading-5 text-slate-500">
+                            Analisando imagens pendentes e histórico local.
+                        </p>
+                    </div>
+                    <button
+                        id="btnAtualizarEstimativaFlorence"
+                        type="button"
+                        onclick="carregarEstimativaFlorence()"
+                        class="app-button app-button-tertiary w-full sm:w-auto"
+                    >
+                        <span class="button-spinner" aria-hidden="true"></span>
+                        <span>Recalcular</span>
+                    </button>
+                </div>
             </div>
 
             <div id="painelOrganizacaoIA" class="mt-6">

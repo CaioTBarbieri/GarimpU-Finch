@@ -22,6 +22,71 @@ function limitarPercentual(valor) {
     return Math.min(Math.max(Number(valor) || 0, 0), 100);
 }
 
+function formatarTamanhoBytes(totalBytes) {
+    const bytes = Math.max(0, Number(totalBytes) || 0);
+    if (bytes < 1024) return bytes + ' B';
+
+    const unidades = ['KB', 'MB', 'GB', 'TB'];
+    let valor = bytes / 1024;
+    let indice = 0;
+    while (valor >= 1024 && indice < unidades.length - 1) {
+        valor /= 1024;
+        indice += 1;
+    }
+    return valor.toLocaleString('pt-BR', {
+        maximumFractionDigits: 1,
+    }) + ' ' + unidades[indice];
+}
+
+async function carregarEstimativaFlorence() {
+    const botao = document.getElementById(
+        'btnAtualizarEstimativaFlorence'
+    );
+    const titulo = document.getElementById(
+        'estimativaHistoricaFlorence'
+    );
+    const detalhes = document.getElementById(
+        'detalhesEstimativaFlorence'
+    );
+    botao.disabled = true;
+
+    try {
+        const response = await fetch('/api/estimativa-florence');
+        const dados = await response.json();
+        if (!response.ok) {
+            throw new Error(
+                dados.erro || 'Não foi possível calcular a estimativa.'
+            );
+        }
+
+        if (!dados.disponivel) {
+            titulo.textContent = 'Estimativa indisponível';
+            detalhes.textContent = dados.motivo;
+            return;
+        }
+
+        titulo.textContent =
+            formatarDuracao(dados.faixaMinimaSegundos) +
+            ' a ' +
+            formatarDuracao(dados.faixaMaximaSegundos);
+        detalhes.textContent =
+            dados.numeroImagens +
+            (dados.numeroImagens === 1 ? ' imagem • ' : ' imagens • ') +
+            formatarTamanhoBytes(dados.tamanhoTotalBytes) + ' • ' +
+            dados.numeroHoteis +
+            (dados.numeroHoteis === 1 ? ' hotel • ' : ' hotéis • ') +
+            dados.execucoesHistoricas +
+            (dados.execucoesHistoricas === 1
+                ? ' execução histórica'
+                : ' execuções históricas');
+    } catch (erro) {
+        titulo.textContent = 'Estimativa indisponível';
+        detalhes.textContent = erro.message;
+    } finally {
+        botao.disabled = false;
+    }
+}
+
 function aplicarVisualEstadoIA(estado) {
     const card = document.getElementById('statusCardIA');
     const spinner = document.getElementById('statusSpinnerIA');
@@ -141,6 +206,41 @@ function prepararPainelOrganizacao() {
     });
 }
 
+async function baixarLogFlorence() {
+    const botao = document.getElementById('btnBaixarLogFlorence');
+    const status = document.getElementById('statusLogFlorence');
+    botao.disabled = true;
+    status.className = 'text-xs text-slate-400';
+    status.textContent = 'Preparando download...';
+
+    try {
+        const response = await fetch('/api/log-florence');
+        if (!response.ok) {
+            const dados = await response.json();
+            throw new Error(
+                dados.erro || 'Não foi possível baixar o log do Florence.'
+            );
+        }
+
+        const arquivo = await response.blob();
+        const url = URL.createObjectURL(arquivo);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'log_classificacao_florence.csv';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        status.className = 'text-xs text-emerald-400';
+        status.textContent = 'Download iniciado.';
+    } catch (erro) {
+        status.className = 'text-xs text-red-400';
+        status.textContent = erro.message;
+    } finally {
+        botao.disabled = false;
+    }
+}
+
 async function consultarStatusOrganizacao() {
     const response = await fetch('/api/status-organizacao');
     if (!response.ok) {
@@ -156,8 +256,11 @@ async function consultarStatusOrganizacao() {
         const btn = document.getElementById('btnOrganizarTudo');
         btn.disabled = false;
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        carregarEstimativaFlorence();
     }
 }
+
+carregarEstimativaFlorence();
 
 async function organizarLoteIA() {
     const confirmacao = confirm(

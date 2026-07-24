@@ -98,6 +98,16 @@ CLIP, exemplos do diretório `Fotos exemplos`, KNN e YOLOv8 para detectar fotos
 com pessoas. Também pode gerar `alt_texts.json`. Esse processamento é separado da
 extração principal e pode ser demorado, especialmente em CPU.
 
+Durante a etapa CLIP/Florence, o organizador registra por hotel o horário de
+início, término, duração, quantidade de imagens e status em
+`logs/florence/log_classificacao_florence.csv`. O registro também contém o
+tamanho individual das imagens, o volume total e a quantidade de hotéis do
+lote. Outros CSVs históricos podem ser colocados em `logs/florence/`.
+
+A aba Organização IA lê esses históricos e estima o tempo da próxima execução
+com base na quantidade de imagens, no volume em bytes e no número de hotéis. O
+log principal pode ser baixado pelo botão **Baixar log Florence**.
+
 ## Tecnologias
 
 - Node.js e Express;

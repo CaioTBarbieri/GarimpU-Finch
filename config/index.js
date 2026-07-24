@@ -54,9 +54,20 @@ const pastaImagensConfigurada = validarTexto(
   "PASTA_IMAGENS",
   obterValor("PASTA_IMAGENS", path.resolve(diretorioProjeto, "img")),
 );
+const pastaLogsFlorenceConfigurada = validarTexto(
+  "PASTA_LOGS_FLORENCE",
+  obterValor(
+    "PASTA_LOGS_FLORENCE",
+    path.resolve(diretorioProjeto, "logs", "florence"),
+  ),
+);
 
 const PORT = portaConfigurada;
 const PASTA_IMAGENS = path.resolve(diretorioProjeto, pastaImagensConfigurada);
+const PASTA_LOGS_FLORENCE = path.resolve(
+  diretorioProjeto,
+  pastaLogsFlorenceConfigurada,
+);
 const LATITUDE_PADRAO = validarNumero(
   "LATITUDE_PADRAO",
   obterValor("LATITUDE_PADRAO", -14.815),
@@ -88,6 +99,7 @@ if (PYTHON_VERSION_ESPERADA !== "3.12") {
 module.exports = {
   PORT,
   PASTA_IMAGENS,
+  PASTA_LOGS_FLORENCE,
   LATITUDE_PADRAO,
   LONGITUDE_PADRAO,
   PYTHON_EXECUTABLE,

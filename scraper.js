@@ -4,6 +4,7 @@ const path = require("path");
 const {
   PORT,
   PASTA_IMAGENS,
+  PASTA_LOGS_FLORENCE,
   LATITUDE_PADRAO,
   LONGITUDE_PADRAO,
 } = require("./config");
@@ -26,6 +27,8 @@ if (!fs.statSync(PASTA_IMAGENS).isDirectory()) {
       "Configure-a pela variável de ambiente PASTA_IMAGENS ou em config/local.js.",
   );
 }
+
+fs.mkdirSync(PASTA_LOGS_FLORENCE, { recursive: true });
 
 app.use(express.json());
 app.use("/img", express.static(PASTA_IMAGENS));

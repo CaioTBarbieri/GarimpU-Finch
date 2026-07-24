@@ -36,6 +36,7 @@ ESTRUTURA QUE SERÁ CRIADA NOS HOTÉIS:
 """
 
 from deep_translator import GoogleTranslator
+from datetime import datetime
 import os
 import sys
 import argparse
@@ -58,6 +59,7 @@ from python_organizador.config import (
     CONFIANCA_YOLO_HUMANO,
     PASTA_EXEMPLOS,
     PASTA_HOTEIS,
+    PASTA_LOGS_FLORENCE,
     REMOVER_FOTOS_COM_HUMANOS,
     TAMANHO_MINIMO_PESSOA,
 )
@@ -66,6 +68,7 @@ from python_organizador.nomes import (
     limpar_para_nome_arquivo,
     resolver_nome_duplicado,
 )
+from python_organizador.log_classificacao import registrar_tempo_classificacao
 from python_organizador.status import emitir_status
 
 warnings.filterwarnings("ignore")
@@ -336,6 +339,8 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
 
     stats_total = {"classificadas": 0, "revisar": 0, "com_humanos": 0, "erros": 0}
     processamento_imagens_iniciado = False
+    execucao_id = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%z")
+    numero_hoteis_lote = len(pastas_hoteis)
 
     for pasta_hotel in pastas_hoteis:
         print(f"\n{'─'*60}")
@@ -348,6 +353,15 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
             continue
 
         print(f"   📸 {len(imagens)} imagens para classificar")
+        tamanhos_imagens_hotel = []
+        for imagem in imagens:
+            try:
+                tamanho_bytes = imagem.stat().st_size
+            except OSError:
+                tamanho_bytes = 0
+            tamanhos_imagens_hotel.append(
+                {"nome": imagem.name, "bytes": tamanho_bytes}
+            )
 
         if not processamento_imagens_iniciado:
             emitir_status(
@@ -417,6 +431,11 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
             continue
 
         # ── Etapa 2: classifica imagens via CLIP + Florence-2 ──
+        inicio_classificacao_hotel = datetime.now().astimezone()
+        print(
+            "   ⏱️ Classificação Florence iniciada em: "
+            f"{inicio_classificacao_hotel.isoformat(timespec='seconds')}"
+        )
         imagens_concluidas_hotel = qtd_humanos_detectados
         embs, validos = calcular_embeddings(
             modelo, sem_humanos, desc="   Analisando categorias"
@@ -448,6 +467,17 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
             )
 
         if len(embs) == 0:
+            fim_classificacao_hotel = datetime.now().astimezone()
+            registrar_tempo_classificacao(
+                PASTA_LOGS_FLORENCE,
+                execucao_id,
+                pasta_hotel.name,
+                inicio_classificacao_hotel,
+                fim_classificacao_hotel,
+                tamanhos_imagens_hotel,
+                numero_hoteis_lote,
+                status="sem_embeddings_validos",
+            )
             continue
 
         embs_norm = normalize(embs)
@@ -591,6 +621,26 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
                 print(f"      {emoji_map.get(cat, '📁')} {cat}: {qtd} imagens")
         if qtd_humanos_detectados > 0:
             print(f"      👤 _Com_Humanos: {qtd_humanos_detectados} imagens")
+
+        fim_classificacao_hotel = datetime.now().astimezone()
+        caminho_log = registrar_tempo_classificacao(
+            PASTA_LOGS_FLORENCE,
+            execucao_id,
+            pasta_hotel.name,
+            inicio_classificacao_hotel,
+            fim_classificacao_hotel,
+            tamanhos_imagens_hotel,
+            numero_hoteis_lote,
+        )
+        duracao_classificacao = (
+            fim_classificacao_hotel - inicio_classificacao_hotel
+        ).total_seconds()
+        print(
+            "   ⏱️ Classificação Florence concluída em: "
+            f"{fim_classificacao_hotel.isoformat(timespec='seconds')} "
+            f"({duracao_classificacao:.3f} segundos)"
+        )
+        print(f"   🧾 Log atualizado: {caminho_log}")
 
     print(f"\n{'═'*60}")
     print(f"🏁 CONCLUÍDO!")

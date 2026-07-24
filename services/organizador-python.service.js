@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const {
   PASTA_IMAGENS,
+  PASTA_LOGS_FLORENCE,
   PYTHON_VERSION_ESPERADA,
 } = require("../config");
 const statusOrganizacao = require("../state/status-organizacao");
@@ -145,6 +146,7 @@ function criarOrganizadorPythonService({
             ...process.env,
             PYTHONIOENCODING: "utf-8",
             PYTHON_VERSION_ESPERADA,
+            PASTA_LOGS_FLORENCE,
           },
         },
       );

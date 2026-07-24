@@ -350,7 +350,10 @@ let dadosAtuais = null;
                 btn.innerHTML = `<div class="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>Aguarde, compactando centenas de imagens...`;
 
                 const zip = new JSZip();
-                const nomeHotel = document.getElementById('resNome').innerText.replace(/[^a-zA-Z0-9]/g, '_');
+                const nomeHotel = document.getElementById('resNome').innerText
+                    .replace(/[<>:"/\\|?*]/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
 
                 try {
                     for (let i = 0; i < imagens.length; i++) {

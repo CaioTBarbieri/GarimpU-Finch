@@ -1,0 +1,2 @@
+execucao_id;hotel;inicio_classificacao;fim_classificacao;duracao_segundos;numero_imagens;tamanhos_imagens_bytes;tamanho_total_bytes;numero_hoteis;status
+exemplo-001;HOTEL EXEMPLO;2026-01-02T10:00:00-03:00;2026-01-02T10:05:00-03:00;300.000;"[{""nome"": ""foto_1.jpg"", ""bytes"": 1500000}]";1500000;1;concluido

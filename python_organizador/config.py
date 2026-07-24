@@ -15,6 +15,12 @@ PASTA_HOTEIS = Path(
         DIRETORIO_PROJETO / "img",
     )
 ).resolve()
+PASTA_LOGS_FLORENCE = Path(
+    os.environ.get(
+        "PASTA_LOGS_FLORENCE",
+        DIRETORIO_PROJETO / "logs" / "florence",
+    )
+).resolve()
 
 CATEGORIAS = [
     "entretenimento",

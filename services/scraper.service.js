@@ -34,6 +34,23 @@ function calcularDistanciaCarroKm(lat1, lon1, lat2, lon2) {
   return distanciaCarro.toFixed(1);
 }
 
+function normalizarNomeHotel(nome) {
+  return String(nome || "")
+    .replace(/\*/g, "")
+    .replace(/_+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleUpperCase("pt-BR");
+}
+
+function criarNomePastaHotel(nome) {
+  return normalizarNomeHotel(nome)
+    .replace(/[<>:"/\\|?\u0000-\u001F]/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/[.\s]+$/g, "")
+    .trim();
+}
+
 async function rasparDadosHotel(
   nomeHotel,
   baixarImagens = true,
@@ -321,6 +338,11 @@ async function rasparDadosHotel(
       );
     }
 
+    nomeOficial = normalizarNomeHotel(nomeOficial);
+    if (!nomeOficial) {
+      throw new Error("A Booking não informou um nome válido para o hotel.");
+    }
+
     if (!lat || !lng) {
       const mapLink = $("a[data-atlas-latlng]").attr("data-atlas-latlng");
       if (mapLink) {
@@ -570,7 +592,7 @@ async function rasparDadosHotel(
       .filter((item) => item.prioridade >= 3)
       .map((item) => item.url);
 
-    const nomeLimpo = nomeOficial.replace(/[^a-zA-Z0-9]/g, "_");
+    const nomeLimpo = criarNomePastaHotel(nomeOficial);
     const pastaBase = PASTA_IMAGENS;
     const pastaHotel = path.resolve(pastaBase, nomeLimpo);
 
@@ -710,4 +732,6 @@ async function rasparDadosHotel(
 module.exports = {
   rasparDadosHotel,
   calcularDistanciaCarroKm,
+  normalizarNomeHotel,
+  criarNomePastaHotel,
 };

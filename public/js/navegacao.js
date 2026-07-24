@@ -16,6 +16,12 @@ function selecionarAba(nomeAba) {
     if (typeof atualizarVisibilidadeCsvGlobal === 'function') {
         atualizarVisibilidadeCsvGlobal(abaAtiva);
     }
+    if (
+        abaAtiva === 'ia' &&
+        typeof carregarEstimativaFlorence === 'function'
+    ) {
+        carregarEstimativaFlorence();
+    }
 }
 
 selecionarAba('pesquisa');
