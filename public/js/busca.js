@@ -30,6 +30,138 @@
                         : 'Pesquisar lista e adicionar ao CSV';
             }
 
+            function obterUfDoEndereco(endereco) {
+                const estados = {
+                    acre: 'AC',
+                    alagoas: 'AL',
+                    amapa: 'AP',
+                    amazonas: 'AM',
+                    bahia: 'BA',
+                    ceara: 'CE',
+                    'distrito federal': 'DF',
+                    'espirito santo': 'ES',
+                    goias: 'GO',
+                    maranhao: 'MA',
+                    'mato grosso': 'MT',
+                    'mato grosso do sul': 'MS',
+                    'minas gerais': 'MG',
+                    para: 'PA',
+                    paraiba: 'PB',
+                    parana: 'PR',
+                    pernambuco: 'PE',
+                    piaui: 'PI',
+                    'rio de janeiro': 'RJ',
+                    'rio grande do norte': 'RN',
+                    'rio grande do sul': 'RS',
+                    rondonia: 'RO',
+                    roraima: 'RR',
+                    'santa catarina': 'SC',
+                    'sao paulo': 'SP',
+                    sergipe: 'SE',
+                    tocantins: 'TO',
+                };
+                const texto = String(endereco || '');
+                const sigla = texto.match(
+                    /(?:^|[\s,–-])([A-Z]{2})(?=$|[\s,])/u
+                );
+                if (sigla) return sigla[1];
+
+                const normalizado = texto
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .toLowerCase();
+                return Object.entries(estados).find(
+                    ([nome]) => normalizado.includes(nome)
+                )?.[1] || '';
+            }
+
+            function resumirLocalizacaoHotel(bairro, endereco) {
+                const textoEndereco = String(endereco || '');
+                const uf = obterUfDoEndereco(textoEndereco);
+                const pais = /\b(?:brasil|brazil)\b/i.test(textoEndereco)
+                    ? 'Brasil'
+                    : '';
+                let localidade = String(bairro || '').trim();
+
+                if (!localidade || normalizarNome(localidade) === 'naoinformado') {
+                    const partes = textoEndereco
+                        .split(',')
+                        .map(parte => parte.trim())
+                        .filter(Boolean)
+                        .filter(parte =>
+                            !/\bcep\b|\b\d{5}-?\d{3}\b/i.test(parte) &&
+                            !/^(?:rua|avenida|av\.?|rodovia|estrada|travessa|alameda)\b/i.test(parte) &&
+                            !/^\d+\b/.test(parte) &&
+                            !/\b(?:brasil|brazil)\b/i.test(parte)
+                        );
+                    const indiceEstado = partes.findIndex(parte =>
+                        obterUfDoEndereco(parte) === uf && Boolean(uf)
+                    );
+                    const candidata = indiceEstado > 0
+                        ? partes[indiceEstado - 1]
+                        : partes.at(-1);
+                    localidade = String(candidata || '')
+                        .replace(/\s*[–-]\s*[A-Z]{2}\s*$/u, '')
+                        .trim();
+                }
+
+                const localidadeComUf = [localidade, uf]
+                    .filter(Boolean)
+                    .join(' - ');
+                return [localidadeComUf, pais]
+                    .filter(Boolean)
+                    .join(', ') || 'Localização não informada';
+            }
+
+            function adicionarLocalizacaoAoResultado(elemento, dados) {
+                const localizacao = resumirLocalizacaoHotel(
+                    dados.bairro,
+                    dados.endereco
+                );
+                elemento.dataset.localizacao = localizacao;
+                elemento.tabIndex = 0;
+                elemento.title = localizacao;
+                elemento.setAttribute(
+                    'aria-describedby',
+                    'tooltipLocalizacaoLote'
+                );
+                elemento.setAttribute(
+                    'aria-label',
+                    elemento.textContent + '. Localização: ' + localizacao
+                );
+
+                const mostrarTooltip = () => {
+                    const tooltip = document.getElementById(
+                        'tooltipLocalizacaoLote'
+                    );
+                    tooltip.textContent = '📍 ' + localizacao;
+                    tooltip.classList.remove('hidden');
+
+                    const alvo = elemento.getBoundingClientRect();
+                    const caixa = tooltip.getBoundingClientRect();
+                    const margem = 12;
+                    const esquerda = Math.min(
+                        Math.max(alvo.left, margem),
+                        window.innerWidth - caixa.width - margem
+                    );
+                    const acima = alvo.top - caixa.height - 8;
+                    const topo = acima >= margem
+                        ? acima
+                        : alvo.bottom + 8;
+                    tooltip.style.left = esquerda + 'px';
+                    tooltip.style.top = topo + 'px';
+                };
+                const ocultarTooltip = () => {
+                    document.getElementById('tooltipLocalizacaoLote')
+                        .classList.add('hidden');
+                };
+
+                elemento.addEventListener('mouseenter', mostrarTooltip);
+                elemento.addEventListener('mouseleave', ocultarTooltip);
+                elemento.addEventListener('focus', mostrarTooltip);
+                elemento.addEventListener('blur', ocultarTooltip);
+            }
+
             async function pesquisarHoteisEmLote() {
                 const entradas = document.getElementById('listaHoteisInput').value
                     .split(/\r?\n/)
@@ -148,6 +280,10 @@
                                 linhaResultado.className = 'text-emerald-400';
                                 linhaResultado.textContent =
                                     '✓ ' + dados.nome + ': imagens baixadas';
+                                adicionarLocalizacaoAoResultado(
+                                    linhaResultado,
+                                    dados
+                                );
                             } else {
                                 if (csvWix) {
                                     const localizacaoWix = localizarItemWixPorNome(dados.nome);
@@ -170,6 +306,10 @@
                                 adicionados += 1;
                                 linhaResultado.className = 'text-emerald-400';
                                 linhaResultado.textContent = '✓ ' + dados.nome;
+                                adicionarLocalizacaoAoResultado(
+                                    linhaResultado,
+                                    dados
+                                );
                             }
                         } catch (erro) {
                             if (erro.message.startsWith('Ignorado:')) {

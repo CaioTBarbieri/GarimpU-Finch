@@ -1,4 +1,4 @@
-# GarimpU Finch
+# GarimpU-Nexo
 
 Aplicação local para pesquisar hotéis na Booking.com, extrair e revisar dados úteis
 para cadastro, baixar galerias de fotos e preparar arquivos CSV compatíveis com uma
