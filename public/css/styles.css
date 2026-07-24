@@ -73,6 +73,9 @@ textarea:disabled {
     background: rgb(15 23 42 / 82%);
     padding: 1.25rem;
     box-shadow: 0 16px 40px rgb(0 0 0 / 14%);
+    transition:
+        border-color 180ms ease,
+        box-shadow 180ms ease;
 }
 
 .app-tabs {
@@ -99,11 +102,17 @@ textarea:disabled {
     font-size: 0.8125rem;
     font-weight: 600;
     padding: 0.7rem 1rem;
+    transition:
+        background-color 180ms ease,
+        color 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease;
     white-space: nowrap;
 }
 
 .app-tab:hover {
     color: #e2e8f0;
+    transform: translateY(-1px);
 }
 
 .app-tab[aria-pressed="true"] {
@@ -114,6 +123,10 @@ textarea:disabled {
 
 [data-tab-panel][hidden] {
     display: none !important;
+}
+
+[data-tab-panel]:not([hidden]) {
+    animation: tab-panel-enter 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .csv-context {
@@ -270,6 +283,11 @@ select {
     transform: translateY(1px);
 }
 
+.app-button:hover:not(:disabled) {
+    box-shadow: 0 8px 18px rgb(0 0 0 / 18%);
+    transform: translateY(-2px);
+}
+
 .app-button-primary {
     background: #2563eb;
     color: white;
@@ -380,6 +398,9 @@ select {
     cursor: pointer;
     list-style: none;
     padding: 1rem 1.25rem;
+    transition:
+        background-color 180ms ease,
+        color 180ms ease;
     user-select: none;
 }
 
@@ -636,12 +657,18 @@ details[open] > summary .details-chevron {
     border: 1px solid #334155;
     border-radius: 0.5rem;
     color: #cbd5e1;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        transform 160ms ease;
 }
 
 .gallery-download:hover {
     border-color: #475569;
     background: #1e293b;
     color: white;
+    transform: translateY(-1px);
 }
 
 .photo-catalog {
@@ -655,12 +682,28 @@ details[open] > summary .details-chevron {
     border: 1px solid var(--border);
     border-radius: 0.75rem;
     background: #020617;
+    animation: catalog-item-enter 220ms ease-out;
+    transition:
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease;
+}
+
+.catalog-photo:hover {
+    border-color: #334155;
+    box-shadow: 0 10px 24px rgb(0 0 0 / 20%);
+    transform: translateY(-2px);
 }
 
 .catalog-photo img {
     width: 100%;
     aspect-ratio: 4 / 3;
     object-fit: cover;
+    transition: transform 240ms ease;
+}
+
+.catalog-photo:hover img {
+    transform: scale(1.015);
 }
 
 .catalog-photo-meta {
@@ -705,11 +748,17 @@ details[open] > summary .details-chevron {
     color: #cbd5e1;
     font-size: 0.6875rem;
     font-weight: 600;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        transform 160ms ease;
 }
 
 .catalog-photo-action:hover {
     border-color: #60a5fa;
     color: white;
+    transform: translateY(-1px);
 }
 
 .catalog-photo-action-danger {
@@ -754,12 +803,23 @@ details[open] > summary .details-chevron {
     color: #dbeafe;
     font-size: 0.6875rem;
     font-weight: 700;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        transform 160ms ease;
 }
 
 .catalog-folder-open:hover {
     border-color: #60a5fa;
     background: #1d4ed8;
     color: white;
+    transform: translateY(-1px);
+}
+
+.catalog-photo-action:active,
+.catalog-folder-open:active {
+    transform: translateY(1px);
 }
 
 .pagination-controls {
@@ -794,6 +854,30 @@ details[open] > summary .details-chevron {
 @keyframes shimmer {
     to {
         background-position: -200% 0;
+    }
+}
+
+@keyframes tab-panel-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes catalog-item-enter {
+    from {
+        opacity: 0;
+        transform: translateY(5px) scale(0.99);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }
 
