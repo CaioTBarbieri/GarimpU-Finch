@@ -24,83 +24,12 @@ function limitarPercentual(valor) {
 
 function aplicarVisualEstadoIA(estado) {
     const card = document.getElementById('statusCardIA');
-    const titulo = document.getElementById('statusTituloIA');
-    const mensagem = document.getElementById('statusMensagemIA');
     const spinner = document.getElementById('statusSpinnerIA');
-    const barraGeral = document.getElementById('statusBarraGeralIA');
-    const barraHotel = document.getElementById('statusBarraHotelIA');
-    const estilos = {
-        processando: {
-            borda: 'border-purple-500/30',
-            texto: 'text-purple-400',
-            barra: 'bg-purple-500',
-            spinner: 'border-t-purple-500',
-        },
-        concluido: {
-            borda: 'border-emerald-500/30',
-            texto: 'text-emerald-400',
-            barra: 'bg-emerald-500',
-            spinner: 'border-t-emerald-500',
-        },
-        erro: {
-            borda: 'border-red-500/30',
-            texto: 'text-red-400',
-            barra: 'bg-red-500',
-            spinner: 'border-t-red-500',
-        },
-        ocioso: {
-            borda: 'border-slate-600',
-            texto: 'text-slate-400',
-            barra: 'bg-slate-500',
-            spinner: 'border-t-slate-500',
-        },
-    };
-    const estilo = estilos[estado] || estilos.ocioso;
+    const estadosConhecidos = ['processando', 'concluido', 'erro'];
+    const estadoVisual = estadosConhecidos.includes(estado) ? estado : 'ocioso';
 
-    card.classList.remove(
-        'border-purple-500/30',
-        'border-emerald-500/30',
-        'border-red-500/30',
-        'border-slate-600',
-    );
-    titulo.classList.remove(
-        'text-purple-400',
-        'text-emerald-400',
-        'text-red-400',
-        'text-slate-400',
-    );
-    mensagem.classList.remove(
-        'text-purple-400',
-        'text-emerald-400',
-        'text-red-400',
-        'text-slate-400',
-    );
-    spinner.classList.remove(
-        'border-t-purple-500',
-        'border-t-emerald-500',
-        'border-t-red-500',
-        'border-t-slate-500',
-    );
-    barraGeral.classList.remove(
-        'bg-purple-500',
-        'bg-emerald-500',
-        'bg-red-500',
-        'bg-slate-500',
-    );
-    barraHotel.classList.remove(
-        'bg-purple-500',
-        'bg-emerald-500',
-        'bg-red-500',
-        'bg-slate-500',
-    );
-
-    card.classList.add(estilo.borda);
-    titulo.classList.add(estilo.texto);
-    mensagem.classList.add(estilo.texto);
-    spinner.classList.add(estilo.spinner);
-    barraGeral.classList.add(estilo.barra);
-    barraHotel.classList.add(estilo.barra);
-    spinner.classList.toggle('animate-spin', estado === 'processando');
+    card.dataset.state = estadoVisual;
+    spinner.classList.toggle('animate-spin', estadoVisual === 'processando');
 }
 
 function atualizarPainelOrganizacao(status) {

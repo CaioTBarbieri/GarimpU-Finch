@@ -8,6 +8,7 @@ const {
   LONGITUDE_PADRAO,
 } = require("./config");
 const criarBuscarRouter = require("./routes/buscar.routes");
+const galeriaRouter = require("./routes/galeria.routes");
 const organizacaoRouter = require("./routes/organizacao.routes");
 const { rasparDadosHotel } = require("./services/scraper.service");
 
@@ -30,6 +31,7 @@ app.use(express.json());
 app.use("/img", express.static(PASTA_IMAGENS));
 
 app.use(organizacaoRouter);
+app.use(galeriaRouter);
 app.use(
   criarBuscarRouter({
     rasparDadosHotel,

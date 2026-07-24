@@ -3,6 +3,39 @@ let dadosAtuais = null;
             let itensAcumulados = [];
             let intervaloStatusOrganizacao = null;
             let assinaturaColunasCsv = null;
+            let arquivoCsvWixNome = '';
+
+            function atualizarVisibilidadeCsvGlobal(abaInformada = null) {
+                const contexto = document.getElementById('csvContextoGlobal');
+                const opcao = document.getElementById(
+                    'mostrarCsvOutrasAbasInput'
+                );
+                const botaoAtivo = document.querySelector(
+                    '[data-tab-button][aria-pressed="true"]'
+                );
+                const abaAtiva = abaInformada ||
+                    botaoAtivo?.dataset.tabButton ||
+                    'pesquisa';
+                const deveExibir = Boolean(
+                    csvWix &&
+                    arquivoCsvWixNome &&
+                    opcao.checked &&
+                    abaAtiva !== 'configuracoes'
+                );
+
+                contexto.classList.toggle('hidden', !deveExibir);
+                if (!deveExibir) return;
+
+                const campos = csvWix.meta.fields || [];
+                document.getElementById('csvContextoNome').textContent =
+                    arquivoCsvWixNome;
+                document.getElementById('csvContextoResumo').textContent =
+                    csvWix.data.length +
+                    (csvWix.data.length === 1 ? ' hotel' : ' hotéis') +
+                    ' • ' +
+                    campos.length +
+                    (campos.length === 1 ? ' coluna' : ' colunas');
+            }
 
             function normalizarNome(texto) {
                 return String(texto || '')
@@ -107,7 +140,10 @@ let dadosAtuais = null;
                 const status = document.getElementById('csvWixStatus');
                 if (!arquivo) {
                     csvWix = null;
+                    arquivoCsvWixNome = '';
                     status.innerText = 'Nenhum CSV carregado.';
+                    status.className = 'mt-3 text-sm text-slate-500';
+                    atualizarVisibilidadeCsvGlobal();
                     return;
                 }
 
@@ -118,22 +154,28 @@ let dadosAtuais = null;
                         const campos = resultado.meta.fields || [];
                         if (!campos.includes('ID') || !campos.includes('Nome_Hotel')) {
                             csvWix = null;
+                            arquivoCsvWixNome = '';
                             status.innerText = 'Arquivo inválido: faltam as colunas ID ou Nome_Hotel.';
-                            status.className = 'text-xs text-red-400 mt-2';
+                            status.className = 'mt-3 text-sm text-red-400';
+                            atualizarVisibilidadeCsvGlobal();
                             return;
                         }
 
                         csvWix = resultado;
+                        arquivoCsvWixNome = arquivo.name;
                         itensAcumulados = [];
                         assinaturaColunasCsv = null;
                         atualizarContadorCsv();
                         status.innerText = 'CSV carregado: ' + resultado.data.length + ' hotéis e ' + campos.length + ' colunas.';
-                        status.className = 'text-xs text-emerald-400 mt-2';
+                        status.className = 'mt-3 text-sm text-emerald-400';
+                        atualizarVisibilidadeCsvGlobal();
                     },
                     error: (erro) => {
                         csvWix = null;
+                        arquivoCsvWixNome = '';
                         status.innerText = 'Erro ao ler o CSV: ' + erro.message;
-                        status.className = 'text-xs text-red-400 mt-2';
+                        status.className = 'mt-3 text-sm text-red-400';
+                        atualizarVisibilidadeCsvGlobal();
                     }
                 });
             }
@@ -295,7 +337,12 @@ let dadosAtuais = null;
 
             async function baixarGaleriaComoZip() {
                 const btn = document.getElementById('btnBaixarTodas');
-                const imagens = document.querySelectorAll('#galeriaGrid img');
+                const imagens = typeof obterImagensGaleriaResultado === 'function'
+                    ? obterImagensGaleriaResultado()
+                    : Array.from(
+                        document.querySelectorAll('#galeriaGrid img'),
+                        imagem => imagem.src
+                    );
                 if (imagens.length === 0) return;
 
                 const textoOriginal = btn.innerHTML;
@@ -307,7 +354,7 @@ let dadosAtuais = null;
 
                 try {
                     for (let i = 0; i < imagens.length; i++) {
-                        const src = imagens[i].src;
+                        const src = imagens[i];
                         const response = await fetch(src);
                         const blob = await response.blob();
                         zip.file(`foto_HD_${i + 1}.jpg`, blob);

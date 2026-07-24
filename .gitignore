@@ -1,3 +1,5 @@
 node_modules
 venv/
 config/local.js
+img/*
+!img/.gitkeep

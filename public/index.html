@@ -1,387 +1,647 @@
-
-    <!DOCTYPE html>
-    <html lang="pt-br">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>GarimpU Finch</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    </head>
-    <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
-        <div class="max-w-6xl mx-auto px-4 py-12">
-            
-            <div class="text-center mb-12">
-                <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-2">
-                    GarimpU Finch
-                </h1>
-                <p class="text-slate-400">Pesquise hotéis, extraia coordenadas, regimes alimentares e exporte dados CSV.</p>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <title>GarimpU Finch</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563eb'/%3E%3Cpath d='M9 8h15v4H13v4h9v4h-9v5H9z' fill='white'/%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="min-h-screen overflow-x-hidden bg-slate-950 text-slate-100 antialiased">
+    <!-- Cabeçalho -->
+    <header class="border-b border-slate-800/80 bg-slate-950/95">
+        <div class="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+            <div>
+                <h1 class="text-2xl font-semibold tracking-tight text-slate-50">GarimpU Finch</h1>
+                <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-400">
+                    Pesquise hotéis, organize imagens e prepare dados para exportação.
+                </p>
             </div>
-
-            <div class="bg-slate-800 p-6 rounded-2xl shadow-xl max-w-2xl mx-auto mb-12 border border-slate-700">
-                <div class="flex gap-4">
-                    <input type="text" id="hotelInput" placeholder="Digite o nome ou cole o link da Booking..." 
-                        class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-blue-500 transition-all"
-                        onkeypress="if(event.key === 'Enter') iniciarBusca()">
-                    <button id="btnBuscar" onclick="iniciarBusca()" 
-                        class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-xl font-semibold shadow-lg shadow-blue-900/30 transition-all flex items-center gap-2">
-                        Pesquisar
-                    </button>
-                </div>
-
-                <details id="painelPesquisaLote" class="group mt-4 overflow-hidden rounded-xl border border-slate-700 bg-slate-900/50 transition-colors open:border-indigo-500/40">
-                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-left select-none hover:bg-slate-700/30 transition-colors">
-                        <div>
-                            <span class="block text-sm font-semibold text-slate-200">Pesquisa de hotéis em lote</span>
-                            <span class="block text-xs text-slate-500">Pesquisa e adiciona automaticamente ao CSV, sem baixar imagens</span>
-                        </div>
-                        <svg class="h-4 w-4 text-slate-400 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </summary>
-                    <div class="border-t border-slate-700/70 p-4">
-                        <label for="listaHoteisInput" class="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400">
-                            Um nome ou link da Booking.com por linha
-                        </label>
-                        <textarea id="listaHoteisInput" rows="6"
-                            placeholder="Hotel Exemplo 1&#10;Hotel Exemplo 2&#10;https://www.booking.com/hotel/..."
-                            class="w-full resize-y rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/10"></textarea>
-                        <button id="btnPesquisarLote" onclick="pesquisarHoteisEmLote()"
-                            class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-500/50 bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/20 transition-all hover:bg-indigo-500">
-                            Pesquisar lista e adicionar ao CSV
-                        </button>
-                        <div id="statusPesquisaLote" class="hidden mt-4">
-                            <div class="mb-2 flex items-center justify-between text-xs text-slate-400">
-                                <span id="textoStatusPesquisaLote">Preparando...</span>
-                                <span id="contadorPesquisaLote">0 de 0</span>
-                            </div>
-                            <div class="h-2 overflow-hidden rounded-full bg-slate-950">
-                                <div id="barraPesquisaLote" class="h-2 rounded-full bg-indigo-500 transition-all duration-300" style="width: 0%"></div>
-                            </div>
-                            <div id="resultadosPesquisaLote" class="mt-3 max-h-40 space-y-1 overflow-y-auto text-xs"></div>
-                            <button id="btnBaixarCsvLote" onclick="baixarDadosCSV()"
-                                class="hidden mt-4 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-900/20 transition-all hover:bg-emerald-500">
-                                Baixar CSV com os hotéis processados
-                            </button>
-                        </div>
-                    </div>
-                </details>
-
-                                </div>
-
-                <details id="painelCoordenadas" class="group mt-4 overflow-hidden rounded-xl border border-slate-700 bg-slate-900/50 transition-colors open:border-blue-500/40">
-                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-left select-none hover:bg-slate-700/30 transition-colors">
-                        <div class="flex items-center gap-3">
-                            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21s7-5.1 7-12a7 7 0 10-14 0c0 6.9 7 12 7 12z"></path>
-                                    <circle cx="12" cy="9" r="2.5" stroke-width="2"></circle>
-                                </svg>
-                            </span>
-                            <div>
-                                <span class="block text-sm font-semibold text-slate-200">Coordenadas do aeroporto</span>
-                                <span class="block text-xs text-slate-500">Ajuste a referência usada no cálculo da distância</span>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="rounded-full bg-slate-700/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Opcional</span>
-                            <svg class="h-4 w-4 text-slate-400 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </div>
-                    </summary>
-
-                    <div class="border-t border-slate-700/70 px-4 pb-4 pt-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label for="latitudeReferenciaInput" class="text-xs font-medium uppercase tracking-wide text-slate-400 block mb-2">
-                                    Latitude
-                                </label>
-                                <input
-                                    id="latitudeReferenciaInput"
-                                    type="number"
-                                    step="any"
-                                    min="-90"
-                                    max="90"
-                                    value="-14.815"
-                                    placeholder="Ex.: -14.8150"
-                                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 font-mono text-sm text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
-                                >
-                            </div>
-
-                            <div>
-                                <label for="longitudeReferenciaInput" class="text-xs font-medium uppercase tracking-wide text-slate-400 block mb-2">
-                                    Longitude
-                                </label>
-                                <input
-                                    id="longitudeReferenciaInput"
-                                    type="number"
-                                    step="any"
-                                    min="-180"
-                                    max="180"
-                                    value="-39.0333"
-                                    placeholder="Ex.: -39.0333"
-                                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 font-mono text-sm text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
-                                >
-                            </div>
-                        </div>
-
-                        <p class="mt-3 flex items-start gap-2 text-xs leading-relaxed text-slate-500">
-                            <span class="text-blue-400">ℹ</span>
-                            Essas coordenadas são usadas somente quando a Booking.com não informa a distância do aeroporto.
-                        </p>
-                    </div>
-                </details>
-
-                <details id="painelColunasCsv" class="group mt-3 overflow-hidden rounded-xl border border-slate-700 bg-slate-900/50 transition-colors open:border-emerald-500/40">
-                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-left select-none hover:bg-slate-700/30 transition-colors">
-                        <div class="flex items-center gap-3">
-                            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16M9 4v16M15 4v16"></path>
-                                </svg>
-                            </span>
-                            <div>
-                                <span class="block text-sm font-semibold text-slate-200">Nomes das colunas do CSV</span>
-                                <span class="block text-xs text-slate-500">Personalize os campos antes de adicionar hotéis</span>
-                            </div>
-                        </div>
-                        <svg class="h-4 w-4 text-slate-400 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </summary>
-
-                    <div class="border-t border-slate-700/70 px-4 pb-4 pt-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <label class="text-xs text-slate-400">Regime alimentar
-                                <input id="colunaRegimeCsv" value="Regime de Alimentação" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Nota numérica
-                                <input id="colunaNotaCsv" value="Nota de Avaliação" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Tipo de hotel
-                                <input id="colunaTipoCsv" value="tipo_hotel" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Bairro
-                                <input id="colunaBairrosCsv" value="bairros" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Beira-mar
-                                <input id="colunaBeiraMarCsv" value="Beira mar" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Endereço
-                                <input id="colunaEnderecoCsv" value="Endereço da Rua" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Plus Code
-                                <input id="colunaPlusCodeCsv" value="Plus Code" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Distância numérica
-                                <input id="colunaDistanciaNumeroCsv" value="Distância Aeroporto N" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400 sm:col-span-2">Distância com unidade
-                                <input id="colunaDistanciaCsv" value="Distância Aeroporto" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                        </div>
-                        <p class="mt-3 text-xs text-slate-500">Os campos <code>ID</code> e <code>Nome_Hotel</code> permanecem fixos para preservar a integração com o Wix.</p>
-                    </div>
-                </details>
-
-                <div class="mt-6 pt-6 border-t border-slate-700/50 text-center">
-
-                <div class="mt-6 pt-6 border-t border-slate-700/50 text-center">
-                    <button id="btnOrganizarTudo" onclick="organizarLoteIA()"
-                        class="bg-purple-600 hover:bg-purple-500 px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-purple-900/30 transition-all flex items-center justify-center gap-2 mx-auto text-sm border border-purple-500/50">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                        Organizar Todos os Hotéis com IA
-                    </button>
-                    <p class="text-xs text-slate-400 mt-2">Use após baixar os hotéis que deseja organizar.</p>
-                </div>
-
-                <label class="flex items-center gap-3 mt-4 text-sm text-slate-300 cursor-pointer w-max">
-                    <input id="baixarImagensInput" type="checkbox" checked
-                        class="w-4 h-4 accent-emerald-500 cursor-pointer">
-                    Baixar imagens automaticamente
-                </label>
-                <div class="mt-4">
-                    <label class="text-sm text-slate-300 block mb-2">CSV completo exportado do Wix</label>
-                    <input id="csvWixInput" type="file" accept=".csv,text/csv" onchange="carregarCsvWix(this.files[0])"
-                        class="block w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-indigo-500 cursor-pointer">
-                    <p id="csvWixStatus" class="text-xs text-slate-500 mt-2">Opcional: carregue para preservar todas as colunas na atualização.</p>
-                </div>
-            </div>
-
-            <div id="loader" class="hidden text-center py-12 animate-pulse">
-                <div class="inline-block w-12 h-12 border-4 border-t-blue-500 border-slate-700 rounded-full animate-spin mb-4"></div>
-                <p id="loaderTexto" class="text-lg text-slate-300 font-medium">Extraindo dados e baixando toda a galeria em HD...</p>
-                <p class="text-sm text-slate-500 mt-2">Aviso: Esse processo pode levar de 1 a 3 minutos dependendo da quantidade de fotos do hotel.</p>
-            </div>
-
-            <section id="painelOrganizacaoIA" class="hidden py-12">
-                <div id="statusCardIA" class="max-w-2xl mx-auto text-left bg-slate-800 border border-slate-600 rounded-2xl p-6 shadow-xl">
-                    <div class="flex items-center gap-3 mb-5">
-                        <div id="statusSpinnerIA" class="w-8 h-8 shrink-0 border-4 border-t-slate-500 border-slate-700 rounded-full"></div>
-                        <div>
-                            <p id="statusTituloIA" class="text-xl text-slate-400 font-bold">Organização de imagens</p>
-                            <p id="statusMensagemIA" class="text-sm text-slate-400">Aguardando início...</p>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                        <p><span class="text-slate-400">Etapa:</span> <span id="statusEtapaIA">Ocioso</span></p>
-                        <p><span id="statusRotuloTempoIA" class="text-slate-400">Tempo decorrido:</span> <span id="statusTempoDecorridoIA" class="font-mono">00:00:00</span></p>
-                        <p><span class="text-slate-400">Média por imagem:</span> <span id="statusTempoMedioIA" class="font-mono">Calculando estimativa...</span></p>
-                        <p><span class="text-slate-400">Tempo restante estimado:</span> <span id="statusTempoRestanteIA" class="font-mono">Calculando estimativa...</span></p>
-                        <p><span class="text-slate-400">Conclusão prevista:</span> <span id="statusPrevisaoTerminoIA" class="font-mono">Calculando estimativa...</span></p>
-                        <p><span class="text-slate-400">Progresso geral:</span> <span id="statusProgressoGeralIA">0 de 0 imagens</span></p>
-                        <p><span class="text-slate-400">Pendentes:</span> <span id="statusImagensPendentesIA">0 imagens</span></p>
-                    </div>
-
-                    <div class="mt-5">
-                        <div class="flex justify-between gap-3 text-xs text-slate-400 mb-1">
-                            <span>Progresso geral</span>
-                            <span><span id="statusProgressoGeralContagemIA">0</span>%</span>
-                        </div>
-                        <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden">
-                            <div id="statusBarraGeralIA" class="bg-slate-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
-                        </div>
-                    </div>
-
-                    <div class="mt-5">
-                        <div class="flex justify-between gap-3 text-xs text-slate-400 mb-1">
-                            <span>Progresso do hotel</span>
-                            <span><span id="statusImagemAtualIA">0</span> de <span id="statusTotalImagensIA">0</span></span>
-                        </div>
-                        <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden">
-                            <div id="statusBarraHotelIA" class="bg-slate-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
-                        </div>
-                    </div>
-
-                    <div class="mt-5 space-y-2 text-sm">
-                        <p><span class="text-slate-400">Hotel atual:</span> <span id="statusHotelIA">—</span></p>
-                        <p><span class="text-slate-400">Pasta:</span> <span id="statusPastaIA" class="break-all">—</span></p>
-                        <p><span class="text-slate-400">Imagem atual:</span> <span id="statusImagemIA">—</span></p>
-                        <p><span class="text-slate-400">Categoria:</span> <span id="statusCategoriaIA">—</span></p>
-                        <p><span class="text-slate-400">Nome final:</span> <span id="statusNomeFinalIA">—</span></p>
-                    </div>
-
-                    <div class="mt-5 pt-4 border-t border-slate-700">
-                        <p class="text-sm font-semibold text-slate-300 mb-2">Últimas mensagens</p>
-                        <p id="historicoStatusIA" class="text-xs text-slate-400 whitespace-pre-line">Nenhuma mensagem recebida.</p>
-                    </div>
-
-                    <p class="text-xs text-slate-500 mt-4">O tempo restante é uma estimativa baseada nas últimas imagens e pode variar.</p>
-                </div>
-            </section>
-
-            <div id="resultadoContainer" class="hidden space-y-8 animate-fade-in">
-                
-                <div class="bg-slate-800 p-8 rounded-3xl shadow-xl border border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                    <div class="space-y-4">
-                        <div>
-                            <h2 id="resNome" class="text-3xl font-bold text-white"></h2>
-                            <p id="resEndereco" class="text-slate-400 flex items-center gap-2 text-sm md:text-base mt-1"></p>
-                        </div>
-                        
-                        <div class="flex flex-wrap gap-2">
-                            <span class="bg-slate-900 border border-indigo-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 shadow-inner text-slate-300">
-                                <span class="text-indigo-400 font-semibold">ID Wix</span>
-                                <input id="resIdWix" type="text" placeholder="Cole o ID aqui"
-                                    oninput="dadosAtuais.idWix = this.value.trim()"
-                                    class="bg-slate-900 text-slate-200 outline-none min-w-[220px] placeholder:text-slate-600">
-                            </span>
-
-                            <span class="bg-slate-900 border border-purple-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 shadow-inner text-slate-300">
-                                <span class="text-purple-400 font-semibold">Tipo</span>
-                                <select id="resTipoHotel" onchange="dadosAtuais.tipoHotel = this.value"
-                                    class="bg-slate-900 text-slate-300 outline-none cursor-pointer">
-                                    <option>Hotel</option>
-                                    <option>Pousada</option>
-                                    <option>Resort</option>
-                                </select>
-                            </span>
-
-                            <span class="bg-slate-900 border border-teal-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 shadow-inner text-slate-300">
-                                <span class="text-teal-400 font-semibold">Bairro</span>
-                                <input id="resBairro" type="text" placeholder="Bairro"
-                                    oninput="dadosAtuais.bairro = this.value.trim()"
-                                    class="bg-slate-900 text-slate-200 outline-none min-w-[180px] placeholder:text-slate-600">
-                            </span>
-
-                            <span class="bg-slate-900 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 shadow-inner text-slate-300">
-                                <span class="text-cyan-400 font-semibold">Beira-mar</span>
-                                <select id="resBeiraMar" onchange="dadosAtuais.beiraMar = this.value"
-                                    class="bg-slate-900 text-slate-300 outline-none cursor-pointer">
-                                    <option>Sim</option>
-                                    <option>Não</option>
-                                </select>
-                            </span>
-
-                            <span class="bg-slate-900 border border-sky-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 w-max shadow-inner text-slate-300">
-                                <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                <span id="resAeroporto"></span>
-                            </span>
-
-                            <span class="bg-slate-900 border border-orange-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 w-max shadow-inner text-slate-300">
-                                <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"></path></svg>
-                                <select id="resRegime" onchange="dadosAtuais.regime = this.value"
-                                    class="bg-slate-900 text-slate-300 outline-none cursor-pointer">
-                                    <option>Não informado</option>
-                                    <option>Café da manhã incluído</option>
-                                    <option>Café da manhã disponível</option>
-                                    <option>Meia pensão</option>
-                                    <option>Pensão completa</option>
-                                    <option>All Inclusive</option>
-                                    <option>Sem regime alimentar incluso na diária</option>
-                                </select>
-                            </span>
-                            
-                            <span id="tagPlusCodeBase" class="bg-slate-900 border px-3 py-1.5 rounded-lg text-sm font-mono flex items-center gap-2 w-max shadow-inner">
-                                <svg id="tagIcon" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
-                                <span id="resPlusCode"></span>
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="bg-gradient-to-br from-emerald-500 to-teal-600 px-6 py-4 rounded-2xl text-center shadow-lg min-w-[120px]">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-emerald-100 block opacity-75">Avaliação</span>
-                        <span id="resNota" class="text-4xl font-black text-white block mt-1"></span>
-                    </div>
-                </div>
-
-                <div>
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-                        <h3 class="text-xl font-bold text-slate-300 flex items-center gap-2">
-                            <span>Galeria Completa em Alta Resolução</span>
-                            <span id="badgeContador" class="bg-slate-700 text-xs px-2.5 py-1 rounded-full text-slate-300"></span>
-                        </h3>
-                        
-                        <div class="flex flex-wrap gap-3">
-                            <button id="btnAdicionarCSV" onclick="adicionarAoCsv()" class="hidden bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-blue-900/20 transition-all flex items-center gap-2">
-                                + Adicionar ao CSV
-                            </button>
-
-                            <button id="btnBaixarCSV" onclick="baixarDadosCSV()" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-indigo-900/20 transition-all flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                Exportar Dados (.CSV)
-                            </button>
-
-                            <span id="contadorCsv" class="hidden bg-slate-700 text-slate-200 px-3 py-2.5 rounded-xl text-sm">0 hotéis adicionados</span>
-
-                            <button id="btnBaixarTodas" onclick="baixarGaleriaComoZip()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                Transferir Todas as Fotos (.ZIP)
-                            </button>
-                        </div>
-                    </div>
-
-                    <div id="galeriaGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-                </div>
-
+            <div class="inline-flex w-max items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300">
+                <span class="h-2 w-2 rounded-full bg-emerald-400" aria-hidden="true"></span>
+                Execução local
             </div>
         </div>
+    </header>
 
-        <script src="/js/interface.js"></script>
-        <script src="/js/organizacao.js"></script>
-        <script src="/js/busca.js"></script>
-    </body>
-    </html>
+    <main class="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+        <nav class="app-tabs" aria-label="Áreas da aplicação">
+            <button type="button" class="app-tab" data-tab-button="pesquisa" aria-pressed="true" onclick="selecionarAba('pesquisa')">
+                Pesquisa
+            </button>
+            <button type="button" class="app-tab" data-tab-button="fotos" aria-pressed="false" onclick="selecionarAba('fotos')">
+                Fotos salvas
+            </button>
+            <button type="button" class="app-tab" data-tab-button="ia" aria-pressed="false" onclick="selecionarAba('ia')">
+                Organização IA
+            </button>
+            <button type="button" class="app-tab" data-tab-button="configuracoes" aria-pressed="false" onclick="selecionarAba('configuracoes')">
+                Configurações
+            </button>
+        </nav>
+
+        <aside id="csvContextoGlobal" class="csv-context hidden" aria-live="polite">
+            <div class="min-w-0">
+                <span class="block text-xs font-medium uppercase tracking-wider text-emerald-400">CSV Wix carregado</span>
+                <strong id="csvContextoNome" class="mt-1 block truncate text-sm text-slate-100"></strong>
+                <span id="csvContextoResumo" class="mt-1 block text-xs text-slate-400"></span>
+            </div>
+            <button type="button" class="app-button app-button-tertiary shrink-0" onclick="selecionarAba('configuracoes')">
+                Abrir configurações
+            </button>
+        </aside>
+
+        <!-- Pesquisa -->
+        <section class="app-card mx-auto max-w-4xl" aria-labelledby="tituloPesquisa" data-tab-panel="pesquisa">
+            <div class="mb-6">
+                <p class="section-kicker">Consulta individual</p>
+                <h2 id="tituloPesquisa" class="section-title">Pesquisar hotel</h2>
+                <p class="section-description">
+                    Digite o nome do hotel ou cole um link da Booking.com para buscar os dados.
+                </p>
+            </div>
+
+            <div class="flex flex-col gap-3 sm:flex-row">
+                <div class="min-w-0 flex-1">
+                    <label for="hotelInput" class="mb-2 block text-sm font-medium text-slate-200">
+                        Nome ou link do hotel
+                    </label>
+                    <input
+                        id="hotelInput"
+                        type="text"
+                        placeholder="Ex.: Hotel Atlântico ou link da Booking"
+                        class="app-input"
+                        onkeypress="if(event.key === 'Enter') iniciarBusca()"
+                    >
+                </div>
+                <button
+                    id="btnBuscar"
+                    type="button"
+                    onclick="iniciarBusca()"
+                    class="app-button app-button-primary mt-auto sm:w-auto"
+                >
+                    <span class="button-spinner" aria-hidden="true"></span>
+                    <span>Pesquisar</span>
+                </button>
+            </div>
+
+            <div class="mt-4 flex flex-col gap-3 border-t border-slate-800 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <label class="inline-flex cursor-pointer items-center gap-3 text-sm text-slate-300">
+                    <input
+                        id="baixarImagensInput"
+                        type="checkbox"
+                        checked
+                        class="h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+                    >
+                    Baixar imagens automaticamente
+                </label>
+                <p class="text-xs leading-5 text-slate-500">
+                    Desative para consultar somente os dados do hotel.
+                </p>
+            </div>
+            <p id="mensagemPesquisa" class="mt-4 hidden text-sm" role="status" aria-live="polite"></p>
+        </section>
+
+        <!-- Status da pesquisa -->
+        <section id="loader" class="app-card mx-auto hidden max-w-4xl" aria-live="polite" aria-busy="true" data-tab-panel="pesquisa">
+            <div class="flex items-start gap-4">
+                <span class="loading-spinner mt-1" aria-hidden="true"></span>
+                <div class="min-w-0 flex-1">
+                    <p id="loaderTexto" class="font-medium text-slate-100">
+                        Extraindo dados do hotel...
+                    </p>
+                    <p id="loaderAjuda" class="mt-1 text-sm leading-6 text-slate-400">
+                        Isso pode levar alguns minutos.
+                    </p>
+                    <div class="mt-5 space-y-2" aria-hidden="true">
+                        <div class="skeleton-line w-4/5"></div>
+                        <div class="skeleton-line w-3/5"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pesquisa em lote -->
+        <details id="painelPesquisaLote" class="app-details mx-auto max-w-4xl" data-tab-panel="pesquisa">
+            <summary>
+                <span>
+                    <span class="block font-medium text-slate-100">Pesquisa em lote</span>
+                    <span class="mt-1 block text-sm text-slate-400">
+                        Consulte uma lista sem baixar imagens e adicione os resultados ao CSV.
+                    </span>
+                </span>
+                <span class="details-chevron" aria-hidden="true">⌄</span>
+            </summary>
+            <div class="details-content">
+                <div class="mb-2 flex items-center justify-between gap-3">
+                    <label for="listaHoteisInput" class="text-sm font-medium text-slate-200">
+                        Um hotel ou link por linha
+                    </label>
+                    <span id="contadorEntradaLote" class="text-xs text-slate-500">0 hotéis</span>
+                </div>
+                <textarea
+                    id="listaHoteisInput"
+                    rows="7"
+                    placeholder="Hotel Exemplo 1&#10;Hotel Exemplo 2&#10;https://www.booking.com/hotel/..."
+                    class="app-input min-h-44 resize-y"
+                    oninput="atualizarContadorEntradaLote()"
+                ></textarea>
+                <label class="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-800 bg-slate-950/40 p-4 text-sm text-slate-300">
+                    <input
+                        id="baixarImagensLoteInput"
+                        type="checkbox"
+                        onchange="atualizarModoPesquisaLote()"
+                        class="mt-0.5 h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+                    >
+                    <span>
+                        Baixar imagens de todos os hotéis da lista
+                        <span class="mt-1 block text-xs leading-5 text-slate-500">
+                            Aumenta o tempo de processamento e salva as fotos na pasta configurada.
+                        </span>
+                    </span>
+                </label>
+                <button
+                    id="btnPesquisarLote"
+                    type="button"
+                    onclick="pesquisarHoteisEmLote()"
+                    class="app-button app-button-secondary mt-4 w-full"
+                >
+                    <span class="button-spinner" aria-hidden="true"></span>
+                    <span id="textoBtnPesquisarLote">Pesquisar lista e adicionar ao CSV</span>
+                </button>
+
+                <div id="statusPesquisaLote" class="mt-5 hidden" aria-live="polite">
+                    <div class="mb-2 flex items-center justify-between gap-4 text-sm">
+                        <span id="textoStatusPesquisaLote" class="min-w-0 truncate text-slate-300">Preparando...</span>
+                        <span id="contadorPesquisaLote" class="shrink-0 text-slate-500">0 de 0</span>
+                    </div>
+                    <div class="progress-track" role="progressbar" aria-label="Progresso da pesquisa em lote">
+                        <div id="barraPesquisaLote" class="progress-fill bg-blue-500" style="width: 0%"></div>
+                    </div>
+                    <div
+                        id="resultadosPesquisaLote"
+                        class="status-list mt-4 max-h-52 space-y-2 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm"
+                    ></div>
+                    <button
+                        id="btnBaixarCsvLote"
+                        type="button"
+                        onclick="baixarDadosCSV()"
+                        class="app-button app-button-success mt-4 hidden w-full"
+                    >
+                        Baixar CSV processado
+                    </button>
+                </div>
+            </div>
+        </details>
+
+        <!-- Configurações -->
+        <section id="painelConfiguracoes" class="mx-auto max-w-5xl" data-tab-panel="configuracoes" hidden aria-labelledby="tituloConfiguracoes">
+            <div class="mb-6">
+                <p class="section-kicker">Preferências da aplicação</p>
+                <h2 id="tituloConfiguracoes" class="section-title">Configurações</h2>
+                <p class="section-description">
+                    Ajuste coordenadas, integração Wix e nomes das colunas utilizadas na exportação.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <article id="painelCoordenadas" class="configuration-card">
+                    <div class="configuration-card-header">
+                        <h3>Coordenadas do aeroporto</h3>
+                        <p>Referência utilizada para calcular a distância.</p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="latitudeReferenciaInput" class="app-label">Latitude</label>
+                            <input
+                                id="latitudeReferenciaInput"
+                                type="number"
+                                step="any"
+                                min="-90"
+                                max="90"
+                                value="-14.815"
+                                placeholder="Ex.: -14.815"
+                                class="app-input font-mono"
+                            >
+                        </div>
+                        <div>
+                            <label for="longitudeReferenciaInput" class="app-label">Longitude</label>
+                            <input
+                                id="longitudeReferenciaInput"
+                                type="number"
+                                step="any"
+                                min="-180"
+                                max="180"
+                                value="-39.0333"
+                                placeholder="Ex.: -39.0333"
+                                class="app-input font-mono"
+                            >
+                        </div>
+                    </div>
+                    <p class="mt-3 text-xs leading-5 text-slate-500">
+                        Usadas somente quando a Booking.com não informa a distância do aeroporto.
+                    </p>
+                </article>
+
+                <article class="configuration-card">
+                    <div class="configuration-card-header">
+                        <h3>Arquivo CSV do Wix</h3>
+                        <p>Preserve IDs e outras colunas existentes no arquivo original.</p>
+                    </div>
+                    <label for="csvWixInput" class="app-label">CSV completo exportado do Wix</label>
+                    <input
+                        id="csvWixInput"
+                        type="file"
+                        accept=".csv,text/csv"
+                        onchange="carregarCsvWix(this.files[0])"
+                        class="app-file-input"
+                    >
+                    <p id="csvWixStatus" class="mt-3 text-sm text-slate-500" role="status" aria-live="polite">
+                        Nenhum CSV carregado.
+                    </p>
+                    <label class="mt-5 flex cursor-pointer items-start gap-3 border-t border-slate-800 pt-4 text-sm text-slate-300">
+                        <input
+                            id="mostrarCsvOutrasAbasInput"
+                            type="checkbox"
+                            checked
+                            onchange="atualizarVisibilidadeCsvGlobal()"
+                            class="mt-0.5 h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+                        >
+                        <span>
+                            Mostrar o CSV carregado nas outras abas
+                            <span class="mt-1 block text-xs leading-5 text-slate-500">
+                                Exibe apenas nome, quantidade de hotéis e colunas.
+                            </span>
+                        </span>
+                    </label>
+                </article>
+
+                <article id="painelColunasCsv" class="configuration-card lg:col-span-2">
+                    <div class="configuration-card-header">
+                        <h3>Nomes das colunas do CSV</h3>
+                        <p>Personalize os nomes antes de adicionar hotéis.</p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <label class="app-label">Regime alimentar
+                            <input id="colunaRegimeCsv" value="Regime de Alimentação" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Nota numérica
+                            <input id="colunaNotaCsv" value="Nota de Avaliação" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Tipo de hotel
+                            <input id="colunaTipoCsv" value="tipo_hotel" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Bairro
+                            <input id="colunaBairrosCsv" value="bairros" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Beira-mar
+                            <input id="colunaBeiraMarCsv" value="Beira mar" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Endereço
+                            <input id="colunaEnderecoCsv" value="Endereço da Rua" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Plus Code
+                            <input id="colunaPlusCodeCsv" value="Plus Code" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Distância numérica
+                            <input id="colunaDistanciaNumeroCsv" value="Distância Aeroporto N" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Distância com unidade
+                            <input id="colunaDistanciaCsv" value="Distância Aeroporto" class="app-input mt-2 font-normal">
+                        </label>
+                    </div>
+                    <p class="mt-4 text-xs leading-5 text-slate-500">
+                        <code>ID</code> e <code>Nome_Hotel</code> são reservados para a integração com o Wix.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <!-- Organização com IA -->
+        <section class="app-card ia-section" aria-labelledby="tituloOrganizacaoIA" data-tab-panel="ia" hidden>
+            <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div class="max-w-3xl">
+                    <p class="section-kicker text-purple-300">Processamento local</p>
+                    <h2 id="tituloOrganizacaoIA" class="section-title">Organização de imagens com IA</h2>
+                    <p class="section-description">
+                        Executa Florence, CLIP e YOLO para classificar, descrever e organizar as imagens já baixadas.
+                    </p>
+                    <p class="mt-2 text-sm text-amber-200/80">
+                        O processamento pode levar vários minutos ou horas, dependendo do volume.
+                    </p>
+                </div>
+                <button
+                    id="btnOrganizarTudo"
+                    type="button"
+                    onclick="organizarLoteIA()"
+                    class="app-button app-button-ai w-full lg:w-auto"
+                >
+                    <span class="button-spinner" aria-hidden="true"></span>
+                    <span>Iniciar organização</span>
+                </button>
+            </div>
+
+            <div id="painelOrganizacaoIA" class="mt-6">
+                <div id="statusCardIA" class="ia-card" data-state="ocioso">
+                    <div class="flex items-start gap-3 border-b border-slate-800 pb-5">
+                        <div id="statusSpinnerIA" class="ia-spinner mt-0.5 shrink-0" aria-hidden="true"></div>
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p id="statusTituloIA" class="font-medium">Status da organização</p>
+                                <span id="statusEtapaIA" class="status-badge">Ocioso</span>
+                            </div>
+                            <p id="statusMensagemIA" class="mt-1 text-sm leading-6" aria-live="polite">
+                                Aguardando início...
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div>
+                            <div class="mb-2 flex items-center justify-between gap-4 text-sm">
+                                <span class="text-slate-400">Progresso geral</span>
+                                <span id="statusProgressoGeralIA" class="text-slate-200">0 de 0 imagens</span>
+                            </div>
+                            <div class="progress-track">
+                                <div id="statusBarraGeralIA" class="progress-fill ia-progress" style="width: 0%"></div>
+                            </div>
+                            <p class="mt-2 text-right text-xs text-slate-500">
+                                <span id="statusProgressoGeralContagemIA">0</span>%
+                            </p>
+                        </div>
+                        <div>
+                            <div class="mb-2 flex items-center justify-between gap-4 text-sm">
+                                <span class="text-slate-400">Progresso do hotel</span>
+                                <span class="text-slate-200">
+                                    <span id="statusImagemAtualIA">0</span> de
+                                    <span id="statusTotalImagensIA">0</span>
+                                </span>
+                            </div>
+                            <div class="progress-track">
+                                <div id="statusBarraHotelIA" class="progress-fill ia-progress" style="width: 0%"></div>
+                            </div>
+                            <p class="mt-2 text-right text-xs text-slate-500">
+                                <span id="statusImagensPendentesIA">0 imagens</span> pendentes
+                            </p>
+                        </div>
+                    </div>
+
+                    <dl class="mt-6 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div class="info-item">
+                            <dt>Hotel atual</dt>
+                            <dd id="statusHotelIA">—</dd>
+                        </div>
+                        <div class="info-item">
+                            <dt>Imagem atual</dt>
+                            <dd id="statusImagemIA">—</dd>
+                        </div>
+                        <div class="info-item">
+                            <dt>Categoria</dt>
+                            <dd id="statusCategoriaIA">—</dd>
+                        </div>
+                        <div class="info-item sm:col-span-2">
+                            <dt>Pasta</dt>
+                            <dd id="statusPastaIA" class="break-all">—</dd>
+                        </div>
+                        <div class="info-item">
+                            <dt>Nome final</dt>
+                            <dd id="statusNomeFinalIA" class="break-all">—</dd>
+                        </div>
+                    </dl>
+
+                    <dl class="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-slate-800 pt-5 lg:grid-cols-4">
+                        <div class="metric-item">
+                            <dt id="statusRotuloTempoIA">Tempo decorrido</dt>
+                            <dd id="statusTempoDecorridoIA">00:00:00</dd>
+                        </div>
+                        <div class="metric-item">
+                            <dt>Média por imagem</dt>
+                            <dd id="statusTempoMedioIA">Calculando...</dd>
+                        </div>
+                        <div class="metric-item">
+                            <dt>Tempo restante</dt>
+                            <dd id="statusTempoRestanteIA">Calculando...</dd>
+                        </div>
+                        <div class="metric-item">
+                            <dt>Previsão</dt>
+                            <dd id="statusPrevisaoTerminoIA">Calculando...</dd>
+                        </div>
+                    </dl>
+
+                    <div class="mt-6 border-t border-slate-800 pt-5">
+                        <h3 class="text-sm font-medium text-slate-200">Últimas mensagens</h3>
+                        <p id="historicoStatusIA" class="mt-3 whitespace-pre-line text-sm leading-6 text-slate-400">
+                            Nenhuma mensagem recebida.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Biblioteca local -->
+        <section class="app-card" aria-labelledby="tituloBibliotecaFotos" data-tab-panel="fotos" hidden>
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <p class="section-kicker">Arquivos locais</p>
+                    <h2 id="tituloBibliotecaFotos" class="section-title">Fotos salvas por hotel</h2>
+                    <p class="section-description">
+                        Consulte as imagens existentes na pasta configurada, incluindo as categorias criadas pela IA.
+                    </p>
+                </div>
+                <button
+                    id="btnAtualizarBiblioteca"
+                    type="button"
+                    onclick="carregarBibliotecaFotos()"
+                    class="app-button app-button-secondary w-full sm:w-auto"
+                >
+                    <span class="button-spinner" aria-hidden="true"></span>
+                    <span>Atualizar lista</span>
+                </button>
+            </div>
+            <div class="mt-5 flex flex-col gap-4 border-t border-slate-800 pt-5 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <p id="statusBibliotecaFotos" class="text-sm text-slate-400" role="status" aria-live="polite">
+                        Carregando fotos salvas...
+                    </p>
+                    <span id="resumoBibliotecaFotos" class="mt-1 block text-xs font-medium text-slate-500"></span>
+                </div>
+                <label class="w-full sm:w-72">
+                    <span class="app-label">Filtrar por hotel</span>
+                    <select id="filtroHotelBiblioteca" class="app-input" onchange="filtrarBibliotecaFotos(this.value)">
+                        <option value="">Todos os hotéis</option>
+                    </select>
+                </label>
+            </div>
+            <p id="bibliotecaFotosVazia" class="empty-state mt-5 hidden">
+                Nenhuma foto foi encontrada na pasta configurada.
+            </p>
+            <div id="bibliotecaFotosGrid" class="photo-catalog mt-5"></div>
+            <nav id="paginacaoBibliotecaFotos" class="pagination-controls mt-5 hidden" aria-label="Páginas da biblioteca de fotos">
+                <button id="btnPaginaAnteriorBiblioteca" type="button" class="app-button app-button-tertiary" onclick="mudarPaginaBiblioteca(-1)">
+                    Anterior
+                </button>
+                <span id="paginaAtualBiblioteca" class="pagination-status" aria-live="polite">Página 1 de 1</span>
+                <button id="btnProximaPaginaBiblioteca" type="button" class="app-button app-button-tertiary" onclick="mudarPaginaBiblioteca(1)">
+                    Próxima
+                </button>
+            </nav>
+        </section>
+
+        <!-- Resultado -->
+        <section id="resultadoContainer" class="hidden space-y-6" aria-labelledby="tituloResultado" data-tab-panel="pesquisa">
+            <div class="app-card">
+                <div class="flex flex-col gap-5 border-b border-slate-800 pb-6 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                        <div class="mb-2 inline-flex items-center gap-2 text-xs font-medium text-emerald-300">
+                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                            Consulta concluída
+                        </div>
+                        <h2 id="resNome" class="break-words text-2xl font-semibold tracking-tight text-white sm:text-3xl"></h2>
+                        <p id="resEndereco" class="mt-2 break-words text-sm leading-6 text-slate-400"></p>
+                    </div>
+                    <div class="min-w-28 rounded-xl border border-slate-800 bg-slate-950/60 px-5 py-4 text-center">
+                        <span class="block text-xs font-medium uppercase tracking-wider text-slate-500">Avaliação</span>
+                        <span id="resNota" class="mt-1 block text-3xl font-semibold text-slate-100"></span>
+                    </div>
+                </div>
+
+                <h3 id="tituloResultado" class="mt-6 text-base font-medium text-slate-100">Informações gerais</h3>
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <label class="result-field">
+                        <span>ID do Wix</span>
+                        <input
+                            id="resIdWix"
+                            type="text"
+                            placeholder="Cole o ID ou deixe vazio"
+                            oninput="dadosAtuais.idWix = this.value.trim()"
+                        >
+                    </label>
+                    <label class="result-field">
+                        <span>Tipo do hotel</span>
+                        <select id="resTipoHotel" onchange="dadosAtuais.tipoHotel = this.value">
+                            <option>Hotel</option>
+                            <option>Pousada</option>
+                            <option>Resort</option>
+                        </select>
+                    </label>
+                    <label class="result-field">
+                        <span>Bairro</span>
+                        <input
+                            id="resBairro"
+                            type="text"
+                            placeholder="Bairro"
+                            oninput="dadosAtuais.bairro = this.value.trim()"
+                        >
+                    </label>
+                    <label class="result-field">
+                        <span>Beira-mar</span>
+                        <select id="resBeiraMar" onchange="dadosAtuais.beiraMar = this.value">
+                            <option>Sim</option>
+                            <option>Não</option>
+                        </select>
+                    </label>
+                    <div class="result-field">
+                        <span>Aeroporto</span>
+                        <p id="resAeroporto">—</p>
+                    </div>
+                    <label class="result-field">
+                        <span>Regime alimentar</span>
+                        <select id="resRegime" onchange="dadosAtuais.regime = this.value">
+                            <option>Não informado</option>
+                            <option>Café da manhã incluído</option>
+                            <option>Café da manhã disponível</option>
+                            <option>Meia pensão</option>
+                            <option>Pensão completa</option>
+                            <option>All Inclusive</option>
+                            <option>Sem regime alimentar incluso na diária</option>
+                        </select>
+                    </label>
+                    <div id="tagPlusCodeBase" class="result-field">
+                        <span class="flex items-center gap-2">
+                            <svg id="tagIcon" class="h-4 w-4 text-slate-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Plus Code
+                        </span>
+                        <p id="resPlusCode" class="break-all font-mono">—</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="app-card">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h3 class="text-base font-medium text-slate-100">Ações</h3>
+                        <p class="mt-1 text-sm text-slate-400">Adicione o hotel, exporte os dados ou baixe as imagens.</p>
+                    </div>
+                    <span id="contadorCsv" class="hidden rounded-full bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300">
+                        0 hotéis adicionados
+                    </span>
+                </div>
+                <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <button
+                        id="btnAdicionarCSV"
+                        type="button"
+                        onclick="adicionarAoCsv()"
+                        class="app-button app-button-primary hidden"
+                    >
+                        Adicionar ao CSV
+                    </button>
+                    <button
+                        id="btnBaixarCSV"
+                        type="button"
+                        onclick="baixarDadosCSV()"
+                        class="app-button app-button-secondary hidden"
+                    >
+                        Exportar CSV
+                    </button>
+                    <button
+                        id="btnBaixarTodas"
+                        type="button"
+                        onclick="baixarGaleriaComoZip()"
+                        class="app-button app-button-tertiary hidden"
+                    >
+                        <span class="button-spinner" aria-hidden="true"></span>
+                        <span>Baixar fotos em ZIP</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Galeria -->
+            <div class="app-card">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <h3 class="text-base font-medium text-slate-100">Galeria de imagens</h3>
+                        <p class="mt-1 text-sm text-slate-400">Imagens encontradas para o hotel consultado.</p>
+                    </div>
+                    <span id="badgeContador" class="text-sm text-slate-500"></span>
+                </div>
+                <p id="galeriaVazia" class="empty-state mt-6 hidden">
+                    Nenhuma imagem foi encontrada para esta consulta.
+                </p>
+                <div id="galeriaGrid" class="photo-catalog mt-6"></div>
+                <nav id="paginacaoGaleriaResultado" class="pagination-controls mt-5 hidden" aria-label="Páginas das fotos do hotel pesquisado">
+                    <button id="btnPaginaAnteriorResultado" type="button" class="app-button app-button-tertiary" onclick="mudarPaginaGaleriaResultado(-1)">
+                        Anterior
+                    </button>
+                    <span id="paginaAtualGaleriaResultado" class="pagination-status" aria-live="polite">Página 1 de 1</span>
+                    <button id="btnProximaPaginaResultado" type="button" class="app-button app-button-tertiary" onclick="mudarPaginaGaleriaResultado(1)">
+                        Próxima
+                    </button>
+                </nav>
+            </div>
+        </section>
+    </main>
+
+    <script src="/js/navegacao.js"></script>
+    <script src="/js/interface.js"></script>
+    <script src="/js/organizacao.js"></script>
+    <script src="/js/galeria.js"></script>
+    <script src="/js/busca.js"></script>
+</body>
+</html>
