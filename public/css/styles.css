@@ -309,6 +309,18 @@ select {
     background: #059669;
 }
 
+.app-button-danger {
+    border-color: #7f1d1d;
+    background: rgba(127, 29, 29, 0.3);
+    color: #fecaca;
+}
+
+.app-button-danger:hover:not(:disabled) {
+    border-color: #ef4444;
+    background: rgba(153, 27, 27, 0.55);
+    color: white;
+}
+
 .app-button-ai {
     border-color: rgb(139 92 246 / 40%);
     background: rgb(109 40 217 / 78%);
@@ -676,6 +688,78 @@ details[open] > summary .details-chevron {
     font-size: 0.6875rem;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.catalog-photo-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.625rem;
+}
+
+.catalog-photo-action {
+    min-height: 2rem;
+    border: 1px solid #334155;
+    border-radius: 0.5rem;
+    background: #0f172a;
+    color: #cbd5e1;
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+
+.catalog-photo-action:hover {
+    border-color: #60a5fa;
+    color: white;
+}
+
+.catalog-photo-action-danger {
+    border-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+.catalog-photo-action-danger:hover {
+    border-color: #ef4444;
+    background: rgba(127, 29, 29, 0.35);
+}
+
+.catalog-folder {
+    border-color: #334155;
+    background: linear-gradient(145deg, #0f172a, #020617);
+}
+
+.catalog-folder-type {
+    color: #60a5fa !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.catalog-folder-name {
+    display: block;
+    margin-top: 0.25rem;
+    overflow: hidden;
+    color: #f8fafc;
+    font-size: 0.8125rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.catalog-folder-open {
+    width: 100%;
+    min-height: 2.25rem;
+    margin-top: 0.625rem;
+    border: 1px solid #334155;
+    border-radius: 0.5rem;
+    background: #1e293b;
+    color: #dbeafe;
+    font-size: 0.6875rem;
+    font-weight: 700;
+}
+
+.catalog-folder-open:hover {
+    border-color: #60a5fa;
+    background: #1d4ed8;
+    color: white;
 }
 
 .pagination-controls {

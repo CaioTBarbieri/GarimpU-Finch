@@ -29,6 +29,140 @@ function criarUrlImagem(pastaBase, caminhoAbsoluto) {
   );
 }
 
+function criarCaminhoRelativo(pastaBase, caminhoAbsoluto) {
+  return path.relative(pastaBase, caminhoAbsoluto).split(path.sep).join("/");
+}
+
+function resolverCaminhoInterno(pastaBase, caminhoRelativo) {
+  if (
+    typeof caminhoRelativo !== "string" ||
+    caminhoRelativo.trim() === "" ||
+    path.isAbsolute(caminhoRelativo)
+  ) {
+    throw new Error("Caminho de arquivo inválido.");
+  }
+
+  const pastaResolvida = path.resolve(pastaBase);
+  const caminhoResolvido = path.resolve(
+    pastaResolvida,
+    ...caminhoRelativo.split("/"),
+  );
+  const relativoValidado = path.relative(pastaResolvida, caminhoResolvido);
+
+  if (
+    relativoValidado === "" ||
+    relativoValidado.startsWith(`..${path.sep}`) ||
+    relativoValidado === ".." ||
+    path.isAbsolute(relativoValidado)
+  ) {
+    throw new Error("O arquivo informado está fora da pasta de imagens.");
+  }
+
+  return caminhoResolvido;
+}
+
+function validarCaminhoFisicoInterno(pastaBase, caminhoAbsoluto) {
+  const pastaReal = fs.realpathSync(pastaBase);
+  const caminhoReal = fs.realpathSync(caminhoAbsoluto);
+  const relativo = path.relative(pastaReal, caminhoReal);
+
+  if (
+    relativo === "" ||
+    relativo.startsWith(`..${path.sep}`) ||
+    relativo === ".." ||
+    path.isAbsolute(relativo)
+  ) {
+    throw new Error("O arquivo informado está fora da pasta de imagens.");
+  }
+}
+
+function validarArquivoImagem(caminhoAbsoluto) {
+  if (
+    !fs.existsSync(caminhoAbsoluto) ||
+    !fs.statSync(caminhoAbsoluto).isFile() ||
+    !EXTENSOES_IMAGEM.has(path.extname(caminhoAbsoluto).toLowerCase())
+  ) {
+    throw new Error("A foto informada não foi encontrada.");
+  }
+}
+
+function normalizarNovoNome(novoNome, extensaoOriginal) {
+  if (typeof novoNome !== "string") {
+    throw new Error("Informe um nome válido para a foto.");
+  }
+
+  let nome = novoNome.trim();
+  if (nome.toLowerCase().endsWith(extensaoOriginal.toLowerCase())) {
+    nome = nome.slice(0, -extensaoOriginal.length).trim();
+  }
+
+  nome = nome
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/[. ]+$/g, "")
+    .trim();
+
+  if (!nome || nome === "." || nome === "..") {
+    throw new Error("O novo nome ficou vazio após remover caracteres inválidos.");
+  }
+
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(nome.split(".")[0])) {
+    throw new Error("Esse nome é reservado pelo Windows.");
+  }
+
+  return `${nome}${extensaoOriginal}`;
+}
+
+function renomearFoto(pastaBase, caminhoRelativo, novoNome) {
+  const origem = resolverCaminhoInterno(pastaBase, caminhoRelativo);
+  validarArquivoImagem(origem);
+  validarCaminhoFisicoInterno(pastaBase, origem);
+
+  const extensao = path.extname(origem);
+  const nomeNormalizado = normalizarNovoNome(novoNome, extensao);
+  const destino = path.join(path.dirname(origem), nomeNormalizado);
+
+  if (origem.toLowerCase() !== destino.toLowerCase() && fs.existsSync(destino)) {
+    throw new Error(`Já existe uma foto chamada "${nomeNormalizado}".`);
+  }
+
+  if (origem !== destino) fs.renameSync(origem, destino);
+
+  return {
+    nome: nomeNormalizado,
+    caminho: criarCaminhoRelativo(pastaBase, destino),
+    url: criarUrlImagem(pastaBase, destino),
+  };
+}
+
+function excluirFoto(pastaBase, caminhoRelativo) {
+  const caminho = resolverCaminhoInterno(pastaBase, caminhoRelativo);
+  validarArquivoImagem(caminho);
+  validarCaminhoFisicoInterno(pastaBase, caminho);
+  fs.unlinkSync(caminho);
+}
+
+function excluirPastaHotel(pastaBase, nomePasta) {
+  if (
+    typeof nomePasta !== "string" ||
+    nomePasta.trim() === "" ||
+    nomePasta.includes("/") ||
+    nomePasta.includes("\\") ||
+    nomePasta === "." ||
+    nomePasta === ".."
+  ) {
+    throw new Error("Pasta de hotel inválida.");
+  }
+
+  const pastaHotel = resolverCaminhoInterno(pastaBase, nomePasta);
+  if (!fs.existsSync(pastaHotel) || !fs.statSync(pastaHotel).isDirectory()) {
+    throw new Error("A pasta do hotel não foi encontrada.");
+  }
+  validarCaminhoFisicoInterno(pastaBase, pastaHotel);
+
+  fs.rmSync(pastaHotel, { recursive: true, force: false });
+}
+
 function listarImagensRecursivo(pastaBase, diretorio, categorias = []) {
   const imagens = [];
   const entradas = fs
@@ -59,6 +193,7 @@ function listarImagensRecursivo(pastaBase, diretorio, categorias = []) {
       nome: entrada.name,
       categoria:
         categorias.length > 0 ? categorias.join(" / ") : "Sem categoria",
+      caminho: criarCaminhoRelativo(pastaBase, caminhoAbsoluto),
       url: criarUrlImagem(pastaBase, caminhoAbsoluto),
     });
   }
@@ -93,6 +228,10 @@ function listarGaleriaHoteis(pastaBase) {
     .map((entrada) => ({
       nome: entrada.name,
       categoria: "Sem categoria",
+      caminho: criarCaminhoRelativo(
+        pastaBase,
+        path.join(pastaBase, entrada.name),
+      ),
       url: criarUrlImagem(pastaBase, path.join(pastaBase, entrada.name)),
     }));
 
@@ -131,5 +270,10 @@ function listarGaleriaHoteis(pastaBase) {
 
 module.exports = {
   EXTENSOES_IMAGEM,
+  excluirFoto,
+  excluirPastaHotel,
   listarGaleriaHoteis,
+  normalizarNovoNome,
+  renomearFoto,
+  resolverCaminhoInterno,
 };

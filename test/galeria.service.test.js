@@ -3,7 +3,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { listarGaleriaHoteis } = require("../services/galeria.service");
+const {
+  excluirFoto,
+  excluirPastaHotel,
+  listarGaleriaHoteis,
+  renomearFoto,
+  resolverCaminhoInterno,
+} = require("../services/galeria.service");
 
 function criarArquivo(caminho) {
   fs.mkdirSync(path.dirname(caminho), { recursive: true });
@@ -55,4 +61,59 @@ test("agrupa imagens soltas e aceita as extensões do organizador", (t) => {
   assert.equal(resultado.totalImagens, 1);
   assert.equal(resultado.hoteis[0].nome, "Imagens soltas");
   assert.equal(resultado.hoteis[0].imagens[0].url, "/img/entrada.tiff");
+});
+
+test("renomeia foto preservando extensão e removendo caracteres inválidos", (t) => {
+  const pastaBase = fs.mkdtempSync(path.join(os.tmpdir(), "galeria-renomear-"));
+  t.after(() => fs.rmSync(pastaBase, { recursive: true, force: true }));
+  criarArquivo(path.join(pastaBase, "Hotel", "foto antiga.jpg"));
+
+  const foto = renomearFoto(
+    pastaBase,
+    "Hotel/foto antiga.jpg",
+    "Suíte: vista * mar",
+  );
+
+  assert.equal(foto.nome, "Suíte vista mar.jpg");
+  assert.equal(foto.caminho, "Hotel/Suíte vista mar.jpg");
+  assert.equal(foto.url, "/img/Hotel/Su%C3%ADte%20vista%20mar.jpg");
+  assert.equal(fs.existsSync(path.join(pastaBase, ...foto.caminho.split("/"))), true);
+});
+
+test("exclui uma foto sem remover a pasta do hotel", (t) => {
+  const pastaBase = fs.mkdtempSync(path.join(os.tmpdir(), "galeria-excluir-"));
+  t.after(() => fs.rmSync(pastaBase, { recursive: true, force: true }));
+  const foto = path.join(pastaBase, "Hotel", "foto.jpg");
+  criarArquivo(foto);
+
+  excluirFoto(pastaBase, "Hotel/foto.jpg");
+
+  assert.equal(fs.existsSync(foto), false);
+  assert.equal(fs.existsSync(path.dirname(foto)), true);
+});
+
+test("exclui a pasta do hotel e todo o conteúdo", (t) => {
+  const pastaBase = fs.mkdtempSync(path.join(os.tmpdir(), "galeria-pasta-"));
+  t.after(() => fs.rmSync(pastaBase, { recursive: true, force: true }));
+  const pastaHotel = path.join(pastaBase, "Hotel");
+  criarArquivo(path.join(pastaHotel, "categoria", "foto.jpg"));
+  criarArquivo(path.join(pastaHotel, "alt_texts.json"));
+
+  excluirPastaHotel(pastaBase, "Hotel");
+
+  assert.equal(fs.existsSync(pastaHotel), false);
+});
+
+test("rejeita caminhos fora da pasta configurada", (t) => {
+  const pastaBase = fs.mkdtempSync(path.join(os.tmpdir(), "galeria-seguranca-"));
+  t.after(() => fs.rmSync(pastaBase, { recursive: true, force: true }));
+
+  assert.throws(
+    () => resolverCaminhoInterno(pastaBase, "../arquivo.jpg"),
+    /fora da pasta de imagens/,
+  );
+  assert.throws(
+    () => excluirPastaHotel(pastaBase, "../outra-pasta"),
+    /Pasta de hotel inválida/,
+  );
 });

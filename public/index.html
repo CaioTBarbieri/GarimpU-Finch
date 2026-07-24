@@ -506,12 +506,23 @@
                     </p>
                     <span id="resumoBibliotecaFotos" class="mt-1 block text-xs font-medium text-slate-500"></span>
                 </div>
-                <label class="w-full sm:w-72">
-                    <span class="app-label">Filtrar por hotel</span>
-                    <select id="filtroHotelBiblioteca" class="app-input" onchange="filtrarBibliotecaFotos(this.value)">
-                        <option value="">Todos os hotéis</option>
-                    </select>
-                </label>
+                <div class="flex w-full flex-col gap-3 sm:w-72">
+                    <label>
+                        <span class="app-label">Visualização</span>
+                        <select id="filtroHotelBiblioteca" class="app-input" onchange="filtrarBibliotecaFotos(this.value)">
+                            <option value="__todas_fotos__">Todas as fotos</option>
+                            <option value="__todos_hoteis__">Todos os hotéis</option>
+                        </select>
+                    </label>
+                    <button
+                        id="btnExcluirPastaHotel"
+                        type="button"
+                        class="app-button app-button-danger hidden"
+                        onclick="excluirPastaHotelSelecionada()"
+                    >
+                        Excluir pasta do hotel
+                    </button>
+                </div>
             </div>
             <p id="bibliotecaFotosVazia" class="empty-state mt-5 hidden">
                 Nenhuma foto foi encontrada na pasta configurada.
