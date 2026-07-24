@@ -57,7 +57,14 @@ async function rasparDadosHotel(
   latitudeReferencia = LATITUDE_PADRAO,
   longitudeReferencia = LONGITUDE_PADRAO,
 ) {
-  const entrada = nomeHotel.trim();
+  const entrada =
+    typeof nomeHotel === "string"
+      ? nomeHotel.replace(/\s+/g, " ").trim()
+      : "";
+
+  if (!entrada) {
+    return { sucesso: false, erro: "O nome do hotel é obrigatório." };
+  }
 
   latitudeReferencia = Number(latitudeReferencia);
   longitudeReferencia = Number(longitudeReferencia);

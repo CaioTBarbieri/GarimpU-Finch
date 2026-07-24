@@ -1,9 +1,19 @@
-            function atualizarContadorEntradaLote() {
-                const entradas = document.getElementById('listaHoteisInput').value
-                    .split(/\r?\n/)
-                    .map(item => item.trim())
+            let pesquisaLoteEmAndamento = false;
+
+            function normalizarEntradasLote(valor) {
+                const entradas = String(valor || '')
+                    .replace(/\u00a0/g, ' ')
+                    .split(/\r\n?|\n/)
+                    .map(item => item.replace(/[ \t]+/g, ' ').trim())
                     .filter(Boolean);
-                const total = new Set(entradas).size;
+                return Array.from(new Set(entradas));
+            }
+
+            function atualizarContadorEntradaLote() {
+                const entradas = normalizarEntradasLote(
+                    document.getElementById('listaHoteisInput').value
+                );
+                const total = entradas.length;
                 document.getElementById('contadorEntradaLote').textContent =
                     total + (total === 1 ? ' hotel' : ' hotéis');
             }
@@ -162,12 +172,118 @@
                 elemento.addEventListener('blur', ocultarTooltip);
             }
 
+            const FILTRO_TODAS_LOCALIZACOES = '__todos_resultados__';
+            const FILTRO_SEM_LOCALIZACAO = '__sem_localizacao__';
+
+            function obterLocalizacaoDaLinha(linha) {
+                const localizacao = String(
+                    linha.dataset.localizacao || ''
+                ).trim();
+                return localizacao &&
+                    localizacao !== 'Localização não informada'
+                    ? localizacao
+                    : FILTRO_SEM_LOCALIZACAO;
+            }
+
+            function filtrarResultadosLote(filtro) {
+                const linhas = document.querySelectorAll(
+                    '#resultadosPesquisaLote > p'
+                );
+                linhas.forEach((linha) => {
+                    linha.hidden =
+                        filtro !== FILTRO_TODAS_LOCALIZACOES &&
+                        obterLocalizacaoDaLinha(linha) !== filtro;
+                });
+            }
+
+            function renderizarResumoLocalizacoesLote() {
+                const resumo = document.getElementById(
+                    'resumoLocalizacoesLote'
+                );
+                const linhas = Array.from(document.querySelectorAll(
+                    '#resultadosPesquisaLote > p'
+                ));
+                const contagens = new Map();
+                let semLocalizacao = 0;
+
+                linhas.forEach((linha) => {
+                    const localizacao = obterLocalizacaoDaLinha(linha);
+                    if (localizacao === FILTRO_SEM_LOCALIZACAO) {
+                        semLocalizacao += 1;
+                        return;
+                    }
+                    contagens.set(
+                        localizacao,
+                        (contagens.get(localizacao) || 0) + 1
+                    );
+                });
+
+                const localizacoes = Array.from(contagens.entries())
+                    .sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'));
+                const totalLocalizados = localizacoes.reduce(
+                    (total, [, quantidade]) => total + quantidade,
+                    0
+                );
+
+                document.getElementById(
+                    'contadorLocalizacoesLote'
+                ).textContent =
+                    totalLocalizados + ' de ' + linhas.length +
+                    (linhas.length === 1 ? ' hotel localizado' :
+                        ' hotéis localizados') +
+                    ' • ' + localizacoes.length +
+                    (localizacoes.length === 1 ? ' localidade' :
+                        ' localidades');
+
+                const filtro = document.getElementById(
+                    'filtroLocalizacaoLote'
+                );
+                filtro.replaceChildren();
+
+                const todos = document.createElement('option');
+                todos.value = FILTRO_TODAS_LOCALIZACOES;
+                todos.textContent = 'Todos os resultados (' +
+                    linhas.length + ')';
+                filtro.appendChild(todos);
+
+                localizacoes.forEach(([localizacao, quantidade]) => {
+                    const opcao = document.createElement('option');
+                    opcao.value = localizacao;
+                    opcao.textContent =
+                        localizacao + ' (' + quantidade + ')';
+                    filtro.appendChild(opcao);
+                });
+
+                if (semLocalizacao > 0) {
+                    const sem = document.createElement('option');
+                    sem.value = FILTRO_SEM_LOCALIZACAO;
+                    sem.textContent =
+                        'Sem localização (' + semLocalizacao + ')';
+                    filtro.appendChild(sem);
+                }
+
+                const lista = document.getElementById(
+                    'listaLocalizacoesLote'
+                );
+                lista.replaceChildren();
+                localizacoes.forEach(([localizacao, quantidade]) => {
+                    const item = document.createElement('span');
+                    item.textContent =
+                        localizacao + ': ' + quantidade +
+                        (quantidade === 1 ? ' hotel' : ' hotéis');
+                    lista.appendChild(item);
+                });
+
+                resumo.classList.remove('hidden');
+                filtrarResultadosLote(FILTRO_TODAS_LOCALIZACOES);
+            }
+
             async function pesquisarHoteisEmLote() {
-                const entradas = document.getElementById('listaHoteisInput').value
-                    .split(/\r?\n/)
-                    .map(item => item.trim())
-                    .filter(Boolean);
-                const hoteis = Array.from(new Set(entradas));
+                if (pesquisaLoteEmAndamento) return;
+
+                const hoteis = normalizarEntradasLote(
+                    document.getElementById('listaHoteisInput').value
+                );
                 const baixarImagens = document.getElementById(
                     'baixarImagensLoteInput'
                 ).checked;
@@ -214,6 +330,7 @@
                 const btnBaixarCsvLote = document.getElementById('btnBaixarCsvLote');
                 const camposBloqueados = [
                     'csvWixInput',
+                    'listaHoteisInput',
                     'baixarImagensLoteInput',
                     'latitudeReferenciaInput',
                     'longitudeReferenciaInput',
@@ -228,6 +345,7 @@
                     'colunaDistanciaCsv'
                 ].map(id => document.getElementById(id));
 
+                pesquisaLoteEmAndamento = true;
                 btn.disabled = true;
                 btnBuscar.disabled = true;
                 btn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -235,6 +353,8 @@
                 camposBloqueados.forEach(campo => { campo.disabled = true; });
                 status.classList.remove('hidden');
                 resultados.innerHTML = '';
+                document.getElementById('resumoLocalizacoesLote')
+                    .classList.add('hidden');
                 btnBaixarCsvLote.classList.add('hidden');
                 btnBaixarCsvLote.classList.remove('flex');
 
@@ -256,18 +376,40 @@
                         linhaResultado.className = 'text-slate-400';
                         linhaResultado.textContent = '⏳ ' + entrada;
                         resultados.appendChild(linhaResultado);
+                        let dadosLocalizacao = null;
 
                         try {
-                            const response = await fetch('/api/buscar', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    nome: entrada,
-                                    baixarImagens,
-                                    latitudeReferencia,
-                                    longitudeReferencia
-                                })
-                            });
+                            const controlador = new AbortController();
+                            const limiteMs = baixarImagens ? 900000 : 360000;
+                            const temporizador = window.setTimeout(
+                                () => controlador.abort(),
+                                limiteMs
+                            );
+                            let response;
+                            try {
+                                response = await fetch('/api/buscar', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    signal: controlador.signal,
+                                    body: JSON.stringify({
+                                        nome: entrada,
+                                        baixarImagens,
+                                        latitudeReferencia,
+                                        longitudeReferencia
+                                    })
+                                });
+                            } catch (erroRequisicao) {
+                                if (erroRequisicao.name === 'AbortError') {
+                                    throw new Error(
+                                        'Tempo limite excedido nesta pesquisa.'
+                                    );
+                                }
+                                throw erroRequisicao;
+                            } finally {
+                                window.clearTimeout(temporizador);
+                            }
                             const dados = await response.json();
                             if (!response.ok) {
                                 throw new Error(dados.erro || 'Falha na pesquisa');
@@ -275,15 +417,12 @@
 
                             dadosAtuais = dados;
                             dadosAtuais.idWix = '';
+                            dadosLocalizacao = dados;
                             if (baixarImagens) {
                                 baixados += 1;
                                 linhaResultado.className = 'text-emerald-400';
                                 linhaResultado.textContent =
                                     '✓ ' + dados.nome + ': imagens baixadas';
-                                adicionarLocalizacaoAoResultado(
-                                    linhaResultado,
-                                    dados
-                                );
                             } else {
                                 if (csvWix) {
                                     const localizacaoWix = localizarItemWixPorNome(dados.nome);
@@ -306,10 +445,6 @@
                                 adicionados += 1;
                                 linhaResultado.className = 'text-emerald-400';
                                 linhaResultado.textContent = '✓ ' + dados.nome;
-                                adicionarLocalizacaoAoResultado(
-                                    linhaResultado,
-                                    dados
-                                );
                             }
                         } catch (erro) {
                             if (erro.message.startsWith('Ignorado:')) {
@@ -322,6 +457,12 @@
                                 linhaResultado.textContent = '✕ ' + entrada + ': ' + erro.message;
                             }
                         }
+                        if (dadosLocalizacao) {
+                            adicionarLocalizacaoAoResultado(
+                                linhaResultado,
+                                dadosLocalizacao
+                            );
+                        }
 
                         contador.textContent = (indice + 1) + ' de ' + hoteis.length;
                         barra.style.width = (((indice + 1) / hoteis.length) * 100) + '%';
@@ -333,6 +474,7 @@
                             erros + ' com erro.'
                         : 'Concluído: ' + adicionados + ' adicionados, ' +
                             ignorados + ' ignorados, ' + erros + ' com erro.';
+                    renderizarResumoLocalizacoesLote();
                     if (!baixarImagens && adicionados > 0) {
                         btnBaixarCsvLote.classList.remove('hidden');
                         btnBaixarCsvLote.classList.add('flex');
@@ -341,12 +483,17 @@
                         await carregarBibliotecaFotos({ silencioso: true });
                     }
                 } finally {
+                    pesquisaLoteEmAndamento = false;
                     btn.disabled = false;
                     btnBuscar.disabled = false;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     btnBuscar.classList.remove('opacity-50', 'cursor-not-allowed');
                     camposBloqueados.forEach(campo => { campo.disabled = false; });
                 }
+            }
+
+            if (typeof module !== 'undefined' && module.exports) {
+                module.exports = { normalizarEntradasLote };
             }
             
            async function iniciarBusca() {
