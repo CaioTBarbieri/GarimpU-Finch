@@ -4,6 +4,7 @@ const { EventEmitter } = require("node:events");
 const {
   criarOrganizadorPythonService,
 } = require("../services/organizador-python.service");
+const { PASTA_FLORENCE } = require("../config");
 
 function criarProcessoFalso() {
   const processo = new EventEmitter();
@@ -80,6 +81,7 @@ test("processa STATUS_JSON quebrado em chunks e a última linha do buffer", asyn
     "-u",
     argumentosSpawn.argumentos[2],
   ]);
+  assert.equal(argumentosSpawn.argumentos.at(-1), PASTA_FLORENCE);
   assert.equal(argumentosSpawn.opcoes.windowsHide, true);
   assert.equal(
     argumentosSpawn.opcoes.env.PYTHONIOENCODING,

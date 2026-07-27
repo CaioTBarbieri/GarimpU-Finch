@@ -2,7 +2,7 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const {
-  PASTA_IMAGENS,
+  PASTA_FLORENCE,
   PASTA_LOGS_FLORENCE,
 } = require("../config");
 const {
@@ -39,7 +39,7 @@ router.get("/api/estimativa-florence", (req, res) => {
   try {
     res.json(
       calcularEstimativaFlorence({
-        pastaImagens: PASTA_IMAGENS,
+        pastaImagens: PASTA_FLORENCE,
         pastaLogs: PASTA_LOGS_FLORENCE,
       }),
     );

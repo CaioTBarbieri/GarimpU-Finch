@@ -230,11 +230,103 @@
                 <p class="section-kicker">Preferências da aplicação</p>
                 <h2 id="tituloConfiguracoes" class="section-title">Configurações</h2>
                 <p class="section-description">
-                    Ajuste coordenadas, integração Wix e nomes das colunas utilizadas na exportação.
+                    Ajuste diretórios, coordenadas, integração Wix e nomes das colunas utilizadas na exportação.
                 </p>
             </div>
 
             <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <article id="painelDiretorios" class="configuration-card lg:col-span-2">
+                    <div class="configuration-card-header">
+                        <h3>Diretórios de imagens e IA</h3>
+                        <p>Escolha onde as fotos serão salvas e qual pasta o Florence deverá processar.</p>
+                    </div>
+
+                    <div class="space-y-5">
+                        <div>
+                            <label for="pastaImagensInput" class="app-label">
+                                Imagens baixadas
+                            </label>
+                            <div class="mt-2 flex flex-col gap-3 sm:flex-row">
+                                <input
+                                    id="pastaImagensInput"
+                                    type="text"
+                                    readonly
+                                    class="app-input min-w-0 flex-1 font-mono text-xs"
+                                    placeholder="Selecione a pasta das imagens"
+                                >
+                                <button
+                                    id="btnSelecionarPastaImagens"
+                                    type="button"
+                                    class="app-button app-button-secondary shrink-0"
+                                    onclick="selecionarPastaConfiguracao('imagens')"
+                                >
+                                    Selecionar pasta
+                                </button>
+                            </div>
+                            <p class="mt-2 text-xs leading-5 text-slate-500">
+                                Novas fotos extraídas da Booking.com serão gravadas neste local.
+                            </p>
+                        </div>
+
+                        <div class="border-t border-slate-800 pt-5">
+                            <label for="pastaFlorenceInput" class="app-label">
+                                Pasta processada pelo Florence
+                            </label>
+                            <div class="mt-2 flex flex-col gap-3 sm:flex-row">
+                                <input
+                                    id="pastaFlorenceInput"
+                                    type="text"
+                                    readonly
+                                    class="app-input min-w-0 flex-1 font-mono text-xs"
+                                    placeholder="Selecione a pasta que será processada"
+                                >
+                                <button
+                                    id="btnSelecionarPastaFlorence"
+                                    type="button"
+                                    class="app-button app-button-secondary shrink-0"
+                                    onclick="selecionarPastaConfiguracao('florence')"
+                                >
+                                    Selecionar pasta
+                                </button>
+                            </div>
+                            <p class="mt-2 text-xs leading-5 text-slate-500">
+                                Florence, CLIP e YOLO reconhecerão e moverão as imagens desta pasta para as categorias.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 flex flex-col gap-3 border-t border-slate-800 pt-5 sm:flex-row sm:flex-wrap">
+                        <button
+                            id="btnUsarMesmaPastaFlorence"
+                            type="button"
+                            class="app-button app-button-tertiary"
+                            onclick="usarPastaImagensNoFlorence()"
+                        >
+                            Usar a pasta das imagens na IA
+                        </button>
+                        <button
+                            id="btnRestaurarPastas"
+                            type="button"
+                            class="app-button app-button-tertiary"
+                            onclick="restaurarDiretoriosPadrao()"
+                        >
+                            Restaurar padrão
+                        </button>
+                        <button
+                            id="btnSalvarDiretorios"
+                            type="button"
+                            class="app-button app-button-primary sm:ml-auto"
+                            onclick="salvarDiretorios()"
+                        >
+                            <span class="button-spinner" aria-hidden="true"></span>
+                            <span>Salvar e reiniciar</span>
+                        </button>
+                    </div>
+                    <p id="statusDiretorios" class="mt-3 text-sm text-slate-500" role="status" aria-live="polite">
+                        Carregando diretórios...
+                    </p>
+                </article>
+
                 <article id="painelCoordenadas" class="configuration-card">
                     <div class="configuration-card-header">
                         <h3>Coordenadas do aeroporto</h3>
@@ -715,6 +807,7 @@
     </main>
 
     <script src="/js/navegacao.js"></script>
+    <script src="/js/configuracoes.js"></script>
     <script src="/js/interface.js"></script>
     <script src="/js/organizacao.js"></script>
     <script src="/js/galeria.js"></script>

@@ -3,6 +3,7 @@ const path = require("path");
 module.exports = {
   PORT: 3000,
   PASTA_IMAGENS: path.resolve(__dirname, "..", "img"),
+  PASTA_FLORENCE: path.resolve(__dirname, "..", "img"),
   PASTA_LOGS_FLORENCE: path.resolve(
     __dirname,
     "..",

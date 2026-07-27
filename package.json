@@ -1,6 +1,6 @@
 {
   "name": "garimpu-finch",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Aplicativo Windows para pesquisa de hotéis, imagens e CSV.",
   "main": "electron/main.js",
   "scripts": {
@@ -13,8 +13,9 @@
     "prepare:dist": "npm run prepare:assets && npm run prepare:models && npm run build:python && npm run check",
     "build:win": "npm run prepare:dist && electron-builder --win nsis --x64",
     "build:portable": "npm run prepare:dist && electron-builder --win portable --x64",
+    "release:win": "npm run prepare:dist && electron-builder --win nsis --x64 --publish always",
     "dist": "npm run prepare:dist && electron-builder --win nsis portable --x64",
-    "check": "node --check scraper.js && node --check electron/main.js && node --check scripts/copy-vendor.js && node --check routes/buscar.routes.js && node --check routes/galeria.routes.js && node --check routes/organizacao.routes.js && node --check services/estimativa-florence.service.js && node --check services/galeria.service.js && node --check services/python-runtime.service.js && node --check services/organizador-python.service.js && node --check services/scraper.service.js && node --check state/status-organizacao.js && node --check public/js/navegacao.js && node --check public/js/interface.js && node --check public/js/organizacao.js && node --check public/js/galeria.js && node --check public/js/busca.js",
+    "check": "node --check scraper.js && node --check electron/main.js && node --check electron/configuracoes.js && node --check electron/preload.js && node --check electron/updater.js && node --check scripts/copy-vendor.js && node --check routes/buscar.routes.js && node --check routes/galeria.routes.js && node --check routes/organizacao.routes.js && node --check services/estimativa-florence.service.js && node --check services/galeria.service.js && node --check services/python-runtime.service.js && node --check services/organizador-python.service.js && node --check services/scraper.service.js && node --check state/status-organizacao.js && node --check public/js/navegacao.js && node --check public/js/configuracoes.js && node --check public/js/interface.js && node --check public/js/organizacao.js && node --check public/js/galeria.js && node --check public/js/busca.js",
     "check:python": "python -m py_compile organizar_hoteis.py && python -m compileall -q python_organizador",
     "validate": "npm run check && npm test && npm run check:python",
     "test": "node --test test/*.test.js"
@@ -32,6 +33,7 @@
   "homepage": "https://github.com/CaioTBarbieri/GarimpU-Finch#readme",
   "dependencies": {
     "cheerio": "^1.1.2",
+    "electron-updater": "^6.8.9",
     "express": "^5.2.1",
     "open-location-code": "^1.0.3",
     "puppeteer": "^24.16.0",
@@ -101,6 +103,14 @@
         "filter": [
           "**/*"
         ]
+      }
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "CaioTBarbieri",
+        "repo": "GarimpU-Finch",
+        "releaseType": "release"
       }
     ],
     "win": {

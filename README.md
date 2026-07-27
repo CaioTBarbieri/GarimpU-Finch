@@ -143,6 +143,29 @@ organizar_hoteis.py
 - `public/js/`: lógica executada no navegador;
 - `organizar_hoteis.py`: classificação, organização e descrição das imagens.
 
+## Aplicativo Windows e atualizações
+
+O instalador NSIS verifica novas versões na página de Releases do repositório
+`CaioTBarbieri/GarimpU-Finch` cinco segundos após a abertura e, depois, a cada
+quatro horas. Quando há uma versão superior, o usuário escolhe se deseja baixar
+e quando reiniciar para instalar. Arquivos e configurações do usuário são
+preservados.
+
+Um commit ou push isolado não atualiza instalações existentes. Para publicar uma
+atualização:
+
+1. aumente `version` em `package.json` e `package-lock.json`;
+2. configure `GH_TOKEN` com permissão para publicar Releases;
+3. execute `npm run release:win`.
+
+O comando publica o instalador, o arquivo `.exe.blockmap` e o `latest.yml`.
+Esses três arquivos precisam ser gerados juntos pelo mesmo build. A Release não
+pode permanecer como rascunho, pois rascunhos não são encontrados pelo
+atualizador.
+
+Quem instalou uma versão anterior à `1.2.0` precisa instalar a `1.2.0`
+manualmente uma vez. As versões seguintes passam a usar o fluxo automático.
+
 ## Pré-requisitos
 
 - Node.js com npm;
@@ -215,12 +238,18 @@ const path = require("path");
 module.exports = {
   PORT: 3000,
   PASTA_IMAGENS: path.resolve("D:\\", "Imagens de hotéis"),
+  PASTA_FLORENCE: path.resolve("D:\\", "Imagens para processar"),
   LATITUDE_PADRAO: -14.815,
   LONGITUDE_PADRAO: -39.0333,
   PYTHON_EXECUTABLE: path.resolve(".venv", "Scripts", "python.exe"),
   PYTHON_VERSION_ESPERADA: "3.12",
 };
 ```
+
+No aplicativo Windows, `PASTA_IMAGENS` e `PASTA_FLORENCE` também podem ser
+alteradas visualmente na aba **Configurações → Diretórios de imagens e IA**. A
+primeira recebe as fotos baixadas; a segunda é a pasta que Florence, CLIP e YOLO
+processam. Ao salvar, o aplicativo reinicia para aplicar os novos caminhos.
 
 Opções disponíveis:
 

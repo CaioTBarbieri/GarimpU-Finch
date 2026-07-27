@@ -1,13 +1,27 @@
-const { app, BrowserWindow, dialog, session, shell } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  session,
+  shell,
+} = require("electron");
+const { autoUpdater } = require("electron-updater");
 const fs = require("fs");
 const http = require("http");
 const net = require("net");
 const path = require("path");
+const {
+  criarRepositorioConfiguracoes,
+} = require("./configuracoes");
+const { criarGerenciadorAtualizacoes } = require("./updater");
 
 let janelaPrincipal = null;
 let servidor = null;
 let recursosEncerrados = false;
 let encerramentoEmAndamento = null;
+let gerenciadorAtualizacoes = null;
+let repositorioConfiguracoes = null;
 
 const bloqueioInstancia = app.requestSingleInstanceLock();
 if (!bloqueioInstancia) {
@@ -90,8 +104,17 @@ function configurarAmbiente() {
     ? path.join(raizRecursos, "organizer-assets")
     : raizProjeto;
 
-  process.env.PASTA_IMAGENS = criarDiretorio(
-    path.join(pastaDocumentos, "Imagens"),
+  repositorioConfiguracoes = criarRepositorioConfiguracoes({
+    arquivoConfiguracoes: path.join(
+      app.getPath("userData"),
+      "configuracoes.json",
+    ),
+    pastaDocumentos,
+  });
+  const configuracoes = repositorioConfiguracoes.carregar();
+  process.env.PASTA_IMAGENS = criarDiretorio(configuracoes.pastaImagens);
+  process.env.PASTA_FLORENCE = criarDiretorio(
+    configuracoes.pastaFlorence,
   );
   process.env.PASTA_LOGS_FLORENCE = criarDiretorio(
     path.join(pastaDocumentos, "Logs Florence"),
@@ -245,6 +268,7 @@ function criarJanela(url) {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, "preload.js"),
       sandbox: true,
     },
   });
@@ -280,12 +304,62 @@ async function encerrarRecursos() {
   return encerramentoEmAndamento;
 }
 
+async function prepararEncerramentoParaAtualizacao() {
+  await encerrarRecursos();
+  recursosEncerrados = true;
+}
+
+async function reiniciarAplicacao() {
+  await encerrarRecursos();
+  recursosEncerrados = true;
+  app.relaunch();
+  app.quit();
+}
+
+function configurarIpcConfiguracoes() {
+  ipcMain.handle("configuracoes:obter", () => ({
+    ...repositorioConfiguracoes.carregar(),
+    padroes: repositorioConfiguracoes.obterPadroes(),
+  }));
+
+  ipcMain.handle(
+    "configuracoes:selecionar-pasta",
+    async (evento, caminhoAtual) => {
+      const janela = BrowserWindow.fromWebContents(evento.sender);
+      const opcoes = {
+        title: "Selecionar pasta",
+        buttonLabel: "Usar esta pasta",
+        properties: ["openDirectory", "createDirectory"],
+        ...(typeof caminhoAtual === "string" && caminhoAtual.trim()
+          ? { defaultPath: caminhoAtual }
+          : {}),
+      };
+      const resultado = janela
+        ? await dialog.showOpenDialog(janela, opcoes)
+        : await dialog.showOpenDialog(opcoes);
+      return resultado.canceled ? null : resultado.filePaths[0] || null;
+    },
+  );
+
+  ipcMain.handle("configuracoes:salvar", (evento, configuracoes) => {
+    const salvas = repositorioConfiguracoes.salvar(configuracoes);
+    const reinicio = setTimeout(() => {
+      void reiniciarAplicacao().catch((erro) => {
+        console.error("Falha ao reiniciar após salvar configurações:", erro);
+      });
+    }, 600);
+    reinicio.unref();
+    return salvas;
+  });
+}
+
 async function iniciar() {
   const arquivoLog = configurarLog();
   console.log(`[+] Log da aplicação: ${arquivoLog}`);
 
   try {
     const ambiente = configurarAmbiente();
+    configurarIpcConfiguracoes();
     configurarDownloads(ambiente.pastaExportacoes);
     const portaPreferida = Number(process.env.PORT || 3000);
     const porta = await encontrarPortaLivre(portaPreferida);
@@ -296,6 +370,15 @@ async function iniciar() {
     const url = `http://${resultado.host}:${resultado.porta}`;
     await aguardarServidor(url);
     await criarJanela(url);
+
+    gerenciadorAtualizacoes = criarGerenciadorAtualizacoes({
+      app,
+      autoUpdater,
+      dialog,
+      obterJanela: () => janelaPrincipal,
+      prepararEncerramento: prepararEncerramentoParaAtualizacao,
+    });
+    gerenciadorAtualizacoes.iniciar();
   } catch (erro) {
     console.error("Falha na inicialização:", erro);
     dialog.showErrorBox(
@@ -309,6 +392,10 @@ async function iniciar() {
 }
 
 if (bloqueioInstancia) {
+  if (process.platform === "win32") {
+    app.setAppUserModelId("com.garimpu.finch");
+  }
+
   app.on("second-instance", () => {
     if (!janelaPrincipal) return;
     if (janelaPrincipal.isMinimized()) janelaPrincipal.restore();

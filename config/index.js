@@ -87,6 +87,14 @@ const pastaLogsFlorenceConfigurada = validarTexto(
 
 const PORT = portaConfigurada;
 const PASTA_IMAGENS = path.resolve(diretorioProjeto, pastaImagensConfigurada);
+const pastaFlorenceConfigurada = validarTexto(
+  "PASTA_FLORENCE",
+  obterValor("PASTA_FLORENCE", PASTA_IMAGENS),
+);
+const PASTA_FLORENCE = path.resolve(
+  diretorioProjeto,
+  pastaFlorenceConfigurada,
+);
 const PASTA_LOGS_FLORENCE = path.resolve(
   diretorioProjeto,
   pastaLogsFlorenceConfigurada,
@@ -133,6 +141,7 @@ const YOLO_MODEL = obterValor("YOLO_MODEL", null);
 module.exports = {
   PORT,
   PASTA_IMAGENS,
+  PASTA_FLORENCE,
   PASTA_LOGS_FLORENCE,
   LATITUDE_PADRAO,
   LONGITUDE_PADRAO,

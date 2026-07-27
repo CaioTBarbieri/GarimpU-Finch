@@ -5,7 +5,7 @@ const {
   CACHE_EMBEDDINGS,
   ORGANIZADOR_EXECUTABLE,
   PASTA_EXEMPLOS,
-  PASTA_IMAGENS,
+  PASTA_FLORENCE,
   PASTA_LOGS_FLORENCE,
   PYTHON_VERSION_ESPERADA,
   YOLO_MODEL,
@@ -142,13 +142,13 @@ function criarOrganizadorPythonService({
       );
 
       const argumentos = python.executavelEmpacotado
-        ? ["--pasta", PASTA_IMAGENS]
+        ? ["--pasta", PASTA_FLORENCE]
         : [
             ...python.argumentosIniciais,
             "-u",
             scriptPython,
             "--pasta",
-            PASTA_IMAGENS,
+            PASTA_FLORENCE,
           ];
       const processo = criarProcesso(
         python.comando,
