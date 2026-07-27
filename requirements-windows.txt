@@ -1,0 +1,14 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.13.0+cpu
+torchvision==0.28.0+cpu
+sentence-transformers==5.6.0
+Pillow==12.2.0
+numpy==2.4.4
+scikit-learn==1.9.0
+tqdm==4.69.0
+ultralytics==8.4.104
+transformers==4.44.2
+accelerate==1.14.0
+deep-translator==1.11.4
+PyInstaller==6.21.0
+lap==0.5.13

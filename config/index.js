@@ -39,6 +39,29 @@ function validarTexto(nome, valor) {
   return valor.trim();
 }
 
+function encontrarArquivoRecursivo(diretorio, nomeArquivo) {
+  if (!fs.existsSync(diretorio)) return null;
+  const pendentes = [diretorio];
+
+  while (pendentes.length > 0) {
+    const atual = pendentes.pop();
+    const entradas = fs.readdirSync(atual, { withFileTypes: true });
+
+    for (const entrada of entradas) {
+      const caminho = path.join(atual, entrada.name);
+      if (
+        entrada.isFile() &&
+        entrada.name.toLowerCase() === nomeArquivo.toLowerCase()
+      ) {
+        return caminho;
+      }
+      if (entrada.isDirectory()) pendentes.push(caminho);
+    }
+  }
+
+  return null;
+}
+
 const portaConfigurada = Number(obterValor("PORT", 3000));
 if (
   !Number.isInteger(portaConfigurada) ||
@@ -95,6 +118,17 @@ if (PYTHON_VERSION_ESPERADA !== "3.12") {
     "Configuração inválida: PYTHON_VERSION_ESPERADA deve ser 3.12.",
   );
 }
+const PUPPETEER_EXECUTABLE_PATH = obterValor(
+  "PUPPETEER_EXECUTABLE_PATH",
+  encontrarArquivoRecursivo(
+    path.resolve(diretorioProjeto, "resources", "chromium", "chrome"),
+    "chrome.exe",
+  ),
+);
+const ORGANIZADOR_EXECUTABLE = obterValor("ORGANIZADOR_EXECUTABLE", null);
+const PASTA_EXEMPLOS = obterValor("PASTA_EXEMPLOS", null);
+const CACHE_EMBEDDINGS = obterValor("CACHE_EMBEDDINGS", null);
+const YOLO_MODEL = obterValor("YOLO_MODEL", null);
 
 module.exports = {
   PORT,
@@ -104,4 +138,9 @@ module.exports = {
   LONGITUDE_PADRAO,
   PYTHON_EXECUTABLE,
   PYTHON_VERSION_ESPERADA,
+  PUPPETEER_EXECUTABLE_PATH,
+  ORGANIZADOR_EXECUTABLE,
+  PASTA_EXEMPLOS,
+  CACHE_EMBEDDINGS,
+  YOLO_MODEL,
 };

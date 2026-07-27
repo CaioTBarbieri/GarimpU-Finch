@@ -8,3 +8,10 @@ __pycache__/
 logs/florence/*.csv
 !logs/florence/*.example.csv
 !logs/florence/.gitkeep
+build/
+dist/
+public/vendor/
+resources/chromium/
+resources/huggingface/
+build-electron.log
+build-electron.exitcode

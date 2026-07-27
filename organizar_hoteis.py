@@ -62,6 +62,7 @@ from python_organizador.config import (
     PASTA_LOGS_FLORENCE,
     REMOVER_FOTOS_COM_HUMANOS,
     TAMANHO_MINIMO_PESSOA,
+    YOLO_MODEL,
 )
 from python_organizador.nomes import (
     criar_nome_final,
@@ -188,7 +189,7 @@ def carregar_detector_yolo():
 
     print("\n🔄 Carregando detector de pessoas (YOLOv8n, ~6MB)...")
     # yolov8n é o modelo nano — rápido na CPU e preciso o suficiente para este caso
-    detector = YOLO("yolov8n.pt")
+    detector = YOLO(YOLO_MODEL)
     print("✅ Detector de pessoas carregado!")
     return detector
 

@@ -2,9 +2,13 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const {
+  CACHE_EMBEDDINGS,
+  ORGANIZADOR_EXECUTABLE,
+  PASTA_EXEMPLOS,
   PASTA_IMAGENS,
   PASTA_LOGS_FLORENCE,
   PYTHON_VERSION_ESPERADA,
+  YOLO_MODEL,
 } = require("../config");
 const statusOrganizacao = require("../state/status-organizacao");
 const {
@@ -29,6 +33,13 @@ function criarOrganizadorPythonService({
   }
 
   function encontrarScriptPython() {
+    if (
+      ORGANIZADOR_EXECUTABLE &&
+      sistemaArquivos.existsSync(ORGANIZADOR_EXECUTABLE)
+    ) {
+      return ORGANIZADOR_EXECUTABLE;
+    }
+
     const scriptPython = path.resolve(
       diretorioProjeto,
       "organizar_hoteis.py",
@@ -130,15 +141,18 @@ function criarOrganizadorPythonService({
           `(Python ${python.versao})`,
       );
 
+      const argumentos = python.executavelEmpacotado
+        ? ["--pasta", PASTA_IMAGENS]
+        : [
+            ...python.argumentosIniciais,
+            "-u",
+            scriptPython,
+            "--pasta",
+            PASTA_IMAGENS,
+          ];
       const processo = criarProcesso(
         python.comando,
-        [
-          ...python.argumentosIniciais,
-          "-u",
-          scriptPython,
-          "--pasta",
-          PASTA_IMAGENS,
-        ],
+        argumentos,
         {
           cwd: diretorioProjeto,
           windowsHide: true,
@@ -147,6 +161,9 @@ function criarOrganizadorPythonService({
             PYTHONIOENCODING: "utf-8",
             PYTHON_VERSION_ESPERADA,
             PASTA_LOGS_FLORENCE,
+            ...(PASTA_EXEMPLOS ? { PASTA_EXEMPLOS } : {}),
+            ...(CACHE_EMBEDDINGS ? { CACHE_EMBEDDINGS } : {}),
+            ...(YOLO_MODEL ? { YOLO_MODEL } : {}),
           },
         },
       );
@@ -176,10 +193,27 @@ function criarOrganizadorPythonService({
     return true;
   }
 
+  function encerrarOrganizacao() {
+    iniciando = false;
+    const processo = processoAtual;
+    processoAtual = null;
+    if (!processo) return false;
+
+    try {
+      processo.kill();
+    } catch (erro) {
+      logger.warn(
+        `[-] Não foi possível encerrar o organizador: ${erro.message}`,
+      );
+    }
+    return true;
+  }
+
   return {
     iniciarOrganizacao,
     estaExecutando,
     encontrarScriptPython,
+    encerrarOrganizacao,
   };
 }
 
@@ -189,4 +223,5 @@ module.exports = {
   criarOrganizadorPythonService,
   iniciarOrganizacao: organizadorPython.iniciarOrganizacao,
   estaExecutando: organizadorPython.estaExecutando,
+  encerrarOrganizacao: organizadorPython.encerrarOrganizacao,
 };

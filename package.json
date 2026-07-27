@@ -1,19 +1,28 @@
 {
-  "name": "garimpu-nexo",
-  "version": "1.0.0",
-  "description": "",
-  "main": "extracao_melhorada.js",
+  "name": "garimpu-finch",
+  "version": "1.1.0",
+  "description": "Aplicativo Windows para pesquisa de hotéis, imagens e CSV.",
+  "main": "electron/main.js",
   "scripts": {
-    "check": "node --check scraper.js && node --check routes/buscar.routes.js && node --check routes/galeria.routes.js && node --check routes/organizacao.routes.js && node --check services/estimativa-florence.service.js && node --check services/galeria.service.js && node --check services/python-runtime.service.js && node --check services/organizador-python.service.js && node --check state/status-organizacao.js && node --check public/js/navegacao.js && node --check public/js/interface.js && node --check public/js/organizacao.js && node --check public/js/galeria.js && node --check public/js/busca.js",
-    "check:python": "python -m py_compile organizar_hoteis.py",
-    "validate": "npm run check && npm run check:python",
+    "start": "node scraper.js",
+    "dev": "npm run prepare:assets && electron .",
+    "electron": "electron .",
+    "prepare:assets": "tailwindcss -i assets/tailwind-input.css -o public/vendor/tailwind.css --minify && node scripts/copy-vendor.js",
+    "prepare:models": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-models.ps1",
+    "build:python": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-python.ps1",
+    "prepare:dist": "npm run prepare:assets && npm run prepare:models && npm run build:python && npm run check",
+    "build:win": "npm run prepare:dist && electron-builder --win nsis --x64",
+    "build:portable": "npm run prepare:dist && electron-builder --win portable --x64",
+    "dist": "npm run prepare:dist && electron-builder --win nsis portable --x64",
+    "check": "node --check scraper.js && node --check electron/main.js && node --check scripts/copy-vendor.js && node --check routes/buscar.routes.js && node --check routes/galeria.routes.js && node --check routes/organizacao.routes.js && node --check services/estimativa-florence.service.js && node --check services/galeria.service.js && node --check services/python-runtime.service.js && node --check services/organizador-python.service.js && node --check services/scraper.service.js && node --check state/status-organizacao.js && node --check public/js/navegacao.js && node --check public/js/interface.js && node --check public/js/organizacao.js && node --check public/js/galeria.js && node --check public/js/busca.js",
+    "check:python": "python -m py_compile organizar_hoteis.py && python -m compileall -q python_organizador",
+    "validate": "npm run check && npm test && npm run check:python",
     "test": "node --test test/*.test.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CaioTBarbieri/GarimpU-Finch.git"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
@@ -22,6 +31,105 @@
   },
   "homepage": "https://github.com/CaioTBarbieri/GarimpU-Finch#readme",
   "dependencies": {
-    "express": "^5.2.1"
+    "cheerio": "^1.1.2",
+    "express": "^5.2.1",
+    "open-location-code": "^1.0.3",
+    "puppeteer": "^24.16.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "electron": "^37.2.6",
+    "electron-builder": "^26.0.12",
+    "jszip": "^3.10.1",
+    "papaparse": "^5.5.3",
+    "tailwindcss": "^3.4.17"
+  },
+  "build": {
+    "appId": "com.garimpu.finch",
+    "productName": "GarimpU Finch",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "config/index.js",
+      "public/**/*",
+      "routes/**/*",
+      "services/**/*",
+      "state/**/*",
+      "scraper.js",
+      "package.json",
+      "!**/*.map",
+      "!**/*.test.js",
+      "!**/__pycache__/**"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/chromium",
+        "to": "chromium",
+        "filter": [
+          "chrome/**/*"
+        ]
+      },
+      {
+        "from": "build/python-organizer",
+        "to": "python-organizer",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "Fotos exemplos",
+        "to": "organizer-assets/Fotos exemplos",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "cache_embeddings_treino.npz",
+        "to": "organizer-assets/cache_embeddings_treino.npz"
+      },
+      {
+        "from": "yolov8n.pt",
+        "to": "organizer-assets/yolov8n.pt"
+      },
+      {
+        "from": "resources/huggingface",
+        "to": "organizer-assets/huggingface",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "GarimpU-Finch-Setup-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "GarimpU-Finch-Portable-${version}-${arch}.${ext}"
+    }
   }
 }

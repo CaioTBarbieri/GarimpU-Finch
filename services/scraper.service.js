@@ -8,11 +8,26 @@ const {
   PASTA_IMAGENS,
   LATITUDE_PADRAO,
   LONGITUDE_PADRAO,
+  PUPPETEER_EXECUTABLE_PATH,
 } = require("../config");
 
 const olc = new OpenLocationCode();
 
 puppeteer.use(StealthPlugin());
+const navegadoresAtivos = new Set();
+
+async function fecharNavegadoresAtivos() {
+  const navegadores = Array.from(navegadoresAtivos);
+  await Promise.allSettled(
+    navegadores.map(async (browser) => {
+      try {
+        await browser.close();
+      } finally {
+        navegadoresAtivos.delete(browser);
+      }
+    }),
+  );
+}
 
 // ==========================================
 function calcularDistanciaCarroKm(lat1, lon1, lat2, lon2) {
@@ -117,14 +132,18 @@ async function rasparDadosHotel(
       console.warn(
         `[-] Não foi possível fechar o navegador: ${erroFechamento.message}`,
       );
+    } finally {
+      navegadoresAtivos.delete(browserAtual);
     }
   };
 
   try {
     browser = await puppeteer.launch({
       headless: "new",
-      args: ["--disable-web-security", "--no-sandbox"],
+      executablePath: PUPPETEER_EXECUTABLE_PATH || undefined,
+      args: ["--disable-blink-features=AutomationControlled"],
     });
+    navegadoresAtivos.add(browser);
     page = await browser.newPage();
 
     // Aumentando o timeout da página para aguentar o download em massa
@@ -741,4 +760,5 @@ module.exports = {
   calcularDistanciaCarroKm,
   normalizarNomeHotel,
   criarNomePastaHotel,
+  fecharNavegadoresAtivos,
 };
