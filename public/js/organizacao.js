@@ -13,6 +13,8 @@ function formatarDuracao(totalSegundos) {
         String(segundos).padStart(2, '0');
 }
 
+let downloadAutomaticoLogFlorencePendente = false;
+
 function definirTextoStatus(id, valor, valorPadrao = '—') {
     document.getElementById(id).textContent =
         valor == null || valor === '' ? valorPadrao : String(valor);
@@ -206,7 +208,7 @@ function prepararPainelOrganizacao() {
     });
 }
 
-async function baixarLogFlorence() {
+async function baixarLogFlorence({ automatico = false } = {}) {
     const botao = document.getElementById('btnBaixarLogFlorence');
     const status = document.getElementById('statusLogFlorence');
     botao.disabled = true;
@@ -232,7 +234,9 @@ async function baixarLogFlorence() {
         link.remove();
         URL.revokeObjectURL(url);
         status.className = 'text-xs text-emerald-400';
-        status.textContent = 'Download iniciado.';
+        status.textContent = automatico
+            ? 'Organização concluída. Log baixado automaticamente.'
+            : 'Download iniciado.';
     } catch (erro) {
         status.className = 'text-xs text-red-400';
         status.textContent = erro.message;
@@ -257,7 +261,17 @@ async function consultarStatusOrganizacao() {
         btn.disabled = false;
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
         carregarEstimativaFlorence();
+
+        if (
+            status.estado === 'concluido' &&
+            downloadAutomaticoLogFlorencePendente
+        ) {
+            downloadAutomaticoLogFlorencePendente = false;
+            await baixarLogFlorence({ automatico: true });
+        }
     }
+
+    return status;
 }
 
 carregarEstimativaFlorence();
@@ -270,6 +284,7 @@ async function organizarLoteIA() {
     );
     if (!confirmacao) return;
 
+    downloadAutomaticoLogFlorencePendente = false;
     const btn = document.getElementById('btnOrganizarTudo');
     const resultadoContainer = document.getElementById('resultadoContainer');
 
@@ -287,13 +302,17 @@ async function organizarLoteIA() {
             throw new Error(dados.erro || 'Falha ao organizar em lote');
         }
 
-        await consultarStatusOrganizacao();
-        intervaloStatusOrganizacao = setInterval(() => {
-            consultarStatusOrganizacao().catch((erro) => {
-                console.error(erro);
-            });
-        }, 1000);
+        downloadAutomaticoLogFlorencePendente = true;
+        const statusInicial = await consultarStatusOrganizacao();
+        if (statusInicial.estado === 'processando') {
+            intervaloStatusOrganizacao = setInterval(() => {
+                consultarStatusOrganizacao().catch((erro) => {
+                    console.error(erro);
+                });
+            }, 1000);
+        }
     } catch (erro) {
+        downloadAutomaticoLogFlorencePendente = false;
         atualizarPainelOrganizacao({
             estado: 'erro',
             etapa: 'erro',
