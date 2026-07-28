@@ -150,11 +150,14 @@ function criarOrganizadorPythonService({
             "--pasta",
             PASTA_FLORENCE,
           ];
+      const diretorioExecucao = python.executavelEmpacotado
+        ? path.dirname(python.comando)
+        : diretorioProjeto;
       const processo = criarProcesso(
         python.comando,
         argumentos,
         {
-          cwd: diretorioProjeto,
+          cwd: diretorioExecucao,
           windowsHide: true,
           env: {
             ...process.env,
