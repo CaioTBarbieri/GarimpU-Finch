@@ -115,7 +115,7 @@ function atualizarPainelOrganizacao(status) {
     definirTextoStatus(
         'statusMensagemIA',
         status.mensagem,
-        'Processando...',
+        'Lapidando as imagens...',
     );
     definirTextoStatus('statusHotelIA', status.hotel);
     definirTextoStatus('statusPastaIA', status.pasta);
@@ -197,7 +197,7 @@ function prepararPainelOrganizacao() {
     atualizarPainelOrganizacao({
         estado: 'processando',
         etapa: 'iniciando',
-        mensagem: 'Iniciando...',
+        mensagem: 'Preparando a frente de organização...',
         imagemAtual: 0,
         totalImagens: 0,
         imagensProcessadasGeral: 0,

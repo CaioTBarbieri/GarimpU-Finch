@@ -553,8 +553,8 @@
                 const btnBaixarCSV = document.getElementById('btnBaixarCSV');
                 const btnAdicionarCSV = document.getElementById('btnAdicionarCSV');
                 document.getElementById('loaderTexto').textContent = baixarImagens
-                    ? 'Extraindo dados e baixando toda a galeria em HD...'
-                    : 'Extraindo somente os dados do hotel...';
+                    ? 'Escavando dados e trazendo toda a galeria em HD...'
+                    : 'Escavando os dados do hotel...';
                 document.getElementById('loaderAjuda').textContent = baixarImagens
                     ? 'Esse processo pode levar alguns minutos, dependendo da quantidade de fotos.'
                     : 'A consulta será concluída assim que os dados estiverem disponíveis.';
@@ -635,11 +635,11 @@
                     if (dados.baixouLocal) {
                         carregarBibliotecaFotos({ silencioso: true });
                     }
-                    atualizarMensagemPesquisa('Consulta concluída com sucesso.', 'sucesso');
+                    atualizarMensagemPesquisa('Achado confirmado: consulta concluída.', 'sucesso');
 
                 } catch (err) {
                     atualizarMensagemPesquisa(
-                        'Erro na extração: ' + err.message,
+                        'A escavação dos dados não foi concluída: ' + err.message,
                         'erro'
                     );
                 } finally {
