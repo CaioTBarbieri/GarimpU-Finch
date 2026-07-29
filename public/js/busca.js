@@ -22,10 +22,10 @@
                 const elemento = document.getElementById('mensagemPesquisa');
                 elemento.textContent = mensagem;
                 elemento.classList.toggle('hidden', !mensagem);
-                elemento.classList.toggle('text-red-400', tipo === 'erro');
-                elemento.classList.toggle('text-emerald-400', tipo === 'sucesso');
+                elemento.classList.toggle('app-status-danger', tipo === 'erro');
+                elemento.classList.toggle('app-status-success', tipo === 'sucesso');
                 elemento.classList.toggle(
-                    'text-slate-400',
+                    'app-text-muted',
                     tipo !== 'erro' && tipo !== 'sucesso'
                 );
             }
@@ -373,7 +373,7 @@
                         barra.style.width = ((indice / hoteis.length) * 100) + '%';
 
                         const linhaResultado = document.createElement('p');
-                        linhaResultado.className = 'text-slate-400';
+                        linhaResultado.className = 'app-text-muted';
                         linhaResultado.textContent = '⏳ ' + entrada;
                         resultados.appendChild(linhaResultado);
                         let dadosLocalizacao = null;
@@ -420,7 +420,7 @@
                             dadosLocalizacao = dados;
                             if (baixarImagens) {
                                 baixados += 1;
-                                linhaResultado.className = 'text-emerald-400';
+                                linhaResultado.className = 'app-status-success';
                                 linhaResultado.textContent =
                                     '✓ ' + dados.nome + ': imagens baixadas';
                             } else {
@@ -443,17 +443,17 @@
                                 }
 
                                 adicionados += 1;
-                                linhaResultado.className = 'text-emerald-400';
+                                linhaResultado.className = 'app-status-success';
                                 linhaResultado.textContent = '✓ ' + dados.nome;
                             }
                         } catch (erro) {
                             if (erro.message.startsWith('Ignorado:')) {
                                 ignorados += 1;
-                                linhaResultado.className = 'text-amber-400';
+                                linhaResultado.className = 'app-status-warning';
                                 linhaResultado.textContent = '↷ ' + entrada + ': ' + erro.message;
                             } else {
                                 erros += 1;
-                                linhaResultado.className = 'text-red-400';
+                                linhaResultado.className = 'app-status-danger';
                                 linhaResultado.textContent = '✕ ' + entrada + ': ' + erro.message;
                             }
                         }
@@ -612,11 +612,11 @@
                     if (dados.plusCode && dados.plusCode !== 'Não localizado') {
                         textPlusCode.innerText = dados.plusCode;
                         tagPlusCodeBase.dataset.available = 'true';
-                        tagIcon.className = "h-4 w-4 text-blue-400";
+                        tagIcon.className = "app-accent-text h-4 w-4";
                     } else {
                         textPlusCode.innerText = "Plus Code indisponível";
                         tagPlusCodeBase.dataset.available = 'false';
-                        tagIcon.className = "h-4 w-4 text-slate-500";
+                        tagIcon.className = "app-text-subtle h-4 w-4";
                     }
 
                     renderizarGaleriaResultado(

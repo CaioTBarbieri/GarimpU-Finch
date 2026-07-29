@@ -1,10 +1,23 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-palette="dourado">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="dark">
     <title>GarimpU-Nexo</title>
+    <script>
+        (() => {
+            const paletas = ['dourado', 'ametista', 'artico', 'esmeralda'];
+            let paleta = 'dourado';
+            try {
+                const salva = localStorage.getItem('garimpu-paleta');
+                if (paletas.includes(salva)) paleta = salva;
+            } catch {
+                // A paleta padrão permanece ativa quando o storage está indisponível.
+            }
+            document.documentElement.dataset.palette = paleta;
+        })();
+    </script>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141009'/%3E%3Cpath d='M8 22l4-12h8l4 12h-4l-1-3h-6l-1 3H8zm6-6h4l-2-5-2 5z' fill='%23e3b768'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +33,7 @@
             <div class="brand-mark" aria-hidden="true">
                 <svg viewBox="0 0 32 32" fill="none">
                     <path d="M8 23 13 8h6l5 15h-4l-1.2-4h-5.7L12 23H8Z" fill="currentColor"/>
-                    <path d="m14.2 15.5 1.8-5 1.7 5h-3.5Z" fill="#141009"/>
+                    <path class="brand-mark-cutout" d="m14.2 15.5 1.8-5 1.7 5h-3.5Z"/>
                 </svg>
             </div>
             <div>
@@ -74,7 +87,7 @@
             <div class="brand-mark" aria-hidden="true">
                 <svg viewBox="0 0 32 32" fill="none">
                     <path d="M8 23 13 8h6l5 15h-4l-1.2-4h-5.7L12 23H8Z" fill="currentColor"/>
-                    <path d="m14.2 15.5 1.8-5 1.7 5h-3.5Z" fill="#141009"/>
+                    <path class="brand-mark-cutout" d="m14.2 15.5 1.8-5 1.7 5h-3.5Z"/>
                 </svg>
             </div>
             <div>
@@ -87,9 +100,9 @@
 
         <aside id="csvContextoGlobal" class="csv-context hidden" aria-live="polite">
             <div class="min-w-0">
-                <span class="block text-xs font-medium uppercase tracking-wider text-emerald-400">CSV Wix carregado</span>
-                <strong id="csvContextoNome" class="mt-1 block truncate text-sm text-slate-100"></strong>
-                <span id="csvContextoResumo" class="mt-1 block text-xs text-slate-400"></span>
+                <span class="app-status-success block text-xs font-medium uppercase tracking-wider">CSV Wix carregado</span>
+                <strong id="csvContextoNome" class="app-text mt-1 block truncate text-sm"></strong>
+                <span id="csvContextoResumo" class="app-text-muted mt-1 block text-xs"></span>
             </div>
             <button type="button" class="app-button app-button-tertiary shrink-0" onclick="selecionarAba('configuracoes')">
                 Abrir configurações
@@ -108,7 +121,7 @@
 
             <div class="flex flex-col gap-3 sm:flex-row">
                 <div class="min-w-0 flex-1">
-                    <label for="hotelInput" class="mb-2 block text-sm font-medium text-slate-200">
+                    <label for="hotelInput" class="app-text-secondary mb-2 block text-sm font-medium">
                         Nome ou link do hotel
                     </label>
                     <input
@@ -130,17 +143,17 @@
                 </button>
             </div>
 
-            <div class="mt-4 flex flex-col gap-3 border-t border-slate-800 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <label class="inline-flex cursor-pointer items-center gap-3 text-sm text-slate-300">
+            <div class="app-divider mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <label class="app-text-secondary inline-flex cursor-pointer items-center gap-3 text-sm">
                     <input
                         id="baixarImagensInput"
                         type="checkbox"
                         checked
-                        class="h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+                        class="app-checkbox h-4 w-4 rounded"
                     >
                     Baixar imagens automaticamente
                 </label>
-                <p class="text-xs leading-5 text-slate-500">
+                <p class="app-text-subtle text-xs leading-5">
                     Desative para consultar somente os dados do hotel.
                 </p>
             </div>
@@ -152,10 +165,10 @@
             <div class="flex items-start gap-4">
                 <span class="loading-spinner mt-1" aria-hidden="true"></span>
                 <div class="min-w-0 flex-1">
-                    <p id="loaderTexto" class="font-medium text-slate-100">
+                    <p id="loaderTexto" class="app-text font-medium">
                         Escavando os dados do hotel...
                     </p>
-                    <p id="loaderAjuda" class="mt-1 text-sm leading-6 text-slate-400">
+                    <p id="loaderAjuda" class="app-text-muted mt-1 text-sm leading-6">
                         Isso pode levar alguns minutos.
                     </p>
                     <div class="mt-5 space-y-2" aria-hidden="true">
@@ -170,8 +183,8 @@
         <details id="painelPesquisaLote" class="app-details mx-auto max-w-4xl" data-tab-panel="pesquisa">
             <summary>
                 <span>
-                    <span class="block font-medium text-slate-100">Pesquisa em lote</span>
-                    <span class="mt-1 block text-sm text-slate-400">
+                    <span class="app-text block font-medium">Pesquisa em lote</span>
+                    <span class="app-text-muted mt-1 block text-sm">
                         Consulte uma lista sem baixar imagens e adicione os resultados ao CSV.
                     </span>
                 </span>
@@ -179,10 +192,10 @@
             </summary>
             <div class="details-content">
                 <div class="mb-2 flex items-center justify-between gap-3">
-                    <label for="listaHoteisInput" class="text-sm font-medium text-slate-200">
+                    <label for="listaHoteisInput" class="app-text-secondary text-sm font-medium">
                         Um hotel ou link por linha
                     </label>
-                    <span id="contadorEntradaLote" class="text-xs text-slate-500">0 hotéis</span>
+                    <span id="contadorEntradaLote" class="app-text-subtle text-xs">0 hotéis</span>
                 </div>
                 <textarea
                     id="listaHoteisInput"
@@ -191,19 +204,19 @@
                     class="app-input min-h-44 resize-y"
                     oninput="atualizarContadorEntradaLote()"
                 ></textarea>
-                <p class="mt-2 text-xs text-slate-500">
+                <p class="app-text-subtle mt-2 text-xs">
                     Espaços extras e linhas vazias são ignorados automaticamente.
                 </p>
-                <label class="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-800 bg-slate-950/40 p-4 text-sm text-slate-300">
+                <label class="app-divider app-surface-deep app-text-secondary mt-4 flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm">
                     <input
                         id="baixarImagensLoteInput"
                         type="checkbox"
                         onchange="atualizarModoPesquisaLote()"
-                        class="mt-0.5 h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+                        class="app-checkbox mt-0.5 h-4 w-4 rounded"
                     >
                     <span>
                         Baixar imagens de todos os hotéis da lista
-                        <span class="mt-1 block text-xs leading-5 text-slate-500">
+                        <span class="app-text-subtle mt-1 block text-xs leading-5">
                             Aumenta o tempo de processamento e salva as fotos na pasta configurada.
                         </span>
                     </span>
@@ -220,26 +233,26 @@
 
                 <div id="statusPesquisaLote" class="mt-5 hidden" aria-live="polite">
                     <div class="mb-2 flex items-center justify-between gap-4 text-sm">
-                        <span id="textoStatusPesquisaLote" class="min-w-0 truncate text-slate-300">Preparando...</span>
-                        <span id="contadorPesquisaLote" class="shrink-0 text-slate-500">0 de 0</span>
+                        <span id="textoStatusPesquisaLote" class="app-text-secondary min-w-0 truncate">Preparando...</span>
+                        <span id="contadorPesquisaLote" class="app-text-subtle shrink-0">0 de 0</span>
                     </div>
                     <div class="progress-track" role="progressbar" aria-label="Progresso da pesquisa em lote">
-                        <div id="barraPesquisaLote" class="progress-fill bg-blue-500" style="width: 0%"></div>
+                        <div id="barraPesquisaLote" class="progress-fill app-accent-background" style="width: 0%"></div>
                     </div>
                     <div
                         id="resultadosPesquisaLote"
-                        class="status-list mt-4 max-h-52 space-y-2 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm"
+                        class="status-list app-divider app-surface-deep mt-4 max-h-52 space-y-2 overflow-y-auto rounded-xl border p-3 text-sm"
                     ></div>
                     <div
                         id="resumoLocalizacoesLote"
-                        class="mt-4 hidden rounded-xl border border-slate-800 bg-slate-950/50 p-4"
+                        class="app-divider app-surface-deep mt-4 hidden rounded-xl border p-4"
                     >
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                             <div>
-                                <p class="text-sm font-medium text-slate-200">
+                                <p class="app-text-secondary text-sm font-medium">
                                     Localizações encontradas
                                 </p>
-                                <p id="contadorLocalizacoesLote" class="mt-1 text-xs text-slate-400"></p>
+                                <p id="contadorLocalizacoesLote" class="app-text-muted mt-1 text-xs"></p>
                             </div>
                             <label class="w-full sm:w-72">
                                 <span class="app-label">Filtrar resultados</span>
@@ -276,6 +289,133 @@
             </div>
 
             <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <article id="painelAparencia" class="configuration-card lg:col-span-2">
+                    <div class="configuration-card-header">
+                        <h3>Aparência</h3>
+                        <p>Escolha a paleta de cores utilizada na interface do GarimpU-Nexo.</p>
+                    </div>
+
+                    <fieldset>
+                        <legend class="sr-only">Paleta de cores da aplicação</legend>
+                        <div class="palette-grid">
+                            <label class="palette-option" data-palette-value="dourado">
+                                <input
+                                    id="paletaDourado"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="dourado"
+                                    aria-describedby="descricaoPaletaDourado"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Garimpo Dourado</h4>
+                                        <p id="descricaoPaletaDourado">A identidade clássica em tons terrosos e dourados.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="ametista">
+                                <input
+                                    id="paletaAmetista"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="ametista"
+                                    aria-describedby="descricaoPaletaAmetista"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Ametista Nexo</h4>
+                                        <p id="descricaoPaletaAmetista">Roxo profundo com detalhes luminosos.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="artico">
+                                <input
+                                    id="paletaArtico"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="artico"
+                                    aria-describedby="descricaoPaletaArtico"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Nexo Ártico</h4>
+                                        <p id="descricaoPaletaArtico">Azul-petróleo e ciano para uma interface fria.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="esmeralda">
+                                <input
+                                    id="paletaEsmeralda"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="esmeralda"
+                                    aria-describedby="descricaoPaletaEsmeralda"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Esmeralda Profunda</h4>
+                                        <p id="descricaoPaletaEsmeralda">Verde-esmeralda com detalhes em turquesa.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <div class="mt-5 flex app-divider border-t pt-5">
+                        <button
+                            id="btnRestaurarPaleta"
+                            type="button"
+                            class="app-button app-button-tertiary"
+                            onclick="restaurarPaletaPadrao()"
+                        >
+                            Restaurar paleta padrão
+                        </button>
+                    </div>
+                </article>
+
                 <article id="painelDiretorios" class="configuration-card lg:col-span-2">
                     <div class="configuration-card-header">
                         <h3>Diretórios de imagens e IA</h3>
@@ -304,12 +444,12 @@
                                     Selecionar pasta
                                 </button>
                             </div>
-                            <p class="mt-2 text-xs leading-5 text-slate-500">
+                            <p class="app-text-subtle mt-2 text-xs leading-5">
                                 Novas fotos extraídas da Booking.com serão gravadas neste local.
                             </p>
                         </div>
 
-                        <div class="border-t border-slate-800 pt-5">
+                        <div class="app-divider border-t pt-5">
                             <label for="pastaFlorenceInput" class="app-label">
                                 Pasta processada pelo Florence
                             </label>
@@ -330,13 +470,13 @@
                                     Selecionar pasta
                                 </button>
                             </div>
-                            <p class="mt-2 text-xs leading-5 text-slate-500">
+                            <p class="app-text-subtle mt-2 text-xs leading-5">
                                 Florence, CLIP e YOLO reconhecerão e moverão as imagens desta pasta para as categorias.
                             </p>
                         </div>
                     </div>
 
-                    <div class="mt-5 flex flex-col gap-3 border-t border-slate-800 pt-5 sm:flex-row sm:flex-wrap">
+                    <div class="app-divider mt-5 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:flex-wrap">
                         <button
                             id="btnUsarMesmaPastaFlorence"
                             type="button"
@@ -363,7 +503,7 @@
                             <span>Salvar e reiniciar</span>
                         </button>
                     </div>
-                    <p id="statusDiretorios" class="mt-3 text-sm text-slate-500" role="status" aria-live="polite">
+                    <p id="statusDiretorios" class="app-text-subtle mt-3 text-sm" role="status" aria-live="polite">
                         Carregando diretórios...
                     </p>
                 </article>
@@ -401,7 +541,7 @@
                             >
                         </div>
                     </div>
-                    <p class="mt-3 text-xs leading-5 text-slate-500">
+                    <p class="app-text-subtle mt-3 text-xs leading-5">
                         Usadas somente quando a Booking.com não informa a distância do aeroporto.
                     </p>
                 </article>
@@ -419,20 +559,20 @@
                         onchange="carregarCsvWix(this.files[0])"
                         class="app-file-input"
                     >
-                    <p id="csvWixStatus" class="mt-3 text-sm text-slate-500" role="status" aria-live="polite">
+                    <p id="csvWixStatus" class="app-text-subtle mt-3 text-sm" role="status" aria-live="polite">
                         Nenhum CSV carregado.
                     </p>
-                    <label class="mt-5 flex cursor-pointer items-start gap-3 border-t border-slate-800 pt-4 text-sm text-slate-300">
+                    <label class="app-divider app-text-secondary mt-5 flex cursor-pointer items-start gap-3 border-t pt-4 text-sm">
                         <input
                             id="mostrarCsvOutrasAbasInput"
                             type="checkbox"
                             checked
                             onchange="atualizarVisibilidadeCsvGlobal()"
-                            class="mt-0.5 h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+                            class="app-checkbox mt-0.5 h-4 w-4 rounded"
                         >
                         <span>
                             Mostrar o CSV carregado nas outras abas
-                            <span class="mt-1 block text-xs leading-5 text-slate-500">
+                            <span class="app-text-subtle mt-1 block text-xs leading-5">
                                 Exibe apenas nome, quantidade de hotéis e colunas.
                             </span>
                         </span>
@@ -473,7 +613,7 @@
                             <input id="colunaDistanciaCsv" value="Distância Aeroporto" class="app-input mt-2 font-normal">
                         </label>
                     </div>
-                    <p class="mt-4 text-xs leading-5 text-slate-500">
+                    <p class="app-text-subtle mt-4 text-xs leading-5">
                         <code>ID</code> e <code>Nome_Hotel</code> são reservados para a integração com o Wix.
                     </p>
                 </article>
@@ -484,12 +624,12 @@
         <section class="app-card ia-section" aria-labelledby="tituloOrganizacaoIA" data-tab-panel="ia" hidden>
             <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                 <div class="max-w-3xl">
-                    <p class="section-kicker text-purple-300">Processamento local</p>
+                    <p class="section-kicker app-status-ai">Processamento local</p>
                     <h2 id="tituloOrganizacaoIA" class="section-title">Organização de imagens com IA</h2>
                     <p class="section-description">
                         Executa Florence, CLIP e YOLO para classificar, descrever e organizar as imagens já baixadas.
                     </p>
-                    <p class="mt-2 text-sm text-amber-200/80">
+                    <p class="app-status-warning mt-2 text-sm">
                         O processamento pode levar vários minutos ou horas, dependendo do volume.
                     </p>
                 </div>
@@ -512,22 +652,22 @@
                         Baixar log Florence
                     </button>
                     <p id="statusLogFlorence" class="hidden text-xs" role="status" aria-live="polite"></p>
-                    <p class="text-xs text-slate-500">
+                    <p class="app-text-subtle text-xs">
                         Ao concluir a organização, o log será baixado automaticamente.
                     </p>
                 </div>
             </div>
 
-            <div class="mt-6 rounded-xl border border-slate-800 bg-slate-950/45 p-4">
+            <div class="app-divider app-surface-deep mt-6 rounded-xl border p-4">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        <p class="text-xs font-medium uppercase tracking-wider text-purple-300">
+                        <p class="app-status-ai text-xs font-medium uppercase tracking-wider">
                             Estimativa baseada nos logs
                         </p>
-                        <p id="estimativaHistoricaFlorence" class="mt-2 text-lg font-semibold text-slate-100" aria-live="polite">
+                        <p id="estimativaHistoricaFlorence" class="app-text mt-2 text-lg font-semibold" aria-live="polite">
                             Calculando...
                         </p>
-                        <p id="detalhesEstimativaFlorence" class="mt-1 text-xs leading-5 text-slate-500">
+                        <p id="detalhesEstimativaFlorence" class="app-text-subtle mt-1 text-xs leading-5">
                             Analisando imagens pendentes e histórico local.
                         </p>
                     </div>
@@ -545,7 +685,7 @@
 
             <div id="painelOrganizacaoIA" class="mt-6">
                 <div id="statusCardIA" class="ia-card" data-state="ocioso">
-                    <div class="flex items-start gap-3 border-b border-slate-800 pb-5">
+                    <div class="app-divider flex items-start gap-3 border-b pb-5">
                         <div id="statusSpinnerIA" class="ia-spinner mt-0.5 shrink-0" aria-hidden="true"></div>
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2">
@@ -561,20 +701,20 @@
                     <div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
                         <div>
                             <div class="mb-2 flex items-center justify-between gap-4 text-sm">
-                                <span class="text-slate-400">Progresso geral</span>
-                                <span id="statusProgressoGeralIA" class="text-slate-200">0 de 0 imagens</span>
+                                <span class="app-text-muted">Progresso geral</span>
+                                <span id="statusProgressoGeralIA" class="app-text-secondary">0 de 0 imagens</span>
                             </div>
                             <div class="progress-track">
                                 <div id="statusBarraGeralIA" class="progress-fill ia-progress" style="width: 0%"></div>
                             </div>
-                            <p class="mt-2 text-right text-xs text-slate-500">
+                            <p class="app-text-subtle mt-2 text-right text-xs">
                                 <span id="statusProgressoGeralContagemIA">0</span>%
                             </p>
                         </div>
                         <div>
                             <div class="mb-2 flex items-center justify-between gap-4 text-sm">
-                                <span class="text-slate-400">Progresso do hotel</span>
-                                <span class="text-slate-200">
+                                <span class="app-text-muted">Progresso do hotel</span>
+                                <span class="app-text-secondary">
                                     <span id="statusImagemAtualIA">0</span> de
                                     <span id="statusTotalImagensIA">0</span>
                                 </span>
@@ -582,7 +722,7 @@
                             <div class="progress-track">
                                 <div id="statusBarraHotelIA" class="progress-fill ia-progress" style="width: 0%"></div>
                             </div>
-                            <p class="mt-2 text-right text-xs text-slate-500">
+                            <p class="app-text-subtle mt-2 text-right text-xs">
                                 <span id="statusImagensPendentesIA">0 imagens</span> pendentes
                             </p>
                         </div>
@@ -611,7 +751,7 @@
                         </div>
                     </dl>
 
-                    <dl class="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-slate-800 pt-5 lg:grid-cols-4">
+                    <dl class="app-divider mt-6 grid grid-cols-2 gap-x-6 gap-y-4 border-t pt-5 lg:grid-cols-4">
                         <div class="metric-item">
                             <dt id="statusRotuloTempoIA">Tempo decorrido</dt>
                             <dd id="statusTempoDecorridoIA">00:00:00</dd>
@@ -630,9 +770,9 @@
                         </div>
                     </dl>
 
-                    <div class="mt-6 border-t border-slate-800 pt-5">
-                        <h3 class="text-sm font-medium text-slate-200">Últimas mensagens</h3>
-                        <p id="historicoStatusIA" class="mt-3 whitespace-pre-line text-sm leading-6 text-slate-400">
+                    <div class="app-divider mt-6 border-t pt-5">
+                        <h3 class="app-text-secondary text-sm font-medium">Últimas mensagens</h3>
+                        <p id="historicoStatusIA" class="app-text-muted mt-3 whitespace-pre-line text-sm leading-6">
                             Nenhuma mensagem recebida.
                         </p>
                     </div>
@@ -660,12 +800,12 @@
                     <span>Atualizar lista</span>
                 </button>
             </div>
-            <div class="mt-5 flex flex-col gap-4 border-t border-slate-800 pt-5 sm:flex-row sm:items-end sm:justify-between">
+            <div class="app-divider mt-5 flex flex-col gap-4 border-t pt-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <p id="statusBibliotecaFotos" class="text-sm text-slate-400" role="status" aria-live="polite">
+                    <p id="statusBibliotecaFotos" class="app-text-muted text-sm" role="status" aria-live="polite">
                         Carregando fotos salvas...
                     </p>
-                    <span id="resumoBibliotecaFotos" class="mt-1 block text-xs font-medium text-slate-500"></span>
+                    <span id="resumoBibliotecaFotos" class="app-text-subtle mt-1 block text-xs font-medium"></span>
                 </div>
                 <div class="flex w-full flex-col gap-3 sm:w-72">
                     <label>
@@ -703,22 +843,22 @@
         <!-- Resultado -->
         <section id="resultadoContainer" class="hidden space-y-6" aria-labelledby="tituloResultado" data-tab-panel="pesquisa">
             <div class="app-card">
-                <div class="flex flex-col gap-5 border-b border-slate-800 pb-6 sm:flex-row sm:items-start sm:justify-between">
+                <div class="app-divider flex flex-col gap-5 border-b pb-6 sm:flex-row sm:items-start sm:justify-between">
                     <div class="min-w-0">
-                        <div class="mb-2 inline-flex items-center gap-2 text-xs font-medium text-emerald-300">
-                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                        <div class="app-status-success mb-2 inline-flex items-center gap-2 text-xs font-medium">
+                            <span class="app-status-dot-success h-1.5 w-1.5 rounded-full"></span>
                             Achado confirmado
                         </div>
                         <h2 id="resNome" class="break-words text-2xl font-semibold tracking-tight text-white sm:text-3xl"></h2>
-                        <p id="resEndereco" class="mt-2 break-words text-sm leading-6 text-slate-400"></p>
+                        <p id="resEndereco" class="app-text-muted mt-2 break-words text-sm leading-6"></p>
                     </div>
-                    <div class="min-w-28 rounded-xl border border-slate-800 bg-slate-950/60 px-5 py-4 text-center">
-                        <span class="block text-xs font-medium uppercase tracking-wider text-slate-500">Avaliação</span>
-                        <span id="resNota" class="mt-1 block text-3xl font-semibold text-slate-100"></span>
+                    <div class="app-divider app-surface-deep min-w-28 rounded-xl border px-5 py-4 text-center">
+                        <span class="app-text-subtle block text-xs font-medium uppercase tracking-wider">Avaliação</span>
+                        <span id="resNota" class="app-text mt-1 block text-3xl font-semibold"></span>
                     </div>
                 </div>
 
-                <h3 id="tituloResultado" class="mt-6 text-base font-medium text-slate-100">Ficha do achado</h3>
+                <h3 id="tituloResultado" class="app-text mt-6 text-base font-medium">Ficha do achado</h3>
                 <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <label class="result-field">
                         <span>ID do Wix</span>
@@ -771,7 +911,7 @@
                     </label>
                     <div id="tagPlusCodeBase" class="result-field">
                         <span class="flex items-center gap-2">
-                            <svg id="tagIcon" class="h-4 w-4 text-slate-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                            <svg id="tagIcon" class="app-text-subtle h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                 <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
                             </svg>
                             Plus Code
@@ -785,10 +925,10 @@
             <div class="app-card">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h3 class="text-base font-medium text-slate-100">Ações</h3>
-                        <p class="mt-1 text-sm text-slate-400">Adicione o hotel, exporte os dados ou baixe as imagens.</p>
+                        <h3 class="app-text text-base font-medium">Ações</h3>
+                        <p class="app-text-muted mt-1 text-sm">Adicione o hotel, exporte os dados ou baixe as imagens.</p>
                     </div>
-                    <span id="contadorCsv" class="hidden rounded-full bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300">
+                    <span id="contadorCsv" class="app-surface-soft app-text-secondary hidden rounded-full px-3 py-1.5 text-xs font-medium">
                         0 hotéis adicionados
                     </span>
                 </div>
@@ -825,10 +965,10 @@
             <div class="app-card">
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <h3 class="text-base font-medium text-slate-100">Galeria de imagens</h3>
-                        <p class="mt-1 text-sm text-slate-400">Imagens encontradas para o hotel consultado.</p>
+                        <h3 class="app-text text-base font-medium">Galeria de imagens</h3>
+                        <p class="app-text-muted mt-1 text-sm">Imagens encontradas para o hotel consultado.</p>
                     </div>
-                    <span id="badgeContador" class="text-sm text-slate-500"></span>
+                    <span id="badgeContador" class="app-text-subtle text-sm"></span>
                 </div>
                 <p id="galeriaVazia" class="empty-state mt-6 hidden">
                     Nenhuma imagem foi encontrada para esta consulta.
@@ -848,6 +988,7 @@
     </main>
     </div>
 
+    <script src="/js/tema.js"></script>
     <script src="/js/navegacao.js"></script>
     <script src="/js/configuracoes.js"></script>
     <script src="/js/interface.js"></script>

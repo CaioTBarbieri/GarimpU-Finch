@@ -366,8 +366,8 @@ function definirStatusBiblioteca(mensagem, erro = false) {
     const status = document.getElementById('statusBibliotecaFotos');
     status.textContent = mensagem;
     status.className = erro
-        ? 'text-sm text-red-400'
-        : 'text-sm text-emerald-400';
+        ? 'app-status-danger text-sm'
+        : 'app-status-success text-sm';
 }
 
 async function chamarAcaoGaleria(url, method, body) {
@@ -470,7 +470,7 @@ async function carregarBibliotecaFotos({ silencioso = false } = {}) {
     botao.disabled = true;
     if (!silencioso) {
         status.textContent = 'Carregando fotos salvas...';
-        status.className = 'text-sm text-slate-400';
+        status.className = 'app-text-muted text-sm';
     }
 
     try {
@@ -486,11 +486,11 @@ async function carregarBibliotecaFotos({ silencioso = false } = {}) {
             ? 'Biblioteca atualizada.'
             : 'A pasta configurada ainda não contém fotos.';
         status.className = dados.totalImagens > 0
-            ? 'text-sm text-emerald-400'
-            : 'text-sm text-slate-400';
+            ? 'app-status-success text-sm'
+            : 'app-text-muted text-sm';
     } catch (erro) {
         status.textContent = 'Erro: ' + erro.message;
-        status.className = 'text-sm text-red-400';
+        status.className = 'app-status-danger text-sm';
     } finally {
         botao.disabled = false;
     }

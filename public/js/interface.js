@@ -142,7 +142,7 @@ let dadosAtuais = null;
                     csvWix = null;
                     arquivoCsvWixNome = '';
                     status.innerText = 'Nenhum CSV carregado.';
-                    status.className = 'mt-3 text-sm text-slate-500';
+                    status.className = 'app-text-subtle mt-3 text-sm';
                     atualizarVisibilidadeCsvGlobal();
                     return;
                 }
@@ -156,7 +156,7 @@ let dadosAtuais = null;
                             csvWix = null;
                             arquivoCsvWixNome = '';
                             status.innerText = 'Arquivo inválido: faltam as colunas ID ou Nome_Hotel.';
-                            status.className = 'mt-3 text-sm text-red-400';
+                            status.className = 'app-status-danger mt-3 text-sm';
                             atualizarVisibilidadeCsvGlobal();
                             return;
                         }
@@ -167,14 +167,14 @@ let dadosAtuais = null;
                         assinaturaColunasCsv = null;
                         atualizarContadorCsv();
                         status.innerText = 'CSV carregado: ' + resultado.data.length + ' hotéis e ' + campos.length + ' colunas.';
-                        status.className = 'mt-3 text-sm text-emerald-400';
+                        status.className = 'app-status-success mt-3 text-sm';
                         atualizarVisibilidadeCsvGlobal();
                     },
                     error: (erro) => {
                         csvWix = null;
                         arquivoCsvWixNome = '';
                         status.innerText = 'Erro ao ler o CSV: ' + erro.message;
-                        status.className = 'mt-3 text-sm text-red-400';
+                        status.className = 'app-status-danger mt-3 text-sm';
                         atualizarVisibilidadeCsvGlobal();
                     }
                 });

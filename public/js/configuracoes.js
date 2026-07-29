@@ -5,10 +5,10 @@ function definirStatusDiretorios(mensagem, tipo = 'neutro') {
     status.textContent = mensagem;
     status.className = 'mt-3 text-sm ' + (
         tipo === 'erro'
-            ? 'text-red-400'
+            ? 'app-status-danger'
             : tipo === 'sucesso'
-                ? 'text-emerald-400'
-                : 'text-slate-500'
+                ? 'app-status-success'
+                : 'app-text-subtle'
     );
 }
 

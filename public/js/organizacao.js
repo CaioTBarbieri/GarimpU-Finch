@@ -212,7 +212,7 @@ async function baixarLogFlorence({ automatico = false } = {}) {
     const botao = document.getElementById('btnBaixarLogFlorence');
     const status = document.getElementById('statusLogFlorence');
     botao.disabled = true;
-    status.className = 'text-xs text-slate-400';
+    status.className = 'app-text-muted text-xs';
     status.textContent = 'Preparando download...';
 
     try {
@@ -233,12 +233,12 @@ async function baixarLogFlorence({ automatico = false } = {}) {
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
-        status.className = 'text-xs text-emerald-400';
+        status.className = 'app-status-success text-xs';
         status.textContent = automatico
             ? 'Organização concluída. Log baixado automaticamente.'
             : 'Download iniciado.';
     } catch (erro) {
-        status.className = 'text-xs text-red-400';
+        status.className = 'app-status-danger text-xs';
         status.textContent = erro.message;
     } finally {
         botao.disabled = false;
