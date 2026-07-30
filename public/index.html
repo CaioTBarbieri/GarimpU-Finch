@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-palette="dourado">
+<html lang="pt-BR" data-palette="dourado" data-font="classico">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,21 +7,41 @@
     <title>GarimpU-Nexo</title>
     <script>
         (() => {
-            const paletas = ['dourado', 'ametista', 'artico', 'esmeralda'];
+            const paletas = [
+                'dourado',
+                'ametista',
+                'artico',
+                'esmeralda',
+                'galaxia',
+                'sakura',
+                'titanio',
+                'vulcanico',
+                'boreal',
+                'singularidade',
+            ];
+            const fontes = ['classico', 'moderno', 'tecnologico', 'editorial'];
+
             let paleta = 'dourado';
+            let fonte = 'classico';
+
             try {
-                const salva = localStorage.getItem('garimpu-paleta');
-                if (paletas.includes(salva)) paleta = salva;
+                const paletaSalva = localStorage.getItem('garimpu-paleta');
+                const fonteSalva = localStorage.getItem('garimpu-fonte');
+
+                if (paletas.includes(paletaSalva)) paleta = paletaSalva;
+                if (fontes.includes(fonteSalva)) fonte = fonteSalva;
             } catch {
-                // A paleta padrão permanece ativa quando o storage está indisponível.
+                // As configurações padrão permanecem ativas quando o storage está indisponível.
             }
+
             document.documentElement.dataset.palette = paleta;
+            document.documentElement.dataset.font = fonte;
         })();
     </script>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141009'/%3E%3Cpath d='M8 22l4-12h8l4 12h-4l-1-3h-6l-1 3H8zm6-6h4l-2-5-2 5z' fill='%23e3b768'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Playfair+Display:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="/vendor/tailwind.css">
     <script src="/vendor/jszip.min.js"></script>
     <script src="/vendor/papaparse.min.js"></script>
@@ -405,7 +425,7 @@
                                 </span>
                             </label>
 
-                            <label class="palette-option" data-palette-value="esmeralda">
+                            <label class="palette-option" data-palette-value="esmeralda" data-palette-extra hidden>
                                 <input
                                     id="paletaEsmeralda"
                                     class="palette-radio"
@@ -430,10 +450,284 @@
                                     <span class="palette-swatch"></span>
                                 </span>
                             </label>
+
+                            <label class="palette-option" data-palette-value="galaxia" data-palette-extra hidden>
+                                <input
+                                    id="paletaGalaxia"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="galaxia"
+                                    aria-describedby="descricaoPaletaGalaxia"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Galáxia Nexo</h4>
+                                        <p id="descricaoPaletaGalaxia">Índigo espacial com magenta, violeta e detalhes em ciano.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="sakura" data-palette-extra hidden>
+                                <input
+                                    id="paletaSakura"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="sakura"
+                                    aria-describedby="descricaoPaletaSakura"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Sakura Noturna</h4>
+                                        <p id="descricaoPaletaSakura">Rosa sakura e coral sobre tons profundos de vinho e ameixa.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="titanio" data-palette-extra hidden>
+                                <input
+                                    id="paletaTitanio"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="titanio"
+                                    aria-describedby="descricaoPaletaTitanio"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Titânio Lunar</h4>
+                                        <p id="descricaoPaletaTitanio">Cinza metálico e prata para uma interface neutra e profissional.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="vulcanico" data-palette-extra hidden>
+                                <input
+                                    id="paletaVulcanico"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="vulcanico"
+                                    aria-describedby="descricaoPaletaVulcanico"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Vulcânico Nexo</h4>
+                                        <p id="descricaoPaletaVulcanico">Obsidiana e lava incandescente para uma interface intensa e enérgica.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="boreal" data-palette-extra hidden>
+                                <input
+                                    id="paletaBoreal"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="boreal"
+                                    aria-describedby="descricaoPaletaBoreal"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Nexo Boreal</h4>
+                                        <p id="descricaoPaletaBoreal">Aurora verde e violeta sobre um azul-noite profundo.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="singularidade" data-palette-extra hidden>
+                                <input
+                                    id="paletaSingularidade"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="singularidade"
+                                    aria-describedby="descricaoPaletaSingularidade"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Buraco Negro</h4>
+                                        <p id="descricaoPaletaSingularidade">Horizonte de eventos em preto absoluto, com um anel de acreção dourado em órbita lenta.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
                         </div>
                     </fieldset>
 
-                    <div class="mt-5 flex app-divider border-t pt-5">
+                    <button
+                        id="btnAlternarPaletasExtras"
+                        type="button"
+                        class="appearance-toggle mt-3"
+                        aria-expanded="false"
+                        onclick="alternarPaletasExtras()"
+                    >
+                        <span data-toggle-label>Ver mais paletas</span>
+                    </button>
+
+                    <div class="app-divider mt-6 border-t pt-6">
+                        <h4 class="app-text text-sm font-semibold">Tipografia</h4>
+                        <p class="app-text-subtle mt-1 text-xs leading-5">
+                            Escolha o estilo de fonte utilizado nos textos, títulos e dados técnicos.
+                        </p>
+
+                        <fieldset class="mt-4">
+                            <legend class="sr-only">Tipografia da aplicação</legend>
+                            <div class="font-grid">
+                                <label class="font-option" data-font-value="classico">
+                                    <input
+                                        id="fonteClassico"
+                                        class="font-radio"
+                                        type="radio"
+                                        name="fonteAplicacao"
+                                        value="classico"
+                                        aria-describedby="descricaoFonteClassico"
+                                        onchange="selecionarFonte(this.value)"
+                                    >
+                                    <span class="font-option-header">
+                                        <span>
+                                            <h4>Clássico GarimpU</h4>
+                                            <p id="descricaoFonteClassico">A tipografia original do GarimpU-Nexo, equilibrando clareza e elegância.</p>
+                                        </span>
+                                        <span class="font-current">Fonte atual</span>
+                                    </span>
+                                    <span class="font-preview">
+                                        <span class="font-preview-name">GarimpU-Nexo</span>
+                                        <span class="font-preview-tagline">Pesquisa, organização e dados de hotéis</span>
+                                        <span class="font-preview-id">ID: 82f4c9a1</span>
+                                    </span>
+                                </label>
+
+                                <label class="font-option" data-font-value="moderno">
+                                    <input
+                                        id="fonteModerno"
+                                        class="font-radio"
+                                        type="radio"
+                                        name="fonteAplicacao"
+                                        value="moderno"
+                                        aria-describedby="descricaoFonteModerno"
+                                        onchange="selecionarFonte(this.value)"
+                                    >
+                                    <span class="font-option-header">
+                                        <span>
+                                            <h4>Moderno Nexo</h4>
+                                            <p id="descricaoFonteModerno">Visual limpo e contemporâneo, com formas suaves e leitura confortável.</p>
+                                        </span>
+                                        <span class="font-current">Fonte atual</span>
+                                    </span>
+                                    <span class="font-preview">
+                                        <span class="font-preview-name">GarimpU-Nexo</span>
+                                        <span class="font-preview-tagline">Pesquisa, organização e dados de hotéis</span>
+                                        <span class="font-preview-id">ID: 82f4c9a1</span>
+                                    </span>
+                                </label>
+
+                                <label class="font-option" data-font-value="tecnologico">
+                                    <input
+                                        id="fonteTecnologico"
+                                        class="font-radio"
+                                        type="radio"
+                                        name="fonteAplicacao"
+                                        value="tecnologico"
+                                        aria-describedby="descricaoFonteTecnologico"
+                                        onchange="selecionarFonte(this.value)"
+                                    >
+                                    <span class="font-option-header">
+                                        <span>
+                                            <h4>Tecnológico</h4>
+                                            <p id="descricaoFonteTecnologico">Geometria moderna para uma aparência tecnológica e objetiva.</p>
+                                        </span>
+                                        <span class="font-current">Fonte atual</span>
+                                    </span>
+                                    <span class="font-preview">
+                                        <span class="font-preview-name">GarimpU-Nexo</span>
+                                        <span class="font-preview-tagline">Pesquisa, organização e dados de hotéis</span>
+                                        <span class="font-preview-id">ID: 82f4c9a1</span>
+                                    </span>
+                                </label>
+
+                                <label class="font-option" data-font-value="editorial">
+                                    <input
+                                        id="fonteEditorial"
+                                        class="font-radio"
+                                        type="radio"
+                                        name="fonteAplicacao"
+                                        value="editorial"
+                                        aria-describedby="descricaoFonteEditorial"
+                                        onchange="selecionarFonte(this.value)"
+                                    >
+                                    <span class="font-option-header">
+                                        <span>
+                                            <h4>Editorial Premium</h4>
+                                            <p id="descricaoFonteEditorial">Contraste editorial para títulos elegantes e textos altamente legíveis.</p>
+                                        </span>
+                                        <span class="font-current">Fonte atual</span>
+                                    </span>
+                                    <span class="font-preview">
+                                        <span class="font-preview-name">GarimpU-Nexo</span>
+                                        <span class="font-preview-tagline">Pesquisa, organização e dados de hotéis</span>
+                                        <span class="font-preview-id">ID: 82f4c9a1</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </fieldset>
+                    </div>
+
+                    <div class="mt-6 flex flex-wrap gap-3 app-divider border-t pt-5">
                         <button
                             id="btnRestaurarPaleta"
                             type="button"
@@ -441,6 +735,22 @@
                             onclick="restaurarPaletaPadrao()"
                         >
                             Restaurar paleta padrão
+                        </button>
+                        <button
+                            id="btnRestaurarFonte"
+                            type="button"
+                            class="app-button app-button-tertiary"
+                            onclick="restaurarFontePadrao()"
+                        >
+                            Restaurar fonte padrão
+                        </button>
+                        <button
+                            id="btnRestaurarAparencia"
+                            type="button"
+                            class="app-button app-button-tertiary"
+                            onclick="restaurarAparenciaPadrao()"
+                        >
+                            Restaurar toda a aparência
                         </button>
                     </div>
                 </article>
