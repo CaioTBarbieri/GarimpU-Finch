@@ -1,5 +1,5 @@
 function selecionarAba(nomeAba) {
-    const nomesValidos = ['pesquisa', 'fotos', 'ia', 'configuracoes'];
+    const nomesValidos = ['pesquisa', 'fotos', 'ia', 'terminal', 'configuracoes'];
     const abaAtiva = nomesValidos.includes(nomeAba) ? nomeAba : 'pesquisa';
 
     document.querySelectorAll('[data-tab-panel]').forEach((painel) => {

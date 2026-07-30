@@ -2,6 +2,14 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const {
+  interceptarConsole,
+} = require("./services/log-broadcaster.service");
+
+// Precisa rodar antes de qualquer outro require que possa logar, para que
+// nenhuma mensagem escape do espelhamento para a aba Terminal da interface.
+interceptarConsole();
+
+const {
   PORT,
   PASTA_IMAGENS,
   PASTA_LOGS_FLORENCE,
@@ -11,6 +19,7 @@ const {
 const criarBuscarRouter = require("./routes/buscar.routes");
 const galeriaRouter = require("./routes/galeria.routes");
 const organizacaoRouter = require("./routes/organizacao.routes");
+const logsRouter = require("./routes/logs.routes");
 const {
   rasparDadosHotel,
   fecharNavegadoresAtivos,
@@ -33,6 +42,7 @@ function criarAplicacao() {
   app.use("/img", express.static(PASTA_IMAGENS));
   app.use(organizacaoRouter);
   app.use(galeriaRouter);
+  app.use(logsRouter);
   app.use(
     criarBuscarRouter({
       rasparDadosHotel,

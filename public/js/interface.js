@@ -106,6 +106,15 @@ let dadosAtuais = null;
                 return localizarItemWixPorNome(nomeHotel).item;
             }
 
+            function localizarItemWixPorId(idWix) {
+                if (!csvWix) return null;
+                const idAlvo = String(idWix ?? '').trim();
+                if (!idAlvo) return null;
+                return csvWix.data.find(
+                    item => String(item.ID ?? '').trim() === idAlvo
+                ) || null;
+            }
+
             function obterNomesColunasCsv() {
                 const colunas = {
                     regime: document.getElementById('colunaRegimeCsv').value.trim(),
@@ -254,10 +263,10 @@ let dadosAtuais = null;
                         }
                     });
 
-                    let linha = csvWix.data.find(item => item.ID === registro.ID);
+                    let linha = localizarItemWixPorId(registro.ID);
                     if (!linha) {
                         if (tinhaIdInformado) {
-                            alert('O ID informado não existe no CSV. Apague o ID para cadastrar como hotel novo.');
+                            alert('ID ' + registro.ID + ' não encontrado no CSV do Wix.');
                             return false;
                         }
 
@@ -374,4 +383,13 @@ let dadosAtuais = null;
                     btn.disabled = false;
                     btn.innerHTML = textoOriginal;
                 }
+            }
+
+            if (typeof module !== 'undefined' && module.exports) {
+                module.exports = {
+                    normalizarNome,
+                    localizarItemWixPorNome,
+                    localizarItemWixPorId,
+                    __definirCsvWixParaTestes: (dados) => { csvWix = dados; }
+                };
             }

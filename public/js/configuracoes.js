@@ -1,5 +1,101 @@
 let diretoriosPadrao = null;
 
+const CHAVE_COORDENADAS_AEROPORTO = 'garimpu-coordenadas-aeroporto';
+const COORDENADAS_AEROPORTO_PADRAO = Object.freeze({
+    latitude: -14.815,
+    longitude: -39.0333
+});
+
+function definirStatusCoordenadasAeroporto(mensagem, tipo = 'neutro') {
+    const status = document.getElementById('statusCoordenadasAeroporto');
+    if (!status) return;
+    status.textContent = mensagem;
+    status.className = 'mt-3 text-sm ' + (
+        tipo === 'erro'
+            ? 'app-status-danger'
+            : tipo === 'sucesso'
+                ? 'app-status-success'
+                : 'app-text-subtle'
+    );
+}
+
+function lerCoordenadasAeroportoSalvas() {
+    try {
+        const bruto = localStorage.getItem(CHAVE_COORDENADAS_AEROPORTO);
+        if (!bruto) return null;
+        const dados = JSON.parse(bruto);
+        const latitude = Number(dados.latitude);
+        const longitude = Number(dados.longitude);
+        if (
+            !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
+            !Number.isFinite(longitude) || longitude < -180 || longitude > 180
+        ) {
+            return null;
+        }
+        return { latitude, longitude };
+    } catch {
+        return null;
+    }
+}
+
+function carregarCoordenadasAeroporto() {
+    const salvas = lerCoordenadasAeroportoSalvas();
+    if (!salvas) return;
+    document.getElementById('latitudeReferenciaInput').value = salvas.latitude;
+    document.getElementById('longitudeReferenciaInput').value = salvas.longitude;
+    definirStatusCoordenadasAeroporto('Coordenadas salvas carregadas.');
+}
+
+function salvarCoordenadasAeroporto() {
+    const latitude = Number(
+        document.getElementById('latitudeReferenciaInput').value
+    );
+    const longitude = Number(
+        document.getElementById('longitudeReferenciaInput').value
+    );
+
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+        definirStatusCoordenadasAeroporto(
+            'Digite uma latitude válida, entre -90 e 90.',
+            'erro'
+        );
+        return;
+    }
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+        definirStatusCoordenadasAeroporto(
+            'Digite uma longitude válida, entre -180 e 180.',
+            'erro'
+        );
+        return;
+    }
+
+    try {
+        localStorage.setItem(
+            CHAVE_COORDENADAS_AEROPORTO,
+            JSON.stringify({ latitude, longitude })
+        );
+        definirStatusCoordenadasAeroporto(
+            'Coordenadas salvas. Serão usadas automaticamente nas próximas pesquisas.',
+            'sucesso'
+        );
+    } catch (erro) {
+        definirStatusCoordenadasAeroporto(
+            'Não foi possível salvar as coordenadas: ' + erro.message,
+            'erro'
+        );
+    }
+}
+
+function restaurarCoordenadasAeroportoPadrao() {
+    document.getElementById('latitudeReferenciaInput').value =
+        COORDENADAS_AEROPORTO_PADRAO.latitude;
+    document.getElementById('longitudeReferenciaInput').value =
+        COORDENADAS_AEROPORTO_PADRAO.longitude;
+    definirStatusCoordenadasAeroporto(
+        'Coordenadas padrão restauradas. Clique em “Salvar” para aplicar.'
+    );
+}
+
 function definirStatusDiretorios(mensagem, tipo = 'neutro') {
     const status = document.getElementById('statusDiretorios');
     status.textContent = mensagem;
@@ -144,3 +240,4 @@ async function salvarDiretorios() {
 }
 
 carregarDiretorios();
+carregarCoordenadasAeroporto();

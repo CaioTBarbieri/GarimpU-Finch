@@ -1,4 +1,95 @@
             let pesquisaLoteEmAndamento = false;
+            const idsPorLinhaLote = new Map();
+
+            function aguardarMs(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            // Disparar uma pesquisa atrás da outra sem pausa é o padrão que
+            // mais chama atenção da proteção antibot da Booking/Expedia
+            // (CAPTCHA). Um intervalo variável entre hotéis imita melhor um
+            // uso manual e reduz a chance de bloqueio no meio de um lote.
+            function calcularIntervaloEntreBuscasLote() {
+                const minimoMs = 4000;
+                const variacaoMs = 4000;
+                return minimoMs + Math.floor(Math.random() * variacaoMs);
+            }
+
+            function dividirLinhasBrutasLote(valor) {
+                return String(valor || '')
+                    .replace(/\u00a0/g, ' ')
+                    .split(/\r\n?|\n/);
+            }
+
+            function combinarListaEIdsLote(valor) {
+                return dividirLinhasBrutasLote(valor)
+                    .map((linhaBruta, indice) => {
+                        const numeroLinha = indice + 1;
+                        const linha = linhaBruta.replace(/[ \t]+/g, ' ').trim();
+                        if (!linha || linha.includes('|')) return linhaBruta;
+
+                        const idAssociado = (idsPorLinhaLote.get(numeroLinha) || '').trim();
+                        return idAssociado ? idAssociado + ' | ' + linha : linhaBruta;
+                    })
+                    .join('\n');
+            }
+
+            function atualizarPainelIdsLote() {
+                const container = document.getElementById('idsLoteContainer');
+                if (!container) return;
+
+                const valor = document.getElementById('listaHoteisInput').value;
+                const linhas = dividirLinhasBrutasLote(valor);
+                const numerosAtivos = new Set();
+
+                linhas.forEach((linhaBruta, indice) => {
+                    const numeroLinha = indice + 1;
+                    const linha = linhaBruta.replace(/[ \t]+/g, ' ').trim();
+                    if (!linha || linha.includes('|')) return;
+
+                    numerosAtivos.add(numeroLinha);
+
+                    let linhaEl = container.querySelector(
+                        '[data-linha="' + numeroLinha + '"]'
+                    );
+                    if (!linhaEl) {
+                        linhaEl = document.createElement('div');
+                        linhaEl.dataset.linha = String(numeroLinha);
+                        linhaEl.className = 'lote-id-row';
+
+                        const label = document.createElement('span');
+                        label.className = 'lote-id-row-label';
+                        linhaEl.appendChild(label);
+
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.className = 'app-input lote-id-row-input';
+                        input.placeholder = 'ID do Wix (opcional)';
+                        input.value = idsPorLinhaLote.get(numeroLinha) || '';
+                        input.addEventListener('input', () => {
+                            const idDigitado = input.value.trim();
+                            if (idDigitado) {
+                                idsPorLinhaLote.set(numeroLinha, idDigitado);
+                            } else {
+                                idsPorLinhaLote.delete(numeroLinha);
+                            }
+                            atualizarContadorEntradaLote();
+                        });
+                        linhaEl.appendChild(input);
+                    }
+
+                    linhaEl.querySelector('.lote-id-row-label').textContent = linha;
+                    container.appendChild(linhaEl);
+                });
+
+                Array.from(container.children).forEach((linhaEl) => {
+                    const numeroLinha = Number(linhaEl.dataset.linha);
+                    if (!numerosAtivos.has(numeroLinha)) {
+                        idsPorLinhaLote.delete(numeroLinha);
+                        linhaEl.remove();
+                    }
+                });
+            }
 
             function normalizarEntradasLote(valor) {
                 const entradas = String(valor || '')
@@ -9,13 +100,128 @@
                 return Array.from(new Set(entradas));
             }
 
+            function parsearEntradasLote(valor) {
+                const linhas = String(valor || '')
+                    .replace(/\u00a0/g, ' ')
+                    .split(/\r\n?|\n/);
+
+                const entradas = [];
+
+                linhas.forEach((linhaBruta, indice) => {
+                    const numeroLinha = indice + 1;
+                    const linha = linhaBruta.replace(/[ \t]+/g, ' ').trim();
+                    if (!linha) return;
+
+                    const indiceSeparador = linha.indexOf('|');
+                    if (indiceSeparador === -1) {
+                        entradas.push({
+                            idWix: '',
+                            consulta: linha,
+                            textoOriginal: linha,
+                            numeroLinha
+                        });
+                        return;
+                    }
+
+                    const idParte = linha.slice(0, indiceSeparador).trim();
+                    const consultaParte = linha.slice(indiceSeparador + 1).trim();
+
+                    if (!idParte || !consultaParte) {
+                        throw new Error(
+                            'Linha ' + numeroLinha +
+                            ' inválida: informe o ID antes do separador e o hotel depois dele.'
+                        );
+                    }
+
+                    entradas.push({
+                        idWix: idParte,
+                        consulta: consultaParte,
+                        textoOriginal: linha,
+                        numeroLinha
+                    });
+                });
+
+                return entradas;
+            }
+
+            function prepararEntradasLotePesquisa(valor) {
+                const entradas = parsearEntradasLote(valor);
+                const resultado = [];
+                const vistosSemId = new Set();
+                const mapaPorId = new Map();
+                const conflitosPorId = new Map();
+
+                entradas.forEach((entrada) => {
+                    if (!entrada.idWix) {
+                        if (vistosSemId.has(entrada.consulta)) return;
+                        vistosSemId.add(entrada.consulta);
+                        resultado.push(entrada);
+                        return;
+                    }
+
+                    if (!mapaPorId.has(entrada.idWix)) {
+                        mapaPorId.set(entrada.idWix, entrada);
+                        resultado.push(entrada);
+                        return;
+                    }
+
+                    const existente = mapaPorId.get(entrada.idWix);
+                    if (existente.consulta === entrada.consulta) return;
+
+                    if (!conflitosPorId.has(entrada.idWix)) {
+                        conflitosPorId.set(
+                            entrada.idWix,
+                            new Set([existente.numeroLinha])
+                        );
+                    }
+                    conflitosPorId.get(entrada.idWix).add(entrada.numeroLinha);
+                });
+
+                if (conflitosPorId.size > 0) {
+                    const mensagens = Array.from(conflitosPorId.entries()).map(
+                        ([idWix, linhas]) => {
+                            const linhasOrdenadas = Array.from(linhas).sort(
+                                (a, b) => a - b
+                            );
+                            return 'ID ' + idWix +
+                                ' associado a consultas diferentes nas linhas ' +
+                                linhasOrdenadas.join(', ') + '.';
+                        }
+                    );
+                    throw new Error(
+                        'Conflito de ID na pesquisa em lote: ' +
+                        mensagens.join(' ')
+                    );
+                }
+
+                return resultado;
+            }
+
+            function contarEntradasLote(valor) {
+                const linhas = String(valor || '')
+                    .replace(/\u00a0/g, ' ')
+                    .split(/\r\n?|\n/)
+                    .map(linha => linha.replace(/[ \t]+/g, ' ').trim())
+                    .filter(Boolean);
+
+                let comId = 0;
+                linhas.forEach((linha) => {
+                    const indiceSeparador = linha.indexOf('|');
+                    if (indiceSeparador === -1) return;
+                    if (linha.slice(0, indiceSeparador).trim()) comId += 1;
+                });
+
+                return { total: linhas.length, comId };
+            }
+
             function atualizarContadorEntradaLote() {
-                const entradas = normalizarEntradasLote(
+                const valorCombinado = combinarListaEIdsLote(
                     document.getElementById('listaHoteisInput').value
                 );
-                const total = entradas.length;
-                document.getElementById('contadorEntradaLote').textContent =
-                    total + (total === 1 ? ' hotel' : ' hotéis');
+                const { total, comId } = contarEntradasLote(valorCombinado);
+                const texto = total + (total === 1 ? ' hotel' : ' hotéis') +
+                    (comId > 0 ? ' • ' + comId + ' com ID do Wix' : '');
+                document.getElementById('contadorEntradaLote').textContent = texto;
             }
 
             function atualizarMensagemPesquisa(mensagem = '', tipo = 'neutro') {
@@ -281,9 +487,16 @@
             async function pesquisarHoteisEmLote() {
                 if (pesquisaLoteEmAndamento) return;
 
-                const hoteis = normalizarEntradasLote(
+                const valorLista = combinarListaEIdsLote(
                     document.getElementById('listaHoteisInput').value
                 );
+                let hoteis;
+                try {
+                    hoteis = prepararEntradasLotePesquisa(valorLista);
+                } catch (erro) {
+                    alert(erro.message);
+                    return;
+                }
                 const baixarImagens = document.getElementById(
                     'baixarImagensLoteInput'
                 ).checked;
@@ -345,6 +558,8 @@
                     'colunaDistanciaCsv'
                 ].map(id => document.getElementById(id));
 
+                const rotuloId = (idWix) => idWix ? '[' + idWix + '] ' : '';
+
                 pesquisaLoteEmAndamento = true;
                 btn.disabled = true;
                 btnBuscar.disabled = true;
@@ -366,15 +581,21 @@
                 try {
                     for (let indice = 0; indice < hoteis.length; indice++) {
                         const entrada = hoteis[indice];
-                        textoStatus.textContent = baixarImagens
-                            ? 'Pesquisando e baixando imagens: ' + entrada
-                            : 'Pesquisando: ' + entrada;
+                        const textoBaseStatus = baixarImagens
+                            ? 'Pesquisando e baixando imagens'
+                            : 'Pesquisando';
+                        const sufixoIdStatus = entrada.idWix
+                            ? ' [' + entrada.idWix + ']'
+                            : '';
+                        textoStatus.textContent =
+                            textoBaseStatus + sufixoIdStatus + ': ' + entrada.consulta;
                         contador.textContent = indice + ' de ' + hoteis.length;
                         barra.style.width = ((indice / hoteis.length) * 100) + '%';
 
                         const linhaResultado = document.createElement('p');
                         linhaResultado.className = 'app-text-muted';
-                        linhaResultado.textContent = '⏳ ' + entrada;
+                        linhaResultado.textContent =
+                            '⏳ ' + rotuloId(entrada.idWix) + entrada.consulta;
                         resultados.appendChild(linhaResultado);
                         let dadosLocalizacao = null;
 
@@ -394,7 +615,7 @@
                                     },
                                     signal: controlador.signal,
                                     body: JSON.stringify({
-                                        nome: entrada,
+                                        nome: entrada.consulta,
                                         baixarImagens,
                                         latitudeReferencia,
                                         longitudeReferencia
@@ -418,22 +639,46 @@
                             dadosAtuais = dados;
                             dadosAtuais.idWix = '';
                             dadosLocalizacao = dados;
+                            const fonteTexto = dados.fonte ? ' • ' + dados.fonte : '';
+
                             if (baixarImagens) {
+                                if (entrada.idWix) dadosAtuais.idWix = entrada.idWix;
                                 baixados += 1;
                                 linhaResultado.className = 'app-status-success';
                                 linhaResultado.textContent =
-                                    '✓ ' + dados.nome + ': imagens baixadas';
+                                    '✓ ' + rotuloId(entrada.idWix) + dados.nome +
+                                    ': imagens baixadas' + fonteTexto;
                             } else {
-                                if (csvWix) {
+                                if (entrada.idWix) {
+                                    dadosAtuais.idWix = entrada.idWix;
+                                    if (csvWix) {
+                                        const itemWix = localizarItemWixPorId(entrada.idWix);
+                                        if (!itemWix) {
+                                            throw Object.assign(
+                                                new Error('ID não encontrado no CSV do Wix.'),
+                                                { ignorado: true }
+                                            );
+                                        }
+                                    }
+                                } else if (csvWix) {
                                     const localizacaoWix = localizarItemWixPorNome(dados.nome);
                                     if (!localizacaoWix.item) {
                                         const motivo = localizacaoWix.motivo === 'repetido'
                                             ? 'mais de uma correspondência encontrada no CSV'
                                             : 'hotel não encontrado no CSV';
-                                        throw new Error('Ignorado: ' + motivo + '.');
+                                        throw Object.assign(
+                                            new Error(entrada.consulta + ': ' + motivo + '.'),
+                                            { ignorado: true }
+                                        );
                                     }
                                     if (!localizacaoWix.item.ID) {
-                                        throw new Error('Ignorado: hotel encontrado sem ID no CSV.');
+                                        throw Object.assign(
+                                            new Error(
+                                                entrada.consulta +
+                                                ': hotel encontrado sem ID no CSV.'
+                                            ),
+                                            { ignorado: true }
+                                        );
                                     }
                                     dadosAtuais.idWix = localizacaoWix.item.ID;
                                 }
@@ -444,17 +689,21 @@
 
                                 adicionados += 1;
                                 linhaResultado.className = 'app-status-success';
-                                linhaResultado.textContent = '✓ ' + dados.nome;
+                                linhaResultado.textContent =
+                                    '✓ ' + rotuloId(entrada.idWix) + dados.nome + fonteTexto;
                             }
                         } catch (erro) {
-                            if (erro.message.startsWith('Ignorado:')) {
+                            if (erro.ignorado) {
                                 ignorados += 1;
                                 linhaResultado.className = 'app-status-warning';
-                                linhaResultado.textContent = '↷ ' + entrada + ': ' + erro.message;
+                                linhaResultado.textContent =
+                                    '↷ ' + rotuloId(entrada.idWix) + erro.message;
                             } else {
                                 erros += 1;
                                 linhaResultado.className = 'app-status-danger';
-                                linhaResultado.textContent = '✕ ' + entrada + ': ' + erro.message;
+                                linhaResultado.textContent =
+                                    '✕ ' + rotuloId(entrada.idWix) + entrada.consulta +
+                                    ': ' + erro.message;
                             }
                         }
                         if (dadosLocalizacao) {
@@ -467,6 +716,14 @@
                         contador.textContent = (indice + 1) + ' de ' + hoteis.length;
                         barra.style.width = (((indice + 1) / hoteis.length) * 100) + '%';
                         resultados.scrollTop = resultados.scrollHeight;
+
+                        if (indice < hoteis.length - 1) {
+                            const intervaloMs = calcularIntervaloEntreBuscasLote();
+                            textoStatus.textContent =
+                                'Aguardando ' + Math.round(intervaloMs / 1000) +
+                                's antes da próxima pesquisa...';
+                            await aguardarMs(intervaloMs);
+                        }
                     }
 
                     textoStatus.textContent = baixarImagens
@@ -493,7 +750,12 @@
             }
 
             if (typeof module !== 'undefined' && module.exports) {
-                module.exports = { normalizarEntradasLote };
+                module.exports = {
+                    normalizarEntradasLote,
+                    parsearEntradasLote,
+                    prepararEntradasLotePesquisa,
+                    contarEntradasLote
+                };
             }
             
            async function iniciarBusca() {

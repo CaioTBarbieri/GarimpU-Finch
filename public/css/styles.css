@@ -780,6 +780,47 @@ details[open] > summary .details-chevron {
     padding: 0.35rem 0.625rem;
 }
 
+.lote-ids-panel {
+    max-height: 22rem;
+    overflow-y: auto;
+}
+
+.lote-id-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.lote-id-list:empty::before {
+    content: "Nenhum hotel digitado ainda.";
+    color: var(--text-subtle);
+    font-size: 0.75rem;
+}
+
+.lote-id-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    border: 1px solid var(--border);
+    border-radius: 0.625rem;
+    background: var(--surface);
+    padding: 0.5rem 0.625rem;
+}
+
+.lote-id-row-label {
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lote-id-row-input {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.8125rem;
+}
+
 .ia-section {
     border-color: rgb(var(--ai-rgb) / 36%);
 }
@@ -1731,6 +1772,91 @@ code,
 
 .palette-swatch:nth-child(5) {
     --swatch-color: var(--swatch-5);
+}
+
+.terminal-connection-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-soft);
+    padding: 0.4rem 0.85rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.terminal-connection-status .status-pulse {
+    margin-top: 0;
+    background: var(--warning);
+    box-shadow: 0 0 0 3px rgb(var(--warning-rgb) / 12%);
+}
+
+.terminal-connection-status[data-estado="conectado"] .status-pulse {
+    background: var(--success);
+    box-shadow: 0 0 0 3px rgb(var(--success-rgb) / 12%);
+    animation: terminal-pulse 1.8s ease-in-out infinite;
+}
+
+.terminal-connection-status[data-estado="desconectado"] .status-pulse {
+    background: var(--danger);
+    box-shadow: 0 0 0 3px rgb(var(--danger-rgb) / 12%);
+    animation: none;
+}
+
+@keyframes terminal-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.35;
+    }
+}
+
+.terminal-log {
+    height: 26rem;
+    max-height: 55vh;
+    overflow-y: auto;
+    border-radius: 0.875rem;
+    background: rgb(var(--surface-deep-rgb) / 88%);
+    padding: 0.9rem 1rem;
+    font-family: var(--font-data);
+    font-size: 0.8rem;
+    line-height: 1.55rem;
+}
+
+.terminal-log-empty {
+    color: var(--text-subtle);
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+}
+
+.terminal-line {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.terminal-line-time {
+    flex: 0 0 auto;
+    color: var(--text-subtle);
+}
+
+.terminal-line-message {
+    min-width: 0;
+}
+
+.terminal-line-warn .terminal-line-message {
+    color: var(--warning);
+}
+
+.terminal-line-error .terminal-line-message {
+    color: var(--danger);
 }
 
 @media (min-width: 640px) {

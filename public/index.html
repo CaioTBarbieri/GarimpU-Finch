@@ -65,6 +65,14 @@
                 </svg>
                 <span>Organização IA</span>
             </button>
+            <button type="button" class="app-tab" data-tab-button="terminal" aria-pressed="false" onclick="selecionarAba('terminal')">
+                <svg class="app-tab-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="m7 9 3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M13 15h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <span>Terminal</span>
+            </button>
             <button type="button" class="app-tab" data-tab-button="configuracoes" aria-pressed="false" onclick="selecionarAba('configuracoes')">
                 <svg class="app-tab-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -115,7 +123,10 @@
                 <p class="section-kicker">Consulta individual</p>
                 <h2 id="tituloPesquisa" class="section-title">Pesquisar hotel</h2>
                 <p class="section-description">
-                    Digite o nome do hotel ou cole um link da Booking.com para buscar os dados.
+                    Digite o nome do hotel ou cole um link da Booking ou da Expedia para buscar os dados.
+                </p>
+                <p class="section-description">
+                    A Booking será consultada primeiro. Se necessário, o GarimpU tentará a Expedia.
                 </p>
             </div>
 
@@ -127,7 +138,7 @@
                     <input
                         id="hotelInput"
                         type="text"
-                        placeholder="Ex.: Hotel Atlântico ou link da Booking"
+                        placeholder="Ex.: Hotel Atlântico ou link da Booking/Expedia"
                         class="app-input"
                         onkeypress="if(event.key === 'Enter') iniciarBusca()"
                     >
@@ -191,22 +202,40 @@
                 <span class="details-chevron" aria-hidden="true">⌄</span>
             </summary>
             <div class="details-content">
-                <div class="mb-2 flex items-center justify-between gap-3">
-                    <label for="listaHoteisInput" class="app-text-secondary text-sm font-medium">
-                        Um hotel ou link por linha
-                    </label>
-                    <span id="contadorEntradaLote" class="app-text-subtle text-xs">0 hotéis</span>
+                <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
+                    <div>
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                            <label for="listaHoteisInput" class="app-text-secondary text-sm font-medium">
+                                Um hotel ou link por linha
+                            </label>
+                            <span id="contadorEntradaLote" class="app-text-subtle text-xs">0 hotéis</span>
+                        </div>
+                        <textarea
+                            id="listaHoteisInput"
+                            rows="7"
+                            placeholder="Pousada Pedra da Pipa&#10;Hotel Sombra e Água Fresca&#10;https://www.booking.com/hotel/..."
+                            class="app-input min-h-44 resize-y"
+                            oninput="atualizarContadorEntradaLote(); atualizarPainelIdsLote();"
+                        ></textarea>
+                        <p class="app-text-subtle mt-2 text-xs">
+                            Informe um hotel por linha, usando o nome, um link ou apenas o ID do Wix.
+                        </p>
+                        <p class="app-text-subtle mt-1 text-xs">
+                            Quando um ID do Wix for informado ao lado, ele será usado diretamente e a
+                            correspondência automática por nome não será executada.
+                        </p>
+                        <p class="app-text-subtle mt-1 text-xs">
+                            Espaços extras e linhas vazias são ignorados automaticamente.
+                        </p>
+                    </div>
+                    <div class="lote-ids-panel app-divider app-surface-deep rounded-xl border p-3">
+                        <p class="app-text-secondary text-xs font-medium">IDs do Wix (opcional)</p>
+                        <p class="app-text-subtle mt-1 text-xs">
+                            Uma linha aparece aqui para cada hotel digitado.
+                        </p>
+                        <div id="idsLoteContainer" class="lote-id-list mt-3"></div>
+                    </div>
                 </div>
-                <textarea
-                    id="listaHoteisInput"
-                    rows="7"
-                    placeholder="Hotel Exemplo 1&#10;Hotel Exemplo 2&#10;https://www.booking.com/hotel/..."
-                    class="app-input min-h-44 resize-y"
-                    oninput="atualizarContadorEntradaLote()"
-                ></textarea>
-                <p class="app-text-subtle mt-2 text-xs">
-                    Espaços extras e linhas vazias são ignorados automaticamente.
-                </p>
                 <label class="app-divider app-surface-deep app-text-secondary mt-4 flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm">
                     <input
                         id="baixarImagensLoteInput"
@@ -544,6 +573,25 @@
                     <p class="app-text-subtle mt-3 text-xs leading-5">
                         Usadas somente quando a Booking.com não informa a distância do aeroporto.
                     </p>
+                    <div class="app-divider mt-5 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:flex-wrap">
+                        <button
+                            id="btnRestaurarCoordenadasAeroporto"
+                            type="button"
+                            class="app-button app-button-tertiary"
+                            onclick="restaurarCoordenadasAeroportoPadrao()"
+                        >
+                            Restaurar padrão
+                        </button>
+                        <button
+                            id="btnSalvarCoordenadasAeroporto"
+                            type="button"
+                            class="app-button app-button-primary sm:ml-auto"
+                            onclick="salvarCoordenadasAeroporto()"
+                        >
+                            Salvar
+                        </button>
+                    </div>
+                    <p id="statusCoordenadasAeroporto" class="app-text-subtle mt-3 text-sm" role="status" aria-live="polite"></p>
                 </article>
 
                 <article class="configuration-card">
@@ -840,6 +888,42 @@
             </nav>
         </section>
 
+        <!-- Terminal -->
+        <section class="app-card" aria-labelledby="tituloTerminal" data-tab-panel="terminal" hidden>
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <p class="section-kicker">Atividade em tempo real</p>
+                    <h2 id="tituloTerminal" class="section-title">Terminal</h2>
+                    <p class="section-description">
+                        Acompanha o que o scraper está fazendo agora: qual fonte está tentando (Booking ou Expedia), se conseguiu e eventuais erros.
+                    </p>
+                </div>
+                <div class="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center">
+                    <span id="terminalStatusConexao" class="terminal-connection-status" data-estado="conectando">
+                        <span class="status-pulse" aria-hidden="true"></span>
+                        <span id="terminalStatusConexaoTexto">Conectando...</span>
+                    </span>
+                    <button
+                        id="btnLimparTerminal"
+                        type="button"
+                        onclick="limparTerminal()"
+                        class="app-button app-button-tertiary w-full sm:w-auto"
+                    >
+                        Limpar
+                    </button>
+                </div>
+            </div>
+            <div
+                id="terminalLog"
+                class="terminal-log app-divider mt-5 border-t pt-4"
+                role="log"
+                aria-live="polite"
+                aria-label="Log de atividade do scraper"
+            >
+                <p class="terminal-log-empty">Nenhuma mensagem ainda.</p>
+            </div>
+        </section>
+
         <!-- Resultado -->
         <section id="resultadoContainer" class="hidden space-y-6" aria-labelledby="tituloResultado" data-tab-panel="pesquisa">
             <div class="app-card">
@@ -995,5 +1079,6 @@
     <script src="/js/organizacao.js"></script>
     <script src="/js/galeria.js"></script>
     <script src="/js/busca.js"></script>
+    <script src="/js/terminal.js"></script>
 </body>
 </html>
