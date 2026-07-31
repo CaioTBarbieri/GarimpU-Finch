@@ -20,7 +20,8 @@ let dadosAtuais = null;
                     csvWix &&
                     arquivoCsvWixNome &&
                     opcao.checked &&
-                    abaAtiva !== 'configuracoes'
+                    abaAtiva !== 'configuracoes' &&
+                    abaAtiva !== 'loja'
                 );
 
                 contexto.classList.toggle('hidden', !deveExibir);

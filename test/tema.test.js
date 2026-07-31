@@ -48,24 +48,29 @@ const TODAS_PALETAS = [
   "vulcanico",
   "boreal",
   "singularidade",
+  "aurora",
+  "tempestade",
+  "dimensao",
+  "pulsar",
+  "supernova",
+  "noir",
+  "oceano",
+  "cyberpunk",
+  "tempo",
 ];
-const PALETAS_EXTRAS = [
-  "esmeralda",
-  "galaxia",
-  "sakura",
-  "titanio",
-  "vulcanico",
-  "boreal",
-  "singularidade",
-];
+const PALETAS_ESTATICAS = ["dourado", "ametista", "esmeralda", "boreal"];
 
 function criarAmbiente({ localStorageComErro = false, paletaSalva = null } = {}) {
   const radiosPaleta = TODAS_PALETAS.map((valor) =>
     criarElemento({ tipo: "radio", valor }),
   );
   const opcoesPaleta = TODAS_PALETAS.map((valor) => ({
-    dataset: { paletteValue: valor, selected: "false" },
-    hidden: PALETAS_EXTRAS.includes(valor),
+    dataset: {
+      paletteValue: valor,
+      paletteCategoria: PALETAS_ESTATICAS.includes(valor) ? "estatica" : "animada",
+      selected: "false",
+    },
+    hidden: true,
   }));
 
   const radiosFonte = ["classico", "moderno", "tecnologico", "editorial"]
@@ -85,21 +90,22 @@ function criarAmbiente({ localStorageComErro = false, paletaSalva = null } = {})
     eventosDisparados: [],
   };
 
-  const rotuloBotaoExtras = { textContent: "" };
-  const botaoExtras = {
-    _atributos: { "aria-expanded": "false" },
-    setAttribute(nome, valor) {
-      this._atributos[nome] = valor;
-    },
-    getAttribute(nome) {
-      return Object.prototype.hasOwnProperty.call(this._atributos, nome)
-        ? this._atributos[nome]
-        : null;
-    },
-    querySelector(seletor) {
-      return seletor === "[data-toggle-label]" ? rotuloBotaoExtras : null;
-    },
-  };
+  function criarBotaoFiltro() {
+    return {
+      _atributos: { "aria-pressed": "false" },
+      setAttribute(nome, valor) {
+        this._atributos[nome] = valor;
+      },
+      getAttribute(nome) {
+        return Object.prototype.hasOwnProperty.call(this._atributos, nome)
+          ? this._atributos[nome]
+          : null;
+      },
+    };
+  }
+
+  const botaoFiltroAnimada = criarBotaoFiltro();
+  const botaoFiltroEstatica = criarBotaoFiltro();
 
   const document = {
     readyState: "complete",
@@ -108,16 +114,14 @@ function criarAmbiente({ localStorageComErro = false, paletaSalva = null } = {})
       eventListeners.set(nome, callback);
     },
     getElementById(id) {
-      return id === "btnAlternarPaletasExtras" ? botaoExtras : null;
+      if (id === "btnFiltroPaletaAnimada") return botaoFiltroAnimada;
+      if (id === "btnFiltroPaletaEstatica") return botaoFiltroEstatica;
+      return null;
     },
     querySelectorAll(seletor) {
       if (seletor === 'input[name="paletaAplicacao"]') return radiosPaleta;
       if (seletor === "[data-palette-value]") return opcoesPaleta;
-      if (seletor === "[data-palette-extra]") {
-        return opcoesPaleta.filter((opcao) =>
-          PALETAS_EXTRAS.includes(opcao.dataset.paletteValue),
-        );
-      }
+      if (seletor === "[data-palette-categoria]") return opcoesPaleta;
       if (seletor === 'input[name="fonteAplicacao"]') return radiosFonte;
       if (seletor === "[data-font-value]") return opcoesFonte;
       return [];
@@ -146,8 +150,8 @@ function criarAmbiente({ localStorageComErro = false, paletaSalva = null } = {})
     opcoesFonte,
     documentElement,
     localStorage,
-    botaoExtras,
-    rotuloBotaoExtras,
+    botaoFiltroAnimada,
+    botaoFiltroEstatica,
   };
 }
 
@@ -311,41 +315,39 @@ test("preserva as APIs globais existentes", () => {
   assert.equal(sandbox.window.garimpuTema.fontePadrao, "classico");
 });
 
-test("paletas extras começam ocultas quando a paleta salva é uma das quatro originais", () => {
-  const { opcoesPaleta, botaoExtras, rotuloBotaoExtras } = criarAmbiente();
-  const extras = opcoesPaleta.filter((opcao) =>
-    PALETAS_EXTRAS.includes(opcao.dataset.paletteValue),
-  );
-  assert.ok(extras.every((opcao) => opcao.hidden === true));
-  assert.equal(botaoExtras.getAttribute("aria-expanded"), "false");
-  assert.equal(rotuloBotaoExtras.textContent, "Ver mais paletas");
+test("paleta estática salva abre o filtro de temas estáticos", () => {
+  const { opcoesPaleta, botaoFiltroAnimada, botaoFiltroEstatica } = criarAmbiente();
+  assert.ok(opcoesPaleta
+    .filter((opcao) => opcao.dataset.paletteCategoria === "estatica")
+    .every((opcao) => opcao.hidden === false));
+  assert.ok(opcoesPaleta
+    .filter((opcao) => opcao.dataset.paletteCategoria === "animada")
+    .every((opcao) => opcao.hidden === true));
+  assert.equal(botaoFiltroAnimada.getAttribute("aria-pressed"), "false");
+  assert.equal(botaoFiltroEstatica.getAttribute("aria-pressed"), "true");
 });
 
-test("paletas extras já iniciam visíveis quando a paleta salva é uma delas", () => {
-  const { opcoesPaleta, botaoExtras, rotuloBotaoExtras } = criarAmbiente({
+test("paleta animada salva abre o filtro de temas animados", () => {
+  const { opcoesPaleta, botaoFiltroAnimada, botaoFiltroEstatica } = criarAmbiente({
     paletaSalva: "sakura",
   });
-  const extras = opcoesPaleta.filter((opcao) =>
-    PALETAS_EXTRAS.includes(opcao.dataset.paletteValue),
-  );
-  assert.ok(extras.every((opcao) => opcao.hidden === false));
-  assert.equal(botaoExtras.getAttribute("aria-expanded"), "true");
-  assert.equal(rotuloBotaoExtras.textContent, "Ver menos paletas");
+  assert.ok(opcoesPaleta
+    .filter((opcao) => opcao.dataset.paletteCategoria === "animada")
+    .every((opcao) => opcao.hidden === false));
+  assert.ok(opcoesPaleta
+    .filter((opcao) => opcao.dataset.paletteCategoria === "estatica")
+    .every((opcao) => opcao.hidden === true));
+  assert.equal(botaoFiltroAnimada.getAttribute("aria-pressed"), "true");
+  assert.equal(botaoFiltroEstatica.getAttribute("aria-pressed"), "false");
 });
 
-test("alternarPaletasExtras alterna a visibilidade e o rótulo do botão", () => {
-  const { sandbox, opcoesPaleta, botaoExtras, rotuloBotaoExtras } = criarAmbiente();
-  const extras = opcoesPaleta.filter((opcao) =>
-    PALETAS_EXTRAS.includes(opcao.dataset.paletteValue),
-  );
-
-  sandbox.window.alternarPaletasExtras();
-  assert.ok(extras.every((opcao) => opcao.hidden === false));
-  assert.equal(botaoExtras.getAttribute("aria-expanded"), "true");
-  assert.equal(rotuloBotaoExtras.textContent, "Ver menos paletas");
-
-  sandbox.window.alternarPaletasExtras();
-  assert.ok(extras.every((opcao) => opcao.hidden === true));
-  assert.equal(botaoExtras.getAttribute("aria-expanded"), "false");
-  assert.equal(rotuloBotaoExtras.textContent, "Ver mais paletas");
+test("definirFiltroPaletas alterna a categoria visível", () => {
+  const { sandbox, opcoesPaleta } = criarAmbiente();
+  sandbox.window.garimpuTema.definirFiltroPaletas("animada");
+  assert.ok(opcoesPaleta
+    .filter((opcao) => opcao.dataset.paletteCategoria === "animada")
+    .every((opcao) => opcao.hidden === false));
+  assert.ok(opcoesPaleta
+    .filter((opcao) => opcao.dataset.paletteCategoria === "estatica")
+    .every((opcao) => opcao.hidden === true));
 });

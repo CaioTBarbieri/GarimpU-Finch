@@ -15,17 +15,22 @@
         'boreal',
         'singularidade',
         'aurora',
+        'tempestade',
+        'dimensao',
+        'pulsar',
+        'supernova',
+        'noir',
+        'oceano',
+        'cyberpunk',
+        'tempo',
     ]);
 
-    const PALETAS_EXTRAS = Object.freeze([
+    const CHAVE_FILTRO_PALETA = 'garimpu-filtro-paleta';
+    const PALETAS_ESTATICAS = Object.freeze([
+        'dourado',
+        'ametista',
         'esmeralda',
-        'galaxia',
-        'sakura',
-        'titanio',
-        'vulcanico',
         'boreal',
-        'singularidade',
-        'aurora',
     ]);
 
     const CHAVE_FONTE = 'garimpu-fonte';
@@ -113,29 +118,48 @@
             });
     }
 
-    function definirPaletasExtrasVisiveis(visivel) {
-        document
-            .querySelectorAll('[data-palette-extra]')
-            .forEach((opcao) => {
-                opcao.hidden = !visivel;
-            });
+    function validarCategoriaPaleta(valor) {
+        return valor === 'estatica' ? 'estatica' : 'animada';
+    }
 
-        const botao = document.getElementById('btnAlternarPaletasExtras');
-        if (!botao) return;
+    function categoriaDaPaleta(paleta) {
+        return PALETAS_ESTATICAS.includes(paleta) ? 'estatica' : 'animada';
+    }
 
-        botao.setAttribute('aria-expanded', String(visivel));
-        const rotulo = botao.querySelector('[data-toggle-label]');
-        if (rotulo) {
-            rotulo.textContent = visivel
-                ? 'Ver menos paletas'
-                : 'Ver mais paletas';
+    function salvarFiltroPaleta(categoria) {
+        try {
+            localStorage.setItem(CHAVE_FILTRO_PALETA, categoria);
+        } catch {
+            // O filtro continua válido durante a sessão sem bloquear a interface.
         }
     }
 
-    function alternarPaletasExtras() {
-        const botao = document.getElementById('btnAlternarPaletasExtras');
-        const expandidoAtual = botao?.getAttribute('aria-expanded') === 'true';
-        definirPaletasExtrasVisiveis(!expandidoAtual);
+    function definirFiltroPaletas(valor, { persistir = true } = {}) {
+        const categoria = validarCategoriaPaleta(valor);
+
+        document
+            .querySelectorAll('[data-palette-categoria]')
+            .forEach((opcao) => {
+                opcao.hidden = opcao.dataset.paletteCategoria !== categoria;
+            });
+
+        const botaoAnimada = document.getElementById('btnFiltroPaletaAnimada');
+        const botaoEstatica = document.getElementById('btnFiltroPaletaEstatica');
+        botaoAnimada?.setAttribute('aria-pressed', String(categoria === 'animada'));
+        botaoEstatica?.setAttribute('aria-pressed', String(categoria === 'estatica'));
+
+        if (persistir) salvarFiltroPaleta(categoria);
+        return categoria;
+    }
+
+    function lerFiltroPaletaSalvo(paletaAtual) {
+        try {
+            const salvo = localStorage.getItem(CHAVE_FILTRO_PALETA);
+            if (salvo === 'animada' || salvo === 'estatica') return salvo;
+        } catch {
+            // Sem storage disponível, o filtro é inferido pela paleta ativa.
+        }
+        return categoriaDaPaleta(paletaAtual);
     }
 
     function aplicarPaleta(
@@ -220,7 +244,7 @@
             persistir: false,
             emitirEvento: false,
         });
-        definirPaletasExtrasVisiveis(PALETAS_EXTRAS.includes(paletaInicial));
+        definirFiltroPaletas(lerFiltroPaletaSalvo(paletaInicial), { persistir: false });
 
         const fonteInicial = lerFonteSalva();
         aplicarFonte(fonteInicial, {
@@ -231,7 +255,6 @@
 
     window.selecionarPaleta = selecionarPaleta;
     window.restaurarPaletaPadrao = restaurarPaletaPadrao;
-    window.alternarPaletasExtras = alternarPaletasExtras;
     window.selecionarFonte = selecionarFonte;
     window.restaurarFontePadrao = restaurarFontePadrao;
     window.restaurarAparenciaPadrao = restaurarAparenciaPadrao;
@@ -244,6 +267,7 @@
         lerFonteSalva,
         fontesValidas: FONTES_VALIDAS,
         fontePadrao: FONTE_PADRAO,
+        definirFiltroPaletas,
     });
 
     if (document.readyState === 'loading') {

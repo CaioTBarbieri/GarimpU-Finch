@@ -91,4 +91,28 @@ function iniciarTerminalLogs() {
     };
 }
 
-iniciarTerminalLogs();
+function pararTerminalLogs() {
+    if (terminalEventSource) {
+        terminalEventSource.close();
+        terminalEventSource = null;
+    }
+    atualizarStatusConexaoTerminal('desconectado');
+}
+
+window.iniciarTerminalLogs = iniciarTerminalLogs;
+window.pararTerminalLogs = pararTerminalLogs;
+
+window.addEventListener('garimpu:modo-dev-alterado', (evento) => {
+    if (evento.detail?.ativo) {
+        iniciarTerminalLogs();
+    } else {
+        pararTerminalLogs();
+    }
+});
+
+// O Modo Desenvolvedor já pode estar ativo quando este script carrega (estado
+// restaurado do localStorage), então o "ao vivo" só liga a conexão quando
+// necessário, em vez de manter um EventSource aberto para todo mundo.
+if (document.getElementById('checkboxModoDev')?.checked) {
+    iniciarTerminalLogs();
+}
