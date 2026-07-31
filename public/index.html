@@ -18,6 +18,7 @@
                 'vulcanico',
                 'boreal',
                 'singularidade',
+                'aurora',
             ];
             const fontes = ['classico', 'moderno', 'tecnologico', 'editorial'];
 
@@ -48,6 +49,7 @@
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body class="min-h-screen overflow-x-hidden antialiased">
+    <canvas id="temaVfxCanvas" class="tema-vfx-canvas" aria-hidden="true"></canvas>
     <aside class="app-sidebar" aria-label="Navegação principal">
         <div class="app-sidebar-brand">
             <div class="brand-mark" aria-hidden="true">
@@ -342,6 +344,9 @@
                     <div class="configuration-card-header">
                         <h3>Aparência</h3>
                         <p>Escolha a paleta de cores utilizada na interface do GarimpU-Nexo.</p>
+                        <p class="app-text-subtle mt-2 text-xs leading-5">
+                            Paletas marcadas com <span class="palette-animated-badge">Animado</span> exibem uma animação de fundo decorativa.
+                        </p>
                     </div>
 
                     <fieldset>
@@ -411,7 +416,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Nexo Ártico</h4>
+                                        <h4>Nexo Ártico <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaArtico">Azul-petróleo e ciano para uma interface fria.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -463,7 +468,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Galáxia Nexo</h4>
+                                        <h4>Galáxia Nexo <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaGalaxia">Índigo espacial com magenta, violeta e detalhes em ciano.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -489,7 +494,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Sakura Noturna</h4>
+                                        <h4>Sakura Noturna <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaSakura">Rosa sakura e coral sobre tons profundos de vinho e ameixa.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -541,7 +546,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Vulcânico Nexo</h4>
+                                        <h4>Vulcânico Nexo <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaVulcanico">Obsidiana e lava incandescente para uma interface intensa e enérgica.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -593,8 +598,34 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Buraco Negro</h4>
+                                        <h4>Buraco Negro <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaSingularidade">Horizonte de eventos em preto absoluto, com um anel de acreção dourado em órbita lenta.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="aurora" data-palette-extra hidden>
+                                <input
+                                    id="paletaAurora"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="aurora"
+                                    aria-describedby="descricaoPaletaAurora"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Aurora Polar <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaAurora">Noite ártica no polo norte: céu quase negro sob cortinas de aurora verde e neve à deriva.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
                                 </span>
@@ -1383,6 +1414,7 @@
     </div>
 
     <script src="/js/tema.js"></script>
+    <script src="/js/tema-vfx.js"></script>
     <script src="/js/navegacao.js"></script>
     <script src="/js/configuracoes.js"></script>
     <script src="/js/interface.js"></script>

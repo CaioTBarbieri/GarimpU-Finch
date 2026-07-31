@@ -14,6 +14,7 @@
         'vulcanico',
         'boreal',
         'singularidade',
+        'aurora',
     ]);
 
     const PALETAS_EXTRAS = Object.freeze([
@@ -24,6 +25,7 @@
         'vulcanico',
         'boreal',
         'singularidade',
+        'aurora',
     ]);
 
     const CHAVE_FONTE = 'garimpu-fonte';
