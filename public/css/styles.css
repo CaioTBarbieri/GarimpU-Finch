@@ -797,6 +797,90 @@ html[data-palette="tempo"] {
     --brand-cutout: var(--background);
 }
 
+html[data-palette="virus"] {
+    --background: #010603;
+    --background-rgb: 1 6 3;
+    --surface: #06110a;
+    --surface-rgb: 6 17 10;
+    --surface-soft: #0a1b10;
+    --surface-soft-rgb: 10 27 16;
+    --surface-deep: #000301;
+    --surface-deep-rgb: 0 3 1;
+    --border: #174526;
+    --border-rgb: 23 69 38;
+    --text: #d9ffe3;
+    --muted: #70a47d;
+    --primary: #39ff6f;
+    --primary-rgb: 57 255 111;
+    --primary-bright: #8affaa;
+    --primary-contrast: #001a07;
+    --success: #39ff6f;
+    --success-rgb: 57 255 111;
+    --warning: #d7ff38;
+    --warning-rgb: 215 255 56;
+    --danger: #ff334f;
+    --danger-rgb: 255 51 79;
+    --ai: #00d98b;
+    --ai-rgb: 0 217 139;
+    --primary-soft: rgb(var(--primary-rgb) / 14%);
+    --primary-hover: var(--primary-bright);
+    --focus-ring: rgb(var(--primary-rgb) / 42%);
+    --shadow-color: rgb(0 3 1 / 62%);
+    --text-secondary: #b7f5c7;
+    --text-subtle: #477653;
+    --divider: var(--border);
+    --input-background: var(--surface-deep);
+    --surface-hover: #102c19;
+    --success-soft: rgb(var(--success-rgb) / 14%);
+    --warning-soft: rgb(var(--warning-rgb) / 14%);
+    --danger-soft: rgb(var(--danger-rgb) / 14%);
+    --ai-soft: rgb(var(--ai-rgb) / 14%);
+    --scrollbar-thumb: #226b38;
+    --brand-cutout: var(--background);
+}
+
+html[data-palette="multiverso"] {
+    --background: #050314;
+    --background-rgb: 5 3 20;
+    --surface: #100b2b;
+    --surface-rgb: 16 11 43;
+    --surface-soft: #1a1240;
+    --surface-soft-rgb: 26 18 64;
+    --surface-deep: #02010a;
+    --surface-deep-rgb: 2 1 10;
+    --border: #49347d;
+    --border-rgb: 73 52 125;
+    --text: #f4efff;
+    --muted: #a99bc9;
+    --primary: #a855f7;
+    --primary-rgb: 168 85 247;
+    --primary-bright: #e9d5ff;
+    --primary-contrast: #130421;
+    --success: #34d399;
+    --success-rgb: 52 211 153;
+    --warning: #fde68a;
+    --warning-rgb: 253 230 138;
+    --danger: #fb7185;
+    --danger-rgb: 251 113 133;
+    --ai: #22d3ee;
+    --ai-rgb: 34 211 238;
+    --primary-soft: rgb(var(--primary-rgb) / 15%);
+    --primary-hover: #c084fc;
+    --focus-ring: rgb(var(--ai-rgb) / 34%);
+    --shadow-color: rgb(1 0 8 / 62%);
+    --text-secondary: #ded4f4;
+    --text-subtle: #77679d;
+    --divider: var(--border);
+    --input-background: var(--surface-deep);
+    --surface-hover: #281b55;
+    --success-soft: rgb(var(--success-rgb) / 14%);
+    --warning-soft: rgb(var(--warning-rgb) / 14%);
+    --danger-soft: rgb(var(--danger-rgb) / 14%);
+    --ai-soft: rgb(var(--ai-rgb) / 14%);
+    --scrollbar-thumb: #654b9d;
+    --brand-cutout: var(--background);
+}
+
 /* Tipografia: independente da paleta, para permitir combinações livres. */
 :root,
 html[data-font="classico"] {
@@ -835,6 +919,18 @@ html[data-palette="tempo"] {
     --font-body: "Source Serif 4", Georgia, serif;
     --font-display: "Cinzel", "Playfair Display", Georgia, serif;
     --font-data: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+}
+
+html[data-palette="virus"] {
+    --font-body: "Share Tech Mono", "JetBrains Mono", monospace;
+    --font-display: "Share Tech Mono", "Space Grotesk", monospace;
+    --font-data: "JetBrains Mono", "Share Tech Mono", Consolas, monospace;
+}
+
+html[data-palette="multiverso"] {
+    --font-body: "Space Grotesk", Inter, sans-serif;
+    --font-display: "Orbitron", "Space Grotesk", sans-serif;
+    --font-data: "JetBrains Mono", "Share Tech Mono", monospace;
 }
 
 html {
@@ -971,6 +1067,8 @@ textarea:disabled {
 }
 
 .app-workspace {
+    position: relative;
+    z-index: 1;
     min-height: 100vh;
     margin-left: 17rem;
 }
@@ -1126,7 +1224,7 @@ textarea:disabled {
 .tema-vfx-canvas {
     position: fixed;
     inset: 0;
-    z-index: -1;
+    z-index: 0;
     width: 100%;
     height: 100%;
     pointer-events: none;
@@ -2605,6 +2703,22 @@ pre,
     --swatch-5: #7fa8b3;
 }
 
+.palette-option[data-palette-value="virus"] {
+    --swatch-1: #010603;
+    --swatch-2: #174526;
+    --swatch-3: #39ff6f;
+    --swatch-4: #d7ff38;
+    --swatch-5: #ff334f;
+}
+
+.palette-option[data-palette-value="multiverso"] {
+    --swatch-1: #050314;
+    --swatch-2: #49347d;
+    --swatch-3: #a855f7;
+    --swatch-4: #22d3ee;
+    --swatch-5: #fb7185;
+}
+
 .palette-swatch:nth-child(1) {
     --swatch-color: var(--swatch-1);
 }
@@ -2681,7 +2795,34 @@ html[data-palette="singularidade"] .brand-mark::before {
 
 /* --- Cyberpunk Nexo: sidebar neon com glitch --- */
 html[data-palette="cyberpunk"] .app-sidebar {
+    overflow: hidden;
+    background:
+        linear-gradient(90deg, rgb(var(--ai-rgb) / 5%) 1px, transparent 1px) 0 0 / 24px 24px,
+        linear-gradient(rgb(var(--primary-rgb) / 4%) 1px, transparent 1px) 0 0 / 24px 24px,
+        radial-gradient(circle at 45% 12%, rgb(var(--primary-rgb) / 16%), transparent 12rem),
+        linear-gradient(180deg, rgb(var(--surface-soft-rgb) / 98%), rgb(var(--background-rgb) / 99%));
     animation: cyberpunk-sidebar-glow 4.5s ease-in-out infinite;
+}
+
+html[data-palette="cyberpunk"] .app-sidebar::before {
+    content: "";
+    position: absolute;
+    right: -5rem;
+    bottom: 5.2rem;
+    z-index: 0;
+    width: 13rem;
+    height: 13rem;
+    border: 1px solid rgb(var(--ai-rgb) / 24%);
+    border-radius: 50%;
+    pointer-events: none;
+    background:
+        radial-gradient(circle, rgb(var(--background-rgb) / 30%) 0 11%, transparent 12% 28%, rgb(var(--primary-rgb) / 12%) 29% 31%, transparent 32% 47%, rgb(var(--ai-rgb) / 10%) 48% 50%, transparent 51%),
+        repeating-conic-gradient(from 22deg, rgb(var(--ai-rgb) / 27%) 0deg 1deg, transparent 1deg 12deg);
+    box-shadow:
+        inset 0 0 2.5rem rgb(var(--ai-rgb) / 8%),
+        0 0 2rem rgb(var(--primary-rgb) / 8%);
+    opacity: 0.65;
+    animation: cyberpunk-nucleo-sidebar 24s linear infinite;
 }
 
 html[data-palette="cyberpunk"] .app-sidebar::after {
@@ -2690,14 +2831,24 @@ html[data-palette="cyberpunk"] .app-sidebar::after {
     inset: 0;
     z-index: 1;
     pointer-events: none;
-    background: repeating-linear-gradient(
-        0deg,
-        rgb(255 255 255 / 3%) 0px,
-        rgb(255 255 255 / 3%) 1px,
-        transparent 1px,
-        transparent 3px
-    );
+    background:
+        linear-gradient(180deg, transparent 0%, rgb(var(--ai-rgb) / 14%) 49%, rgb(var(--primary-rgb) / 12%) 50%, transparent 52%) 0 -100vh / 100% 200vh no-repeat,
+        repeating-linear-gradient(0deg, rgb(255 255 255 / 3%) 0 1px, transparent 1px 3px);
     mix-blend-mode: overlay;
+    animation: cyberpunk-scan-sidebar 7s linear infinite;
+}
+
+html[data-palette="cyberpunk"] .app-sidebar > * {
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes cyberpunk-nucleo-sidebar {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes cyberpunk-scan-sidebar {
+    to { background-position: 0 100vh, 0 0; }
 }
 
 @keyframes cyberpunk-sidebar-glow {
@@ -2711,7 +2862,17 @@ html[data-palette="cyberpunk"] .app-sidebar::after {
 
 html[data-palette="cyberpunk"] .brand-mark {
     position: relative;
-    box-shadow: 0 0 18px rgb(var(--primary-rgb) / 45%);
+    border-color: rgb(var(--ai-rgb) / 65%);
+    background: linear-gradient(135deg, var(--primary) 0 48%, var(--ai) 52% 100%);
+    box-shadow:
+        -4px 0 16px rgb(var(--primary-rgb) / 34%),
+        4px 0 16px rgb(var(--ai-rgb) / 30%);
+}
+
+html[data-palette="cyberpunk"] .brand-eyebrow::after {
+    content: " // LINKED";
+    color: var(--ai);
+    opacity: 0.78;
 }
 
 html[data-palette="cyberpunk"] .brand-mark svg {
@@ -2743,6 +2904,1116 @@ html[data-palette="cyberpunk"] .app-tab[aria-pressed="true"] {
     box-shadow: inset 3px 0 0 var(--primary), 0 0 14px rgb(var(--primary-rgb) / 40%);
 }
 
+html[data-palette="cyberpunk"] .app-tabs {
+    position: relative;
+}
+
+html[data-palette="cyberpunk"] .app-tabs::before {
+    content: "";
+    position: absolute;
+    top: 1.5rem;
+    bottom: 1.5rem;
+    left: 1.47rem;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, var(--ai) 12%, rgb(var(--primary-rgb) / 60%) 76%, transparent);
+    box-shadow: 0 0 8px rgb(var(--ai-rgb) / 48%);
+    opacity: 0.65;
+}
+
+html[data-palette="cyberpunk"] .app-tab {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+html[data-palette="cyberpunk"] .app-tab::before {
+    content: "";
+    position: absolute;
+    left: 1.2rem;
+    z-index: -1;
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 1px solid rgb(var(--ai-rgb) / 55%);
+    background: var(--surface-deep);
+    box-shadow: 0 0 0 3px rgb(var(--background-rgb) / 92%);
+    transform: rotate(45deg);
+}
+
+html[data-palette="cyberpunk"] .app-tab[aria-pressed="true"]::before {
+    background: var(--ai);
+    box-shadow:
+        0 0 0 3px rgb(var(--background-rgb) / 92%),
+        0 0 13px rgb(var(--ai-rgb) / 92%);
+    animation: cyberpunk-no-pulso 1.8s steps(2, end) infinite;
+}
+
+html[data-palette="cyberpunk"] .app-tab[aria-pressed="true"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, transparent, rgb(var(--ai-rgb) / 13%), transparent),
+        repeating-linear-gradient(0deg, transparent 0 3px, rgb(var(--primary-rgb) / 4%) 3px 4px);
+    transform: translateX(-105%);
+    animation: cyberpunk-varredura-item 3.8s linear infinite;
+}
+
+@keyframes cyberpunk-no-pulso {
+    0%, 45% { opacity: 0.55; filter: hue-rotate(0deg); }
+    50%, 100% { opacity: 1; filter: hue-rotate(35deg); }
+}
+
+@keyframes cyberpunk-varredura-item {
+    0%, 54% { transform: translateX(-105%); }
+    80%, 100% { transform: translateX(105%); }
+}
+
+html[data-palette="cyberpunk"] .app-sidebar-status {
+    border-top-color: rgb(var(--ai-rgb) / 38%);
+    background: linear-gradient(90deg, transparent, rgb(var(--ai-rgb) / 7%), transparent);
+}
+
+html[data-palette="cyberpunk"] .app-sidebar-status .status-pulse {
+    border-radius: 2px;
+    background: var(--ai);
+    box-shadow: 0 0 0 3px rgb(var(--ai-rgb) / 12%), 0 0 13px rgb(var(--ai-rgb) / 72%);
+    animation: cyberpunk-status-link 1.4s steps(2, end) infinite;
+}
+
+@keyframes cyberpunk-status-link {
+    0%, 46% { opacity: 0.45; }
+    50%, 100% { opacity: 1; }
+}
+
+html[data-palette="cyberpunk"] .app-card,
+html[data-palette="cyberpunk"] .configuration-card,
+html[data-palette="cyberpunk"] .app-details {
+    border-color: rgb(var(--ai-rgb) / 24%);
+    background:
+        linear-gradient(135deg, rgb(var(--primary-rgb) / 8%), transparent 7rem),
+        linear-gradient(315deg, rgb(var(--ai-rgb) / 7%), transparent 8rem),
+        repeating-linear-gradient(0deg, transparent 0 5px, rgb(var(--ai-rgb) / 1.5%) 5px 6px),
+        rgb(var(--surface-rgb) / 92%);
+    box-shadow:
+        inset 1px 0 0 rgb(var(--primary-rgb) / 10%),
+        inset -1px 0 0 rgb(var(--ai-rgb) / 10%),
+        0 18px 44px var(--shadow-color);
+}
+
+html[data-palette="cyberpunk"] .section-kicker::before {
+    content: "SYS://";
+    margin-right: 0.3rem;
+    color: var(--ai);
+}
+
+html[data-palette="cyberpunk"] .section-title {
+    text-shadow: -1px 0 rgb(var(--primary-rgb) / 42%), 1px 0 rgb(var(--ai-rgb) / 42%);
+}
+
+html[data-palette="cyberpunk"] .app-button-primary {
+    position: relative;
+    overflow: hidden;
+    border-color: rgb(var(--ai-rgb) / 36%);
+    box-shadow: -4px 0 14px rgb(var(--primary-rgb) / 16%), 4px 0 14px rgb(var(--ai-rgb) / 14%);
+}
+
+html[data-palette="cyberpunk"] .app-button-primary::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 25%, rgb(var(--ai-rgb) / 28%) 47%, rgb(var(--primary-rgb) / 22%) 52%, transparent 74%);
+    transform: translateX(-120%);
+    animation: cyberpunk-brilho-botao 4.4s linear infinite;
+}
+
+@keyframes cyberpunk-brilho-botao {
+    0%, 58% { transform: translateX(-120%); }
+    84%, 100% { transform: translateX(120%); }
+}
+
+@media (max-width: 1100px) {
+    html[data-palette="cyberpunk"] .app-sidebar::before,
+    html[data-palette="cyberpunk"] .app-tabs::before,
+    html[data-palette="cyberpunk"] .app-tab::before {
+        display: none;
+    }
+}
+
+/* --- Vírus Nexo: terminal clandestino e sistema em contaminação --- */
+html[data-palette="virus"] .app-sidebar {
+    overflow: hidden;
+    background:
+        linear-gradient(90deg, rgb(var(--primary-rgb) / 5%) 1px, transparent 1px) 0 0 / 18px 18px,
+        linear-gradient(rgb(var(--primary-rgb) / 4%) 1px, transparent 1px) 0 0 / 18px 18px,
+        radial-gradient(circle at 42% 13%, rgb(var(--primary-rgb) / 15%), transparent 11rem),
+        linear-gradient(180deg, rgb(var(--surface-soft-rgb) / 99%), rgb(var(--background-rgb) / 99%));
+    box-shadow: 16px 0 50px var(--shadow-color), inset -1px 0 0 rgb(var(--primary-rgb) / 32%);
+    animation: virus-sidebar-infeccao 5s steps(8, end) infinite;
+}
+
+html[data-palette="virus"] .app-sidebar::before {
+    content: "";
+    position: absolute;
+    right: -4.5rem;
+    bottom: 5rem;
+    z-index: 0;
+    width: 12rem;
+    height: 12rem;
+    border: 1px solid rgb(var(--primary-rgb) / 28%);
+    border-radius: 50%;
+    pointer-events: none;
+    background:
+        radial-gradient(circle, rgb(var(--danger-rgb) / 24%) 0 5%, transparent 6% 17%, rgb(var(--primary-rgb) / 16%) 18% 20%, transparent 21% 38%, rgb(var(--primary-rgb) / 10%) 39% 41%, transparent 42%),
+        repeating-conic-gradient(from 8deg, rgb(var(--primary-rgb) / 28%) 0deg 1deg, transparent 1deg 20deg);
+    box-shadow: inset 0 0 2rem rgb(var(--primary-rgb) / 10%), 0 0 2rem rgb(var(--danger-rgb) / 8%);
+    opacity: 0.62;
+    animation: virus-nucleo-girar 18s linear infinite;
+}
+
+html[data-palette="virus"] .app-sidebar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+        linear-gradient(180deg, transparent 0 47%, rgb(var(--primary-rgb) / 14%) 49%, rgb(var(--danger-rgb) / 10%) 50%, transparent 52%) 0 -100vh / 100% 200vh no-repeat,
+        repeating-linear-gradient(0deg, rgb(var(--primary-rgb) / 2.5%) 0 1px, transparent 1px 4px);
+    mix-blend-mode: screen;
+    animation: virus-scanner 5.8s linear infinite;
+}
+
+html[data-palette="virus"] .app-sidebar > * {
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes virus-sidebar-infeccao {
+    0%, 88%, 100% { filter: none; }
+    90% { filter: contrast(1.08) hue-rotate(6deg); }
+    92% { filter: contrast(0.96) hue-rotate(-5deg); }
+}
+
+@keyframes virus-nucleo-girar {
+    to { transform: rotate(-360deg); }
+}
+
+@keyframes virus-scanner {
+    to { background-position: 0 100vh, 0 0; }
+}
+
+html[data-palette="virus"] .brand-mark {
+    position: relative;
+    border-color: rgb(var(--primary-rgb) / 74%);
+    border-radius: 0.2rem 0.8rem 0.2rem 0.8rem;
+    background: linear-gradient(145deg, var(--primary-bright), var(--primary) 62%, #0b7a31);
+    box-shadow: 0 0 18px rgb(var(--primary-rgb) / 42%);
+    animation: virus-marca-pulso 3.2s steps(4, end) infinite;
+}
+
+html[data-palette="virus"] .brand-eyebrow::after {
+    content: " // INFECTED";
+    color: var(--danger);
+    animation: virus-alerta-piscar 1.2s steps(2, end) infinite;
+}
+
+html[data-palette="virus"] .app-sidebar-brand h1 {
+    text-shadow: 1px 0 rgb(var(--danger-rgb) / 55%);
+    animation: virus-titulo-glitch 7s steps(1) infinite;
+}
+
+@keyframes virus-marca-pulso {
+    0%, 70%, 100% { box-shadow: 0 0 14px rgb(var(--primary-rgb) / 38%); }
+    76% { box-shadow: -4px 0 18px rgb(var(--danger-rgb) / 34%), 4px 0 20px rgb(var(--primary-rgb) / 58%); }
+}
+
+@keyframes virus-alerta-piscar {
+    0%, 48% { opacity: 0.38; }
+    50%, 100% { opacity: 1; }
+}
+
+@keyframes virus-titulo-glitch {
+    0%, 90%, 100% { transform: translate(0); clip-path: none; }
+    91% { transform: translate(-2px, 0); text-shadow: 2px 0 var(--danger), -2px 0 var(--primary); }
+    92% { transform: translate(2px, 1px); text-shadow: -2px 0 var(--danger), 2px 0 var(--primary); }
+    93% { transform: translate(0); }
+}
+
+html[data-palette="virus"] .app-tabs {
+    position: relative;
+}
+
+html[data-palette="virus"] .app-tabs::before {
+    content: "";
+    position: absolute;
+    top: 1.5rem;
+    bottom: 1.5rem;
+    left: 1.47rem;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, var(--primary) 10%, rgb(var(--danger-rgb) / 70%) 72%, transparent);
+    box-shadow: 0 0 9px rgb(var(--primary-rgb) / 50%);
+    opacity: 0.7;
+}
+
+html[data-palette="virus"] .app-tab {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: 0.25rem 0.7rem 0.25rem 0.7rem;
+}
+
+html[data-palette="virus"] .app-tab::before {
+    content: "";
+    position: absolute;
+    left: 1.2rem;
+    z-index: -1;
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 1px solid rgb(var(--primary-rgb) / 58%);
+    background: var(--surface-deep);
+    box-shadow: 0 0 0 3px rgb(var(--background-rgb) / 94%);
+}
+
+html[data-palette="virus"] .app-tab[aria-pressed="true"] {
+    border-color: rgb(var(--primary-rgb) / 52%);
+    background: linear-gradient(90deg, rgb(var(--primary-rgb) / 18%), rgb(var(--danger-rgb) / 5%));
+    box-shadow: inset 3px 0 0 var(--primary), 0 0 14px rgb(var(--primary-rgb) / 28%);
+}
+
+html[data-palette="virus"] .app-tab[aria-pressed="true"]::before {
+    background: var(--primary);
+    box-shadow: 0 0 0 3px rgb(var(--background-rgb) / 92%), 0 0 14px rgb(var(--primary-rgb) / 90%);
+    animation: virus-no-infectado 1.5s steps(2, end) infinite;
+}
+
+html[data-palette="virus"] .app-tab[aria-pressed="true"]::after {
+    content: "01001 // ACCESS_GRANTED";
+    position: absolute;
+    inset: auto 0.5rem 0.1rem auto;
+    z-index: -2;
+    color: rgb(var(--primary-rgb) / 22%);
+    font-size: 0.48rem;
+    letter-spacing: 0.08em;
+    pointer-events: none;
+    animation: virus-acesso-glitch 4s steps(1) infinite;
+}
+
+@keyframes virus-no-infectado {
+    0%, 46% { opacity: 0.48; }
+    50%, 100% { opacity: 1; }
+}
+
+@keyframes virus-acesso-glitch {
+    0%, 83%, 100% { transform: translateX(0); color: rgb(var(--primary-rgb) / 22%); }
+    85% { transform: translateX(-4px); color: rgb(var(--danger-rgb) / 40%); }
+    87% { transform: translateX(2px); }
+}
+
+html[data-palette="virus"] .app-sidebar-status {
+    border-top-color: rgb(var(--danger-rgb) / 34%);
+    background: linear-gradient(90deg, transparent, rgb(var(--danger-rgb) / 6%), transparent);
+}
+
+html[data-palette="virus"] .app-sidebar-status strong::after {
+    content: " / COMPROMETIDO";
+    color: var(--danger);
+    font-size: 0.58rem;
+}
+
+html[data-palette="virus"] .app-sidebar-status .status-pulse {
+    border-radius: 1px;
+    background: var(--danger);
+    box-shadow: 0 0 0 3px rgb(var(--danger-rgb) / 12%), 0 0 13px rgb(var(--danger-rgb) / 72%);
+    animation: virus-alerta-piscar 1.2s steps(2, end) infinite;
+}
+
+html[data-palette="virus"] .app-card,
+html[data-palette="virus"] .configuration-card,
+html[data-palette="virus"] .app-details {
+    border-color: rgb(var(--primary-rgb) / 25%);
+    border-radius: 0.3rem 0.9rem 0.3rem 0.9rem;
+    background:
+        linear-gradient(135deg, rgb(var(--primary-rgb) / 8%), transparent 7rem),
+        linear-gradient(315deg, rgb(var(--danger-rgb) / 5%), transparent 8rem),
+        repeating-linear-gradient(0deg, transparent 0 4px, rgb(var(--primary-rgb) / 1.8%) 4px 5px),
+        rgb(var(--surface-rgb) / 93%);
+    box-shadow: inset 1px 0 0 rgb(var(--primary-rgb) / 12%), 0 18px 44px var(--shadow-color);
+}
+
+html[data-palette="virus"] .section-kicker::before {
+    content: "root@nexo:~$ ";
+    color: var(--primary);
+}
+
+html[data-palette="virus"] .section-title::after {
+    content: "_";
+    color: var(--primary);
+    animation: virus-cursor 0.9s steps(2, end) infinite;
+}
+
+@keyframes virus-cursor {
+    0%, 48% { opacity: 0; }
+    50%, 100% { opacity: 1; }
+}
+
+html[data-palette="virus"] .app-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgb(var(--primary-rgb) / 12%), inset 0 0 18px rgb(var(--primary-rgb) / 4%);
+}
+
+html[data-palette="virus"] .app-button-primary {
+    position: relative;
+    overflow: hidden;
+    border-color: rgb(var(--primary-rgb) / 58%);
+    border-radius: 0.2rem 0.65rem 0.2rem 0.65rem;
+    box-shadow: 0 0 16px rgb(var(--primary-rgb) / 18%);
+}
+
+html[data-palette="virus"] .app-button-primary::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(90deg, transparent 0 8px, rgb(255 255 255 / 12%) 8px 9px);
+    transform: translateX(-110%);
+    animation: virus-injecao-botao 3.6s steps(12, end) infinite;
+}
+
+@keyframes virus-injecao-botao {
+    0%, 55% { transform: translateX(-110%); }
+    86%, 100% { transform: translateX(110%); }
+}
+
+@media (max-width: 1100px) {
+    html[data-palette="virus"] .app-sidebar::before,
+    html[data-palette="virus"] .app-tabs::before,
+    html[data-palette="virus"] .app-tab::before {
+        display: none;
+    }
+}
+
+/* --- Multiverso Nexo: portais, constelações e realidades paralelas --- */
+html[data-palette="multiverso"] .app-sidebar {
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 18px 18px, rgb(var(--ai-rgb) / 9%) 0 1px, transparent 1.5px) 0 0 / 36px 36px,
+        linear-gradient(135deg, rgb(var(--primary-rgb) / 7%) 1px, transparent 1px) 0 0 / 32px 32px,
+        radial-gradient(circle at 45% 12%, rgb(var(--primary-rgb) / 18%), transparent 12rem),
+        linear-gradient(180deg, rgb(var(--surface-soft-rgb) / 98%), rgb(var(--background-rgb) / 99%));
+    box-shadow: 16px 0 55px var(--shadow-color), inset -1px 0 0 rgb(var(--ai-rgb) / 28%);
+    animation: multiverso-sidebar-pulso 6s ease-in-out infinite;
+}
+
+html[data-palette="multiverso"] .app-sidebar::before {
+    content: "";
+    position: absolute;
+    right: -5.5rem;
+    bottom: 5rem;
+    z-index: 0;
+    width: 14rem;
+    height: 14rem;
+    border: 1px solid rgb(var(--primary-rgb) / 26%);
+    border-radius: 50%;
+    pointer-events: none;
+    background:
+        radial-gradient(circle, rgb(var(--surface-deep-rgb) / 72%) 0 20%, transparent 21% 36%, rgb(var(--ai-rgb) / 11%) 37% 39%, transparent 40% 52%, rgb(var(--primary-rgb) / 10%) 53% 55%, transparent 56%),
+        repeating-conic-gradient(from 12deg, rgb(var(--primary-rgb) / 25%) 0deg 1deg, transparent 1deg 13deg);
+    box-shadow: inset 0 0 3rem rgb(var(--primary-rgb) / 12%), 0 0 2.5rem rgb(var(--ai-rgb) / 9%);
+    opacity: 0.7;
+    animation: multiverso-portal-sidebar 22s linear infinite;
+}
+
+html[data-palette="multiverso"] .app-sidebar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(110deg, transparent 25%, rgb(var(--ai-rgb) / 8%) 48%, rgb(var(--danger-rgb) / 7%) 52%, transparent 75%);
+    transform: translateX(-110%);
+    animation: multiverso-realidade-varrer 8s ease-in-out infinite;
+}
+
+html[data-palette="multiverso"] .app-sidebar > * {
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes multiverso-sidebar-pulso {
+    0%, 100% { box-shadow: 16px 0 55px var(--shadow-color), inset -1px 0 0 rgb(var(--primary-rgb) / 24%); }
+    50% { box-shadow: 16px 0 64px rgb(var(--ai-rgb) / 14%), inset -1px 0 0 rgb(var(--ai-rgb) / 42%); }
+}
+
+@keyframes multiverso-portal-sidebar {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes multiverso-realidade-varrer {
+    0%, 52% { transform: translateX(-110%); }
+    82%, 100% { transform: translateX(110%); }
+}
+
+html[data-palette="multiverso"] .brand-mark {
+    position: relative;
+    border-color: rgb(var(--ai-rgb) / 62%);
+    border-radius: 50%;
+    background: conic-gradient(from 30deg, var(--primary), var(--ai), var(--danger), var(--warning), var(--primary));
+    box-shadow: -4px 0 17px rgb(var(--primary-rgb) / 34%), 4px 0 17px rgb(var(--ai-rgb) / 30%);
+    animation: multiverso-marca-orbita 12s linear infinite;
+}
+
+html[data-palette="multiverso"] .brand-eyebrow::after {
+    content: " // REALITY-∞";
+    color: var(--ai);
+}
+
+html[data-palette="multiverso"] .app-sidebar-brand h1 {
+    background: linear-gradient(90deg, var(--primary-bright), var(--ai), var(--danger), var(--primary-bright));
+    background-size: 220% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: multiverso-titulo-espectro 7s linear infinite;
+}
+
+@keyframes multiverso-marca-orbita {
+    to { filter: hue-rotate(360deg); transform: rotate(360deg); }
+}
+
+@keyframes multiverso-titulo-espectro {
+    to { background-position: 220% 0; }
+}
+
+html[data-palette="multiverso"] .app-tabs {
+    position: relative;
+}
+
+html[data-palette="multiverso"] .app-tabs::before {
+    content: "";
+    position: absolute;
+    top: 1.5rem;
+    bottom: 1.5rem;
+    left: 1.47rem;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, var(--primary), var(--ai), var(--danger), transparent);
+    box-shadow: 0 0 9px rgb(var(--primary-rgb) / 44%);
+    opacity: 0.72;
+}
+
+html[data-palette="multiverso"] .app-tab {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: 0.8rem 0.3rem 0.8rem 0.3rem;
+}
+
+html[data-palette="multiverso"] .app-tab::before {
+    content: "";
+    position: absolute;
+    left: 1.17rem;
+    z-index: -1;
+    width: 0.58rem;
+    height: 0.58rem;
+    border: 1px solid rgb(var(--ai-rgb) / 58%);
+    border-radius: 50%;
+    background: var(--surface-deep);
+    box-shadow: 0 0 0 3px rgb(var(--background-rgb) / 92%);
+}
+
+html[data-palette="multiverso"] .app-tab[aria-pressed="true"] {
+    border-color: rgb(var(--ai-rgb) / 42%);
+    background: linear-gradient(90deg, rgb(var(--primary-rgb) / 17%), rgb(var(--ai-rgb) / 8%), rgb(var(--danger-rgb) / 5%));
+    box-shadow: inset 3px 0 0 var(--ai), 0 0 15px rgb(var(--primary-rgb) / 28%);
+}
+
+html[data-palette="multiverso"] .app-tab[aria-pressed="true"]::before {
+    background: conic-gradient(var(--primary), var(--ai), var(--danger), var(--primary));
+    box-shadow: 0 0 0 3px rgb(var(--background-rgb) / 90%), 0 0 14px rgb(var(--ai-rgb) / 82%);
+    animation: multiverso-no-orbitar 2.8s linear infinite;
+}
+
+html[data-palette="multiverso"] .app-tab[aria-pressed="true"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background: radial-gradient(circle at 15% 50%, rgb(var(--ai-rgb) / 16%), transparent 25%);
+    animation: multiverso-aba-eco 3.6s ease-in-out infinite;
+}
+
+@keyframes multiverso-no-orbitar {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes multiverso-aba-eco {
+    0%, 100% { opacity: 0.35; transform: scaleX(0.96); }
+    50% { opacity: 1; transform: scaleX(1); }
+}
+
+html[data-palette="multiverso"] .app-sidebar-status {
+    border-top-color: rgb(var(--ai-rgb) / 34%);
+    background: linear-gradient(90deg, transparent, rgb(var(--primary-rgb) / 7%), rgb(var(--ai-rgb) / 5%), transparent);
+}
+
+html[data-palette="multiverso"] .app-sidebar-status strong::after {
+    content: " / REALIDADE ESTÁVEL";
+    color: var(--ai);
+    font-size: 0.56rem;
+}
+
+html[data-palette="multiverso"] .app-sidebar-status .status-pulse {
+    background: var(--ai);
+    box-shadow: 0 0 0 3px rgb(var(--ai-rgb) / 12%), 0 0 13px rgb(var(--primary-rgb) / 65%);
+    animation: multiverso-status-fase 2.8s ease-in-out infinite;
+}
+
+@keyframes multiverso-status-fase {
+    0%, 100% { background: var(--primary); transform: scale(0.82); }
+    50% { background: var(--ai); transform: scale(1.08); }
+}
+
+html[data-palette="multiverso"] .app-card,
+html[data-palette="multiverso"] .configuration-card,
+html[data-palette="multiverso"] .app-details {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    border-color: rgb(var(--ai-rgb) / 23%);
+    background:
+        radial-gradient(circle at 0 0, rgb(var(--primary-rgb) / 10%), transparent 9rem),
+        radial-gradient(circle at 100% 100%, rgb(var(--ai-rgb) / 8%), transparent 10rem),
+        linear-gradient(135deg, transparent 46%, rgb(var(--danger-rgb) / 3%) 50%, transparent 54%),
+        rgb(var(--surface-rgb) / 91%);
+    box-shadow:
+        inset 1px 0 0 rgb(var(--primary-rgb) / 14%),
+        inset -1px 0 0 rgb(var(--ai-rgb) / 12%),
+        0 18px 44px var(--shadow-color),
+        0 0 28px rgb(var(--primary-rgb) / 5%);
+}
+
+html[data-palette="multiverso"] .app-workspace::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 0 17rem;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, transparent 49.7%, rgb(var(--ai-rgb) / 5%) 50%, transparent 50.3%) 0 0 / 11rem 11rem,
+        linear-gradient(transparent 49.7%, rgb(var(--primary-rgb) / 5%) 50%, transparent 50.3%) 0 0 / 11rem 11rem,
+        repeating-radial-gradient(ellipse at 78% 18%, transparent 0 4rem, rgb(var(--primary-rgb) / 3%) 4.05rem 4.1rem, transparent 4.15rem 6.8rem);
+    opacity: 0.58;
+}
+
+html[data-palette="multiverso"] .app-workspace::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 17rem;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(104deg, transparent 0 44%, rgb(var(--primary-rgb) / 5%) 44.3%, transparent 44.7%),
+        linear-gradient(76deg, transparent 0 67%, rgb(var(--ai-rgb) / 4%) 67.3%, transparent 67.7%),
+        radial-gradient(circle at 92% 9%, transparent 0 4.8rem, rgb(var(--ai-rgb) / 6%) 4.9rem 5rem, transparent 5.1rem 7rem, rgb(var(--danger-rgb) / 4%) 7.1rem 7.2rem, transparent 7.3rem);
+    opacity: 0.52;
+}
+
+html[data-palette="multiverso"] .app-main {
+    position: relative;
+    z-index: 1;
+}
+
+html[data-palette="multiverso"] .app-main::before,
+html[data-palette="multiverso"] .app-main::after {
+    position: fixed;
+    z-index: 4;
+    pointer-events: none;
+    color: rgb(var(--ai-rgb) / 52%);
+    font-family: var(--font-mono);
+    font-size: 0.54rem;
+    letter-spacing: 0.16em;
+    text-shadow: 0 0 9px rgb(var(--ai-rgb) / 32%);
+}
+
+html[data-palette="multiverso"] .app-main::before {
+    content: "UNIVERSE // Ω-07  ·  BRANCH: PRIME";
+    top: 0.9rem;
+    right: 1.3rem;
+}
+
+html[data-palette="multiverso"] .app-main::after {
+    content: "DIMENSIONAL SYNC  99.82%  ∞";
+    right: 1.3rem;
+    bottom: 0.8rem;
+    color: rgb(var(--primary-rgb) / 48%);
+}
+
+html[data-palette="multiverso"] .app-card::before,
+html[data-palette="multiverso"] .configuration-card::before,
+html[data-palette="multiverso"] .app-details::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(var(--ai), var(--ai)) left 0.7rem top 0.7rem / 1.5rem 1px no-repeat,
+        linear-gradient(var(--ai), var(--ai)) left 0.7rem top 0.7rem / 1px 1.5rem no-repeat,
+        linear-gradient(var(--danger), var(--danger)) right 0.7rem bottom 0.7rem / 1.5rem 1px no-repeat,
+        linear-gradient(var(--danger), var(--danger)) right 0.7rem bottom 0.7rem / 1px 1.5rem no-repeat,
+        radial-gradient(circle at 84% 22%, transparent 0 2.3rem, rgb(var(--ai-rgb) / 6%) 2.35rem 2.4rem, transparent 2.45rem),
+        repeating-linear-gradient(90deg, transparent 0 34px, rgb(var(--primary-rgb) / 2%) 35px 36px);
+    opacity: 0.72;
+}
+
+html[data-palette="multiverso"] .app-card::after,
+html[data-palette="multiverso"] .configuration-card::after,
+html[data-palette="multiverso"] .app-details::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    width: 100%;
+    height: 1px;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgb(var(--primary-rgb) / 52%), rgb(var(--ai-rgb) / 58%), transparent);
+    box-shadow: 0 0 7px rgb(var(--ai-rgb) / 34%);
+}
+
+html[data-palette="multiverso"] .app-card > *,
+html[data-palette="multiverso"] .configuration-card > *,
+html[data-palette="multiverso"] .app-details > * {
+    position: relative;
+    z-index: 1;
+}
+
+html[data-palette="multiverso"] .app-card:hover,
+html[data-palette="multiverso"] .configuration-card:hover,
+html[data-palette="multiverso"] .app-details:hover {
+    border-color: rgb(var(--ai-rgb) / 42%);
+    box-shadow:
+        inset 2px 0 0 rgb(var(--primary-rgb) / 22%),
+        inset -2px 0 0 rgb(var(--ai-rgb) / 18%),
+        0 20px 52px var(--shadow-color),
+        0 0 34px rgb(var(--primary-rgb) / 9%);
+}
+
+html[data-palette="multiverso"] .app-input {
+    border-color: rgb(var(--primary-rgb) / 31%);
+    background:
+        linear-gradient(90deg, rgb(var(--primary-rgb) / 4%) 1px, transparent 1px) 0 0 / 24px 24px,
+        linear-gradient(rgb(var(--ai-rgb) / 3%) 1px, transparent 1px) 0 0 / 24px 24px,
+        rgb(var(--surface-deep-rgb) / 92%);
+    box-shadow: inset 3px 0 0 rgb(var(--primary-rgb) / 22%), inset -1px 0 0 rgb(var(--ai-rgb) / 12%);
+}
+
+html[data-palette="multiverso"] .app-input:focus {
+    border-color: rgb(var(--ai-rgb) / 68%);
+    box-shadow:
+        inset 3px 0 0 var(--primary-bright),
+        inset -1px 0 0 rgb(var(--ai-rgb) / 30%),
+        0 0 0 3px rgb(var(--ai-rgb) / 9%),
+        0 0 22px rgb(var(--primary-rgb) / 13%);
+}
+
+html[data-palette="multiverso"] .section-kicker::before {
+    content: "∞ // ";
+    color: var(--ai);
+}
+
+html[data-palette="multiverso"] .section-title {
+    width: fit-content;
+    background: linear-gradient(90deg, var(--text), var(--primary-bright), var(--ai), var(--danger), var(--text));
+    background-size: 260% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    text-shadow: -1px 0 rgb(var(--primary-rgb) / 38%), 1px 0 rgb(var(--ai-rgb) / 38%);
+    animation: multiverso-titulo-realidades 8s linear infinite;
+}
+
+html[data-palette="multiverso"] .section-kicker {
+    width: fit-content;
+    border: 1px solid rgb(var(--ai-rgb) / 18%);
+    border-radius: 999px;
+    padding: 0.25rem 0.55rem;
+    background: linear-gradient(90deg, rgb(var(--primary-rgb) / 9%), rgb(var(--ai-rgb) / 6%));
+    box-shadow: inset 0 0 12px rgb(var(--primary-rgb) / 5%);
+}
+
+@keyframes multiverso-titulo-realidades {
+    to { background-position: 260% 0; }
+}
+
+html[data-palette="multiverso"] .palette-option[data-palette-value="multiverso"] {
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 86% 18%, transparent 0 1.8rem, rgb(var(--ai-rgb) / 12%) 1.85rem 1.95rem, transparent 2rem 3rem, rgb(var(--primary-rgb) / 9%) 3.05rem 3.12rem, transparent 3.18rem),
+        linear-gradient(135deg, rgb(var(--primary-rgb) / 17%), rgb(var(--surface-rgb) / 92%) 48%, rgb(var(--ai-rgb) / 10%));
+    box-shadow: inset 3px 0 0 rgb(var(--primary-rgb) / 62%), inset -2px 0 0 rgb(var(--ai-rgb) / 42%), 0 0 24px rgb(var(--primary-rgb) / 14%);
+    animation: multiverso-cartao-realidade 4.5s ease-in-out infinite;
+}
+
+@keyframes multiverso-cartao-realidade {
+    0%, 100% { border-color: rgb(var(--primary-rgb) / 58%); filter: none; }
+    50% { border-color: rgb(var(--ai-rgb) / 66%); filter: saturate(1.16); }
+}
+
+html[data-palette="multiverso"] .app-button-primary {
+    position: relative;
+    overflow: hidden;
+    border-color: rgb(var(--ai-rgb) / 38%);
+    background: linear-gradient(120deg, var(--primary), #7c3aed 45%, var(--ai));
+    box-shadow: -4px 0 14px rgb(var(--primary-rgb) / 18%), 4px 0 14px rgb(var(--ai-rgb) / 16%);
+}
+
+html[data-palette="multiverso"] .app-button-primary::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 22%, rgb(255 255 255 / 24%) 48%, transparent 74%);
+    transform: translateX(-120%);
+    animation: multiverso-botao-fenda 4.8s ease-in-out infinite;
+}
+
+@keyframes multiverso-botao-fenda {
+    0%, 58% { transform: translateX(-120%); }
+    86%, 100% { transform: translateX(120%); }
+}
+
+@media (max-width: 1100px) {
+    html[data-palette="multiverso"] .app-sidebar::before,
+    html[data-palette="multiverso"] .app-tabs::before,
+    html[data-palette="multiverso"] .app-tab::before {
+        display: none;
+    }
+
+    html[data-palette="multiverso"] .app-workspace::before,
+    html[data-palette="multiverso"] .app-workspace::after {
+        left: 5.25rem;
+    }
+
+    html[data-palette="multiverso"] .app-main::before,
+    html[data-palette="multiverso"] .app-main::after {
+        display: none;
+    }
+}
+
+@media (max-width: 767px) {
+    html[data-palette="multiverso"] .app-workspace::before,
+    html[data-palette="multiverso"] .app-workspace::after {
+        left: 0;
+    }
+}
+
+/* Checkboxes próprios dos temas especiais. */
+html[data-palette="tempo"] .app-checkbox,
+html[data-palette="cyberpunk"] .app-checkbox,
+html[data-palette="virus"] .app-checkbox,
+html[data-palette="multiverso"] .app-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-grid;
+    width: 1.08rem;
+    height: 1.08rem;
+    flex: 0 0 1.08rem;
+    place-content: center;
+    cursor: pointer;
+    transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+html[data-palette="tempo"] .app-checkbox::before,
+html[data-palette="cyberpunk"] .app-checkbox::before,
+html[data-palette="virus"] .app-checkbox::before,
+html[data-palette="multiverso"] .app-checkbox::before {
+    content: "";
+    width: 0.7rem;
+    height: 0.7rem;
+    background: currentColor;
+    clip-path: polygon(14% 44%, 0 59%, 40% 100%, 100% 16%, 84% 0, 39% 70%);
+    transform: scale(0);
+    transform-origin: center;
+    transition: transform 140ms cubic-bezier(0.2, 1.5, 0.5, 1);
+}
+
+html[data-palette="tempo"] .app-checkbox:checked::before,
+html[data-palette="cyberpunk"] .app-checkbox:checked::before,
+html[data-palette="virus"] .app-checkbox:checked::before,
+html[data-palette="multiverso"] .app-checkbox:checked::before {
+    transform: scale(1);
+}
+
+html[data-palette="tempo"] .app-checkbox {
+    border: 1px solid rgb(var(--primary-rgb) / 72%);
+    border-radius: 50% !important;
+    background:
+        radial-gradient(circle at 36% 30%, rgb(255 255 255 / 10%), transparent 28%),
+        rgb(var(--surface-deep-rgb) / 88%);
+    color: var(--primary-contrast);
+    box-shadow: inset 0 0 0 2px rgb(var(--primary-rgb) / 8%), 0 0 0 1px rgb(var(--background-rgb) / 85%);
+}
+
+html[data-palette="tempo"] .app-checkbox:checked {
+    background: radial-gradient(circle at 36% 30%, var(--primary-bright), var(--primary) 58%, #6b4318);
+    box-shadow: inset 0 0 0 2px rgb(255 255 255 / 10%), 0 0 10px rgb(var(--primary-rgb) / 40%);
+    animation: tempo-checkbox-tique 2s steps(2, end) infinite;
+}
+
+@keyframes tempo-checkbox-tique {
+    0%, 48% { box-shadow: inset 0 0 0 2px rgb(255 255 255 / 10%), 0 0 7px rgb(var(--primary-rgb) / 28%); }
+    50%, 100% { box-shadow: inset 0 0 0 2px rgb(255 255 255 / 14%), 0 0 12px rgb(var(--primary-rgb) / 48%); }
+}
+
+html[data-palette="cyberpunk"] .app-checkbox {
+    border: 1px solid rgb(var(--ai-rgb) / 72%);
+    border-radius: 0 !important;
+    background: rgb(var(--surface-deep-rgb) / 92%);
+    color: var(--primary-contrast);
+    clip-path: polygon(0 0, 72% 0, 100% 28%, 100% 100%, 28% 100%, 0 72%);
+    box-shadow: inset 2px 0 0 rgb(var(--primary-rgb) / 22%);
+}
+
+html[data-palette="cyberpunk"] .app-checkbox:checked {
+    border-color: var(--primary-bright);
+    background: linear-gradient(135deg, var(--primary) 0 48%, var(--ai) 52% 100%);
+    box-shadow: -3px 0 8px rgb(var(--primary-rgb) / 48%), 3px 0 8px rgb(var(--ai-rgb) / 42%);
+    animation: cyberpunk-checkbox-glitch 3.8s steps(1) infinite;
+}
+
+@keyframes cyberpunk-checkbox-glitch {
+    0%, 88%, 100% { transform: translate(0); filter: none; }
+    90% { transform: translateX(-1px); filter: hue-rotate(20deg); }
+    92% { transform: translateX(1px); filter: hue-rotate(-20deg); }
+    94% { transform: translate(0); }
+}
+
+html[data-palette="virus"] .app-checkbox {
+    border: 1px solid rgb(var(--primary-rgb) / 68%);
+    border-radius: 1px !important;
+    background:
+        repeating-linear-gradient(0deg, transparent 0 2px, rgb(var(--primary-rgb) / 5%) 2px 3px),
+        rgb(var(--surface-deep-rgb) / 94%);
+    color: var(--primary-contrast);
+    box-shadow: inset 0 0 7px rgb(var(--primary-rgb) / 8%);
+}
+
+html[data-palette="virus"] .app-checkbox:checked {
+    border-color: var(--primary-bright);
+    background: var(--primary);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 10%), 0 0 11px rgb(var(--primary-rgb) / 48%);
+    animation: virus-checkbox-infectado 1.4s steps(2, end) infinite;
+}
+
+@keyframes virus-checkbox-infectado {
+    0%, 45% { box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%), 0 0 6px rgb(var(--primary-rgb) / 30%); }
+    50%, 100% { box-shadow: inset 0 0 0 1px rgb(255 255 255 / 14%), 0 0 12px rgb(var(--primary-rgb) / 55%); }
+}
+
+html[data-palette="multiverso"] .app-checkbox {
+    border: 1px solid rgb(var(--ai-rgb) / 68%);
+    border-radius: 50% !important;
+    background: conic-gradient(from 30deg, rgb(var(--primary-rgb) / 24%), rgb(var(--ai-rgb) / 18%), rgb(var(--danger-rgb) / 18%), rgb(var(--primary-rgb) / 24%));
+    color: var(--primary-contrast);
+    box-shadow: inset 0 0 0 3px var(--surface-deep), 0 0 8px rgb(var(--primary-rgb) / 24%);
+}
+
+html[data-palette="multiverso"] .app-checkbox:checked {
+    background: conic-gradient(from 30deg, var(--primary), var(--ai), var(--danger), var(--primary));
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 14%), 0 0 12px rgb(var(--ai-rgb) / 45%);
+    animation: multiverso-checkbox-fase 2.6s linear infinite;
+}
+
+@keyframes multiverso-checkbox-fase {
+    to { filter: hue-rotate(360deg); }
+}
+
+html[data-palette="tempo"] .app-checkbox:hover,
+html[data-palette="cyberpunk"] .app-checkbox:hover,
+html[data-palette="virus"] .app-checkbox:hover,
+html[data-palette="multiverso"] .app-checkbox:hover {
+    transform: scale(1.08);
+}
+
+/* Conjuntos próprios de ícones da navegação dos temas especiais. */
+html[data-palette="tempo"] .app-tab-icon,
+html[data-palette="cyberpunk"] .app-tab-icon,
+html[data-palette="virus"] .app-tab-icon,
+html[data-palette="multiverso"] .app-tab-icon {
+    background: currentColor;
+    -webkit-mask-image: var(--special-tab-icon);
+    mask-image: var(--special-tab-icon);
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+html[data-palette="tempo"] .app-tab-icon > *,
+html[data-palette="cyberpunk"] .app-tab-icon > *,
+html[data-palette="virus"] .app-tab-icon > *,
+html[data-palette="multiverso"] .app-tab-icon > * {
+    display: none;
+}
+
+/* Tempo: relógio, ampulheta, engrenagens, retorno, bússola e chave. */
+html[data-palette="tempo"] .app-tab[data-tab-button="pesquisa"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7.5'/%3E%3Cpath d='M11 6.5V11l3 2M16.5 16.5 21 21'/%3E%3C/svg%3E");
+}
+
+html[data-palette="tempo"] .app-tab[data-tab-button="fotos"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 3h10M7 21h10M8 3c0 4 1 5.5 4 9-3 3.5-4 5-4 9M16 3c0 4-1 5.5-4 9 3 3.5 4 5 4 9M9.5 7.5h5M9.5 17h5'/%3E%3C/svg%3E");
+}
+
+html[data-palette="tempo"] .app-tab[data-tab-button="ia"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7'%3E%3Ccircle cx='9' cy='10' r='4'/%3E%3Ccircle cx='16.5' cy='15.5' r='3'/%3E%3Cpath d='M9 3v3M9 14v3M2 10h3M13 10h3M16.5 10v2.5M16.5 18.5V21M11.5 15.5h2M19.5 15.5H22'/%3E%3C/svg%3E");
+}
+
+html[data-palette="tempo"] .app-tab[data-tab-button="terminal"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M5 8H2V5M2.5 8a9 9 0 1 1 .4 8M12 7v5l3.5 2'/%3E%3C/svg%3E");
+}
+
+html[data-palette="tempo"] .app-tab[data-tab-button="configuracoes"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m15.5 8.5-2.1 4.9-4.9 2.1 2.1-4.9 4.9-2.1Z'/%3E%3Ccircle cx='12' cy='12' r='1'/%3E%3C/svg%3E");
+}
+
+html[data-palette="tempo"] .app-tab[data-tab-button="loja"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='9' r='4.5'/%3E%3Cpath d='m11.5 12.5 8 8M16 17l2-2M13.5 14.5l2-2'/%3E%3C/svg%3E");
+}
+
+/* Cyberpunk: retículo, chip óptico, rede neural, console, sliders e cubo. */
+html[data-palette="cyberpunk"] .app-tab[data-tab-button="pesquisa"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6'%3E%3Ccircle cx='12' cy='12' r='6.5'/%3E%3Ccircle cx='12' cy='12' r='2'/%3E%3Cpath d='M12 1v5M12 18v5M1 12h5M18 12h5'/%3E%3C/svg%3E");
+}
+
+html[data-palette="cyberpunk"] .app-tab[data-tab-button="fotos"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Crect x='5' y='5' width='14' height='14' rx='1'/%3E%3Cpath d='M8 2v3M12 2v3M16 2v3M8 19v3M12 19v3M16 19v3M2 8h3M2 12h3M2 16h3M19 8h3M19 12h3M19 16h3M8 15l3-3 2 2 3-4'/%3E%3C/svg%3E");
+}
+
+html[data-palette="cyberpunk"] .app-tab[data-tab-button="ia"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7'%3E%3Cpath d='m12 2 8.5 5v10L12 22l-8.5-5V7L12 2Z'/%3E%3Ccircle cx='12' cy='12' r='2.2'/%3E%3Cpath d='m5 8 5 3M19 8l-5 3M12 14.2V20'/%3E%3C/svg%3E");
+}
+
+html[data-palette="cyberpunk"] .app-tab[data-tab-button="terminal"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5h18v14H3zM7 9l3 3-3 3M13 15h4'/%3E%3C/svg%3E");
+}
+
+html[data-palette="cyberpunk"] .app-tab[data-tab-button="configuracoes"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M4 6h16M4 12h16M4 18h16'/%3E%3Ccircle cx='9' cy='6' r='2' fill='black'/%3E%3Ccircle cx='15' cy='12' r='2' fill='black'/%3E%3Ccircle cx='11' cy='18' r='2' fill='black'/%3E%3C/svg%3E");
+}
+
+html[data-palette="cyberpunk"] .app-tab[data-tab-button="loja"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='m12 2 8 4.5v10L12 22l-8-5.5v-10L12 2ZM4 6.5l8 5 8-5M12 11.5V22'/%3E%3C/svg%3E");
+}
+
+/* Vírus: radar, arquivo corrompido, célula, exploit, mutação e payload. */
+html[data-palette="virus"] .app-tab[data-tab-button="pesquisa"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Cpath d='M12 12 18.5 7.5M12 3v2M21 12h-2'/%3E%3Ccircle cx='12' cy='12' r='1.3' fill='black'/%3E%3C/svg%3E");
+}
+
+html[data-palette="virus"] .app-tab[data-tab-button="fotos"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='M5 2h9l5 5v15H5zM14 2v6h5'/%3E%3Cpath d='m12 11 4 7H8l4-7ZM12 14v1.5M12 17.2v.1'/%3E%3C/svg%3E");
+}
+
+html[data-palette="virus"] .app-tab[data-tab-button="ia"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Ccircle cx='12' cy='12' r='1.5' fill='black'/%3E%3Cpath d='M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3.5 3.5M15.5 15.5 19 19M19 5l-3.5 3.5M8.5 15.5 5 19'/%3E%3C/svg%3E");
+}
+
+html[data-palette="virus"] .app-tab[data-tab-button="terminal"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 5 3 12l5 7M16 5l5 7-5 7M14 3l-4 18'/%3E%3C/svg%3E");
+}
+
+html[data-palette="virus"] .app-tab[data-tab-button="configuracoes"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7'%3E%3Ccircle cx='12' cy='5' r='2.5'/%3E%3Ccircle cx='5' cy='17' r='2.5'/%3E%3Ccircle cx='19' cy='17' r='2.5'/%3E%3Cpath d='m10.8 7.2-4.6 7.6M13.2 7.2l4.6 7.6M7.5 17h9'/%3E%3C/svg%3E");
+}
+
+html[data-palette="virus"] .app-tab[data-tab-button="loja"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='M8 3h8v5l3 5v8H5v-8l3-5V3ZM8 8h8M8 14h8M10 17h4'/%3E%3C/svg%3E");
+}
+
+/* Multiverso: portal, constelação, átomo, ramificação, órbitas e prisma. */
+html[data-palette="multiverso"] .app-tab[data-tab-button="pesquisa"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7'%3E%3Cellipse cx='11' cy='11' rx='8' ry='5.5'/%3E%3Cellipse cx='11' cy='11' rx='4.5' ry='8' transform='rotate(45 11 11)'/%3E%3Cpath d='M16.5 16.5 21 21'/%3E%3Ccircle cx='11' cy='11' r='1.4' fill='black'/%3E%3C/svg%3E");
+}
+
+html[data-palette="multiverso"] .app-tab[data-tab-button="fotos"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6'%3E%3Ccircle cx='5' cy='7' r='1.5' fill='black'/%3E%3Ccircle cx='14' cy='4' r='1.5' fill='black'/%3E%3Ccircle cx='19' cy='12' r='1.5' fill='black'/%3E%3Ccircle cx='9' cy='19' r='1.5' fill='black'/%3E%3Cpath d='m6.5 6.5 6-2M15 5.2l3 5.5M17.8 13l-7.5 5M8 17.8 5.8 8.2'/%3E%3C/svg%3E");
+}
+
+html[data-palette="multiverso"] .app-tab[data-tab-button="ia"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='9' ry='3.5'/%3E%3Cellipse cx='12' cy='12' rx='9' ry='3.5' transform='rotate(60 12 12)'/%3E%3Cellipse cx='12' cy='12' rx='9' ry='3.5' transform='rotate(120 12 12)'/%3E%3Ccircle cx='12' cy='12' r='2' fill='black'/%3E%3C/svg%3E");
+}
+
+html[data-palette="multiverso"] .app-tab[data-tab-button="terminal"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M12 3v6M12 9 6 14M12 9l6 5M6 14v7M18 14v7M3 18l3 3 3-3M15 18l3 3 3-3'/%3E%3C/svg%3E");
+}
+
+html[data-palette="multiverso"] .app-tab[data-tab-button="configuracoes"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cellipse cx='12' cy='12' rx='10' ry='5'/%3E%3Cellipse cx='12' cy='12' rx='5' ry='10'/%3E%3Ccircle cx='20' cy='12' r='1.3' fill='black'/%3E%3Ccircle cx='12' cy='2' r='1.3' fill='black'/%3E%3C/svg%3E");
+}
+
+html[data-palette="multiverso"] .app-tab[data-tab-button="loja"] .app-tab-icon {
+    --special-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='m12 2 8 7-4 12H8L4 9l8-7ZM4 9h16M8 21l4-12 4 12M12 2v7'/%3E%3C/svg%3E");
+}
+
+html[data-palette="tempo"] .app-tab[aria-pressed="true"] .app-tab-icon {
+    animation: tempo-icone-ponteiro 8s ease-in-out infinite;
+}
+
+html[data-palette="cyberpunk"] .app-tab[aria-pressed="true"] .app-tab-icon {
+    filter: drop-shadow(-2px 0 rgb(var(--primary-rgb) / 55%)) drop-shadow(2px 0 rgb(var(--ai-rgb) / 55%));
+    animation: cyberpunk-icone-hud 4.5s steps(1) infinite;
+}
+
+html[data-palette="virus"] .app-tab[aria-pressed="true"] .app-tab-icon {
+    filter: drop-shadow(0 0 5px rgb(var(--primary-rgb) / 72%));
+    animation: virus-icone-mutacao 3.2s steps(1) infinite;
+}
+
+html[data-palette="multiverso"] .app-tab[aria-pressed="true"] .app-tab-icon {
+    filter: drop-shadow(-2px 0 rgb(var(--primary-rgb) / 48%)) drop-shadow(2px 0 rgb(var(--ai-rgb) / 48%));
+    animation: multiverso-icone-realidades 5s ease-in-out infinite;
+}
+
+@keyframes tempo-icone-ponteiro {
+    0%, 86%, 100% { transform: rotate(0deg); }
+    90% { transform: rotate(12deg); }
+    94% { transform: rotate(-4deg); }
+}
+
+@keyframes cyberpunk-icone-hud {
+    0%, 88%, 100% { transform: translate(0); }
+    90% { transform: translate(-1px, 1px); }
+    92% { transform: translate(1px, -1px); }
+}
+
+@keyframes virus-icone-mutacao {
+    0%, 82%, 100% { transform: scale(1); }
+    85% { transform: scaleX(1.18) scaleY(0.82); }
+    88% { transform: scaleX(0.9) scaleY(1.1); }
+}
+
+@keyframes multiverso-icone-realidades {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.08); }
+}
+
+html[data-palette="tempo"] .app-checkbox:focus-visible,
+html[data-palette="cyberpunk"] .app-checkbox:focus-visible,
+html[data-palette="virus"] .app-checkbox:focus-visible,
+html[data-palette="multiverso"] .app-checkbox:focus-visible {
+    outline: 2px solid var(--primary-bright);
+    outline-offset: 3px;
+}
+
 @media (prefers-reduced-motion: reduce) {
     html[data-palette="cyberpunk"] .app-sidebar,
     html[data-palette="cyberpunk"] .brand-mark svg,
@@ -2753,7 +4024,58 @@ html[data-palette="cyberpunk"] .app-tab[aria-pressed="true"] {
 
 /* --- Tempo Nexo: sidebar em bronze com ponteiro girando ao redor da marca --- */
 html[data-palette="tempo"] .app-sidebar {
+    overflow: hidden;
+    background:
+        linear-gradient(90deg, rgb(var(--primary-rgb) / 5%) 1px, transparent 1px) 0 0 / 28px 28px,
+        linear-gradient(rgb(var(--primary-rgb) / 4%) 1px, transparent 1px) 0 0 / 28px 28px,
+        radial-gradient(circle at 50% 14%, rgb(var(--primary-rgb) / 12%), transparent 13rem),
+        linear-gradient(180deg, rgb(var(--surface-soft-rgb) / 98%), rgb(var(--background-rgb) / 99%));
     animation: tempo-sidebar-brilho 6s ease-in-out infinite;
+}
+
+html[data-palette="tempo"] .app-sidebar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, transparent, rgb(var(--primary-rgb) / 8%), transparent) 0 20% / 100% 1px no-repeat,
+        linear-gradient(90deg, transparent, rgb(var(--primary-rgb) / 6%), transparent) 0 72% / 100% 1px no-repeat,
+        repeating-linear-gradient(115deg, transparent 0 18px, rgb(var(--primary-rgb) / 2%) 19px 20px);
+    opacity: 0.8;
+}
+
+html[data-palette="tempo"] .app-sidebar::after {
+    content: "";
+    position: absolute;
+    right: -5.5rem;
+    bottom: 5.5rem;
+    z-index: 0;
+    width: 13rem;
+    height: 13rem;
+    border: 1px solid rgb(var(--primary-rgb) / 20%);
+    border-radius: 50%;
+    pointer-events: none;
+    background:
+        radial-gradient(circle, transparent 0 13%, rgb(var(--primary-rgb) / 14%) 14% 16%, transparent 17% 45%, rgb(var(--primary-rgb) / 12%) 46% 48%, transparent 49%),
+        repeating-conic-gradient(from 0deg, rgb(var(--primary-rgb) / 24%) 0deg 1deg, transparent 1deg 15deg);
+    box-shadow:
+        0 0 0 0.7rem rgb(var(--primary-rgb) / 3%),
+        inset 0 0 2.5rem rgb(var(--primary-rgb) / 8%);
+    opacity: 0.55;
+    animation: tempo-disco-sidebar 90s linear infinite;
+}
+
+html[data-palette="tempo"] .app-sidebar > * {
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes tempo-disco-sidebar {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes tempo-sidebar-brilho {
@@ -2767,6 +4089,9 @@ html[data-palette="tempo"] .app-sidebar {
 
 html[data-palette="tempo"] .brand-mark {
     position: relative;
+    border-color: rgb(var(--primary-rgb) / 70%);
+    background:
+        radial-gradient(circle at 38% 34%, var(--primary-bright), var(--primary) 42%, #6b4318 100%);
     box-shadow: 0 0 16px rgb(var(--primary-rgb) / 35%);
 }
 
@@ -2822,12 +4147,542 @@ html[data-palette="tempo"] .app-tab[aria-pressed="true"] {
     box-shadow: inset 3px 0 0 var(--primary), 0 0 12px rgb(var(--primary-rgb) / 32%);
 }
 
+html[data-palette="tempo"] .app-tabs {
+    position: relative;
+}
+
+html[data-palette="tempo"] .app-tabs::before {
+    content: "";
+    position: absolute;
+    top: 1.5rem;
+    bottom: 1.5rem;
+    left: 1.46rem;
+    width: 1px;
+    background: linear-gradient(
+        180deg,
+        transparent,
+        rgb(var(--primary-rgb) / 42%) 12%,
+        rgb(var(--primary-rgb) / 16%) 82%,
+        transparent
+    );
+}
+
+html[data-palette="tempo"] .app-tab {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+html[data-palette="tempo"] .app-tab::before {
+    content: "";
+    position: absolute;
+    left: 1.18rem;
+    z-index: -1;
+    width: 0.55rem;
+    height: 0.55rem;
+    border: 1px solid rgb(var(--primary-rgb) / 48%);
+    border-radius: 50%;
+    background: var(--surface-deep);
+    box-shadow: 0 0 0 3px rgb(var(--background-rgb) / 90%);
+    transition: background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+html[data-palette="tempo"] .app-tab[aria-pressed="true"]::before {
+    background: var(--primary-bright);
+    box-shadow:
+        0 0 0 3px rgb(var(--background-rgb) / 88%),
+        0 0 12px rgb(var(--primary-rgb) / 80%);
+    transform: scale(1.2);
+    animation: tempo-marcador-pulso 2.4s ease-in-out infinite;
+}
+
+html[data-palette="tempo"] .app-tab[aria-pressed="true"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background: linear-gradient(110deg, transparent 20%, rgb(var(--primary-rgb) / 12%) 48%, transparent 72%);
+    transform: translateX(-100%);
+    animation: tempo-varredura-item 4.8s ease-in-out infinite;
+}
+
+@keyframes tempo-marcador-pulso {
+    0%, 100% { opacity: 0.72; }
+    50% { opacity: 1; box-shadow: 0 0 0 3px rgb(var(--background-rgb) / 88%), 0 0 18px rgb(var(--primary-rgb) / 92%); }
+}
+
+@keyframes tempo-varredura-item {
+    0%, 58% { transform: translateX(-110%); }
+    82%, 100% { transform: translateX(110%); }
+}
+
+html[data-palette="tempo"] .app-sidebar-status {
+    border-top-color: rgb(var(--primary-rgb) / 38%);
+    background: linear-gradient(90deg, transparent, rgb(var(--primary-rgb) / 6%), transparent);
+}
+
+html[data-palette="tempo"] .app-sidebar-status .status-pulse {
+    background: var(--primary-bright);
+    box-shadow: 0 0 0 3px rgb(var(--primary-rgb) / 12%), 0 0 12px rgb(var(--primary-rgb) / 60%);
+    animation: tempo-status-tique 2s steps(2, end) infinite;
+}
+
+@keyframes tempo-status-tique {
+    0%, 48% { transform: scale(0.82); opacity: 0.7; }
+    50%, 100% { transform: scale(1); opacity: 1; }
+}
+
+html[data-palette="tempo"] .app-card,
+html[data-palette="tempo"] .configuration-card,
+html[data-palette="tempo"] .app-details {
+    border-color: rgb(var(--primary-rgb) / 28%);
+    background:
+        linear-gradient(135deg, rgb(var(--primary-rgb) / 6%), transparent 7rem),
+        linear-gradient(315deg, rgb(var(--primary-rgb) / 4%), transparent 9rem),
+        rgb(var(--surface-rgb) / 91%);
+    box-shadow:
+        inset 0 1px 0 rgb(var(--primary-rgb) / 10%),
+        0 18px 44px var(--shadow-color);
+}
+
+html[data-palette="tempo"] .section-kicker::before {
+    content: "◷";
+    display: inline-block;
+    margin-right: 0.45rem;
+    color: var(--primary);
+}
+
+html[data-palette="tempo"] .section-title {
+    text-shadow: 0 0 20px rgb(var(--primary-rgb) / 16%);
+}
+
+html[data-palette="tempo"] .app-button-primary {
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 18%), 0 7px 20px rgb(var(--primary-rgb) / 16%);
+}
+
+html[data-palette="tempo"] .app-button-primary::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 25%, rgb(255 255 255 / 24%) 48%, transparent 70%);
+    transform: translateX(-120%);
+    animation: tempo-brilho-metal 5.5s ease-in-out infinite;
+}
+
+@keyframes tempo-brilho-metal {
+    0%, 62% { transform: translateX(-120%); }
+    88%, 100% { transform: translateX(120%); }
+}
+
+@media (max-width: 1100px) {
+    html[data-palette="tempo"] .app-sidebar::after,
+    html[data-palette="tempo"] .app-tabs::before,
+    html[data-palette="tempo"] .app-tab::before {
+        display: none;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     html[data-palette="tempo"] .app-sidebar,
     html[data-palette="tempo"] .brand-mark::before,
     html[data-palette="tempo"] .brand-mark svg,
     html[data-palette="tempo"] .app-sidebar-brand h1 {
         animation: none;
+    }
+
+    /* A escolha de um tema animado funciona como consentimento explícito para
+       seus efeitos visuais. A redução de movimento continua valendo para as
+       transições e animações comuns da interface. */
+    html[data-palette="singularidade"] .brand-mark::before {
+        animation: girar-horizonte-eventos 16s linear infinite !important;
+    }
+
+    html[data-palette="cyberpunk"] .app-sidebar {
+        animation: cyberpunk-sidebar-glow 4.5s ease-in-out infinite !important;
+    }
+
+    html[data-palette="cyberpunk"] .brand-mark svg {
+        animation: cyberpunk-glitch-icone 6.5s steps(1) infinite !important;
+    }
+
+    html[data-palette="cyberpunk"] .app-sidebar-brand h1 {
+        animation: cyberpunk-glitch-texto 8s steps(1) infinite !important;
+    }
+
+    html[data-palette="cyberpunk"] .app-sidebar::before {
+        animation: cyberpunk-nucleo-sidebar 24s linear infinite !important;
+    }
+
+    html[data-palette="cyberpunk"] .app-sidebar::after {
+        animation: cyberpunk-scan-sidebar 7s linear infinite !important;
+    }
+
+    html[data-palette="cyberpunk"] .app-tab[aria-pressed="true"]::before {
+        animation: cyberpunk-no-pulso 1.8s steps(2, end) infinite !important;
+    }
+
+    html[data-palette="cyberpunk"] .app-tab[aria-pressed="true"]::after {
+        animation: cyberpunk-varredura-item 3.8s linear infinite !important;
+    }
+
+    html[data-palette="cyberpunk"] .app-sidebar-status .status-pulse {
+        animation: cyberpunk-status-link 1.4s steps(2, end) infinite !important;
+    }
+
+    html[data-palette="cyberpunk"] .app-button-primary::after {
+        animation: cyberpunk-brilho-botao 4.4s linear infinite !important;
+    }
+
+    html[data-palette="tempo"] .app-sidebar {
+        animation: tempo-sidebar-brilho 6s ease-in-out infinite !important;
+    }
+
+    html[data-palette="tempo"] .brand-mark::before {
+        animation: tempo-ponteiro-girando 60s linear infinite !important;
+    }
+
+    html[data-palette="tempo"] .brand-mark svg {
+        animation: tempo-distorcao-icone 9s steps(1) infinite !important;
+    }
+
+    html[data-palette="tempo"] .app-sidebar-brand h1 {
+        animation: tempo-distorcao-texto 11s steps(1) infinite !important;
+    }
+
+    html[data-palette="tempo"] .app-sidebar::after {
+        animation: tempo-disco-sidebar 90s linear infinite !important;
+    }
+
+    html[data-palette="tempo"] .app-tab[aria-pressed="true"]::before {
+        animation: tempo-marcador-pulso 2.4s ease-in-out infinite !important;
+    }
+
+    html[data-palette="tempo"] .app-tab[aria-pressed="true"]::after {
+        animation: tempo-varredura-item 4.8s ease-in-out infinite !important;
+    }
+
+    html[data-palette="tempo"] .app-sidebar-status .status-pulse {
+        animation: tempo-status-tique 2s steps(2, end) infinite !important;
+    }
+
+    html[data-palette="tempo"] .app-button-primary::after {
+        animation: tempo-brilho-metal 5.5s ease-in-out infinite !important;
+    }
+
+    html[data-palette="virus"] .app-sidebar {
+        animation: virus-sidebar-infeccao 5s steps(8, end) infinite !important;
+    }
+
+    html[data-palette="virus"] .app-sidebar::before {
+        animation: virus-nucleo-girar 18s linear infinite !important;
+    }
+
+    html[data-palette="virus"] .app-sidebar::after {
+        animation: virus-scanner 5.8s linear infinite !important;
+    }
+
+    html[data-palette="virus"] .brand-mark {
+        animation: virus-marca-pulso 3.2s steps(4, end) infinite !important;
+    }
+
+    html[data-palette="virus"] .brand-eyebrow::after,
+    html[data-palette="virus"] .app-sidebar-status .status-pulse {
+        animation: virus-alerta-piscar 1.2s steps(2, end) infinite !important;
+    }
+
+    html[data-palette="virus"] .app-sidebar-brand h1 {
+        animation: virus-titulo-glitch 7s steps(1) infinite !important;
+    }
+
+    html[data-palette="virus"] .app-tab[aria-pressed="true"]::before {
+        animation: virus-no-infectado 1.5s steps(2, end) infinite !important;
+    }
+
+    html[data-palette="virus"] .app-tab[aria-pressed="true"]::after {
+        animation: virus-acesso-glitch 4s steps(1) infinite !important;
+    }
+
+    html[data-palette="virus"] .section-title::after {
+        animation: virus-cursor 0.9s steps(2, end) infinite !important;
+    }
+
+    html[data-palette="virus"] .app-button-primary::after {
+        animation: virus-injecao-botao 3.6s steps(12, end) infinite !important;
+    }
+
+    html[data-palette="tempo"] .app-checkbox:checked {
+        animation: tempo-checkbox-tique 2s steps(2, end) infinite !important;
+    }
+
+    html[data-palette="cyberpunk"] .app-checkbox:checked {
+        animation: cyberpunk-checkbox-glitch 3.8s steps(1) infinite !important;
+    }
+
+    html[data-palette="virus"] .app-checkbox:checked {
+        animation: virus-checkbox-infectado 1.4s steps(2, end) infinite !important;
+    }
+
+    html[data-palette="tempo"] .app-tab[aria-pressed="true"] .app-tab-icon {
+        animation: tempo-icone-ponteiro 8s ease-in-out infinite !important;
+    }
+
+    html[data-palette="cyberpunk"] .app-tab[aria-pressed="true"] .app-tab-icon {
+        animation: cyberpunk-icone-hud 4.5s steps(1) infinite !important;
+    }
+
+    html[data-palette="virus"] .app-tab[aria-pressed="true"] .app-tab-icon {
+        animation: virus-icone-mutacao 3.2s steps(1) infinite !important;
+    }
+
+    html[data-palette="multiverso"] .app-sidebar {
+        animation: multiverso-sidebar-pulso 6s ease-in-out infinite !important;
+    }
+
+    html[data-palette="multiverso"] .app-sidebar::before {
+        animation: multiverso-portal-sidebar 22s linear infinite !important;
+    }
+
+    html[data-palette="multiverso"] .app-sidebar::after {
+        animation: multiverso-realidade-varrer 8s ease-in-out infinite !important;
+    }
+
+    html[data-palette="multiverso"] .brand-mark {
+        animation: multiverso-marca-orbita 12s linear infinite !important;
+    }
+
+    html[data-palette="multiverso"] .app-sidebar-brand h1 {
+        animation: multiverso-titulo-espectro 7s linear infinite !important;
+    }
+
+    html[data-palette="multiverso"] .app-tab[aria-pressed="true"]::before {
+        animation: multiverso-no-orbitar 2.8s linear infinite !important;
+    }
+
+    html[data-palette="multiverso"] .app-tab[aria-pressed="true"]::after {
+        animation: multiverso-aba-eco 3.6s ease-in-out infinite !important;
+    }
+
+    html[data-palette="multiverso"] .app-sidebar-status .status-pulse {
+        animation: multiverso-status-fase 2.8s ease-in-out infinite !important;
+    }
+
+    html[data-palette="multiverso"] .app-button-primary::after {
+        animation: multiverso-botao-fenda 4.8s ease-in-out infinite !important;
+    }
+
+    html[data-palette="multiverso"] .app-checkbox:checked {
+        animation: multiverso-checkbox-fase 2.6s linear infinite !important;
+    }
+
+    html[data-palette="multiverso"] .app-tab[aria-pressed="true"] .app-tab-icon {
+        animation: multiverso-icone-realidades 5s ease-in-out infinite !important;
+    }
+
+    html[data-palette="multiverso"] .app-workspace::before {
+        animation: multiverso-grade-flutuar 18s ease-in-out infinite !important;
+    }
+
+    html[data-palette="multiverso"] .app-workspace::after {
+        animation: multiverso-camadas-paralelas 11s ease-in-out infinite !important;
+    }
+
+    html[data-palette="multiverso"] .app-card::after,
+    html[data-palette="multiverso"] .configuration-card::after,
+    html[data-palette="multiverso"] .app-details::after {
+        animation: multiverso-borda-viajante 7s ease-in-out infinite !important;
+    }
+
+    html[data-palette="multiverso"] .section-title {
+        animation: multiverso-titulo-realidades 8s linear infinite !important;
+    }
+
+    html[data-palette="multiverso"] .palette-option[data-palette-value="multiverso"] {
+        animation: multiverso-cartao-realidade 4.5s ease-in-out infinite !important;
+    }
+}
+
+/* Nos especiais, o canvas concentra o movimento. As camadas da interface ficam
+   estáticas para não disputar CPU/GPU com as tarefas principais do aplicativo. */
+html[data-palette="cyberpunk"] .app-sidebar,
+html[data-palette="cyberpunk"] .app-sidebar::before,
+html[data-palette="cyberpunk"] .app-sidebar::after,
+html[data-palette="cyberpunk"] .brand-mark svg,
+html[data-palette="cyberpunk"] .app-sidebar-brand h1,
+html[data-palette="cyberpunk"] .app-tab[aria-pressed="true"]::before,
+html[data-palette="cyberpunk"] .app-tab[aria-pressed="true"]::after,
+html[data-palette="cyberpunk"] .app-sidebar-status .status-pulse,
+html[data-palette="cyberpunk"] .app-button-primary::after,
+html[data-palette="cyberpunk"] .app-checkbox:checked,
+html[data-palette="cyberpunk"] .app-tab[aria-pressed="true"] .app-tab-icon,
+html[data-palette="tempo"] .app-sidebar,
+html[data-palette="tempo"] .app-sidebar::after,
+html[data-palette="tempo"] .brand-mark::before,
+html[data-palette="tempo"] .brand-mark svg,
+html[data-palette="tempo"] .app-sidebar-brand h1,
+html[data-palette="tempo"] .app-tab[aria-pressed="true"]::before,
+html[data-palette="tempo"] .app-tab[aria-pressed="true"]::after,
+html[data-palette="tempo"] .app-sidebar-status .status-pulse,
+html[data-palette="tempo"] .app-button-primary::after,
+html[data-palette="tempo"] .app-checkbox:checked,
+html[data-palette="tempo"] .app-tab[aria-pressed="true"] .app-tab-icon,
+html[data-palette="virus"] .app-sidebar,
+html[data-palette="virus"] .app-sidebar::before,
+html[data-palette="virus"] .app-sidebar::after,
+html[data-palette="virus"] .brand-mark,
+html[data-palette="virus"] .brand-eyebrow::after,
+html[data-palette="virus"] .app-sidebar-brand h1,
+html[data-palette="virus"] .app-tab[aria-pressed="true"]::before,
+html[data-palette="virus"] .app-tab[aria-pressed="true"]::after,
+html[data-palette="virus"] .app-sidebar-status .status-pulse,
+html[data-palette="virus"] .section-title::after,
+html[data-palette="virus"] .app-button-primary::after,
+html[data-palette="virus"] .app-checkbox:checked,
+html[data-palette="virus"] .app-tab[aria-pressed="true"] .app-tab-icon {
+    animation: none !important;
+}
+
+/* O canvas já fornece movimento suficiente. Manter as demais camadas estáticas
+   evita repinturas contínuas da interface em GPUs integradas e no Electron. */
+html[data-palette="multiverso"] .app-sidebar,
+html[data-palette="multiverso"] .app-sidebar::before,
+html[data-palette="multiverso"] .app-sidebar::after,
+html[data-palette="multiverso"] .brand-mark,
+html[data-palette="multiverso"] .app-sidebar-brand h1,
+html[data-palette="multiverso"] .app-tab[aria-pressed="true"]::before,
+html[data-palette="multiverso"] .app-tab[aria-pressed="true"]::after,
+html[data-palette="multiverso"] .app-sidebar-status .status-pulse,
+html[data-palette="multiverso"] .app-button-primary::after,
+html[data-palette="multiverso"] .app-checkbox:checked,
+html[data-palette="multiverso"] .app-tab[aria-pressed="true"] .app-tab-icon,
+html[data-palette="multiverso"] .app-workspace::before,
+html[data-palette="multiverso"] .app-workspace::after,
+html[data-palette="multiverso"] .app-card::after,
+html[data-palette="multiverso"] .configuration-card::after,
+html[data-palette="multiverso"] .app-details::after,
+html[data-palette="multiverso"] .section-title,
+html[data-palette="multiverso"] .palette-option[data-palette-value="multiverso"] {
+    animation: none !important;
+}
+
+.special-fps-panel {
+    display: grid;
+    gap: 1rem;
+}
+
+.special-fps-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.25rem;
+}
+
+.special-fps-readout {
+    display: grid;
+    min-width: 7.25rem;
+    justify-items: end;
+    gap: 0.12rem;
+    border: 1px solid rgb(var(--primary-rgb) / 24%);
+    border-radius: 0.7rem;
+    background: rgb(var(--surface-deep-rgb) / 72%);
+    padding: 0.55rem 0.7rem;
+    box-shadow: inset 2px 0 0 rgb(var(--primary-rgb) / 38%);
+}
+
+.special-fps-readout output {
+    color: var(--primary-bright);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.special-fps-readout span {
+    color: var(--muted);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.special-fps-range {
+    width: 100%;
+    height: 1.25rem;
+    margin: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    background: transparent;
+}
+
+.special-fps-range::-webkit-slider-runnable-track {
+    height: 0.42rem;
+    border: 1px solid rgb(var(--primary-rgb) / 25%);
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgb(var(--surface-deep-rgb) / 96%), rgb(var(--primary-rgb) / 48%), rgb(var(--ai-rgb) / 48%));
+    box-shadow: inset 0 1px 3px rgb(var(--background-rgb) / 72%);
+}
+
+.special-fps-range::-moz-range-track {
+    height: 0.42rem;
+    border: 1px solid rgb(var(--primary-rgb) / 25%);
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgb(var(--surface-deep-rgb) / 96%), rgb(var(--primary-rgb) / 48%), rgb(var(--ai-rgb) / 48%));
+    box-shadow: inset 0 1px 3px rgb(var(--background-rgb) / 72%);
+}
+
+.special-fps-range::-webkit-slider-thumb {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: -0.39rem;
+    border: 2px solid var(--primary-contrast);
+    border-radius: 50%;
+    appearance: none;
+    -webkit-appearance: none;
+    background: linear-gradient(135deg, var(--primary-bright), var(--ai));
+    box-shadow: 0 0 0 3px rgb(var(--primary-rgb) / 14%), 0 0 12px rgb(var(--primary-rgb) / 34%);
+}
+
+.special-fps-range::-moz-range-thumb {
+    width: 1.05rem;
+    height: 1.05rem;
+    border: 2px solid var(--primary-contrast);
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-bright), var(--ai));
+    box-shadow: 0 0 0 3px rgb(var(--primary-rgb) / 14%), 0 0 12px rgb(var(--primary-rgb) / 34%);
+}
+
+.special-fps-range:focus-visible {
+    outline: 2px solid var(--primary-bright);
+    outline-offset: 4px;
+    border-radius: 999px;
+}
+
+.special-fps-scale {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+}
+
+@media (max-width: 640px) {
+    .special-fps-heading {
+        flex-direction: column;
+    }
+
+    .special-fps-readout {
+        width: 100%;
+        justify-items: start;
+    }
+
+    .special-fps-scale span:nth-child(2),
+    .special-fps-scale span:nth-child(3) {
+        display: none;
     }
 }
 

@@ -23,6 +23,8 @@
         'oceano',
         'cyberpunk',
         'tempo',
+        'virus',
+        'multiverso',
     ]);
 
     const CHAVE_FILTRO_PALETA = 'garimpu-filtro-paleta';
@@ -32,6 +34,18 @@
         'esmeralda',
         'boreal',
     ]);
+
+    const PALETAS_ESPECIAIS = Object.freeze([
+        'cyberpunk',
+        'tempo',
+        'virus',
+        'multiverso',
+    ]);
+
+    const CHAVE_FPS_TEMAS_ESPECIAIS = 'garimpu-fps-temas-especiais';
+    const FPS_TEMAS_ESPECIAIS_PADRAO = 15;
+    const FPS_TEMAS_ESPECIAIS_MINIMO = 5;
+    const FPS_TEMAS_ESPECIAIS_MAXIMO = 30;
 
     const CHAVE_FONTE = 'garimpu-fonte';
     const FONTE_PADRAO = 'classico';
@@ -54,6 +68,15 @@
             : FONTE_PADRAO;
     }
 
+    function validarFpsTemasEspeciais(valor) {
+        const numero = Number(valor);
+        if (!Number.isFinite(numero)) return FPS_TEMAS_ESPECIAIS_PADRAO;
+        return Math.min(
+            FPS_TEMAS_ESPECIAIS_MAXIMO,
+            Math.max(FPS_TEMAS_ESPECIAIS_MINIMO, Math.round(numero)),
+        );
+    }
+
     function lerPaletaSalva() {
         try {
             return validarPaleta(localStorage.getItem(CHAVE_PALETA));
@@ -67,6 +90,17 @@
             return validarFonte(localStorage.getItem(CHAVE_FONTE));
         } catch {
             return FONTE_PADRAO;
+        }
+    }
+
+    function lerFpsTemasEspeciaisSalvo() {
+        try {
+            const salvo = localStorage.getItem(CHAVE_FPS_TEMAS_ESPECIAIS);
+            return salvo === null
+                ? FPS_TEMAS_ESPECIAIS_PADRAO
+                : validarFpsTemasEspeciais(salvo);
+        } catch {
+            return FPS_TEMAS_ESPECIAIS_PADRAO;
         }
     }
 
@@ -84,6 +118,53 @@
         } catch {
             // A troca continua válida durante a sessão sem bloquear a interface.
         }
+    }
+
+    function salvarFpsTemasEspeciais(fps) {
+        try {
+            localStorage.setItem(CHAVE_FPS_TEMAS_ESPECIAIS, String(fps));
+        } catch {
+            // O valor continua válido durante a sessão sem bloquear a interface.
+        }
+    }
+
+    function descricaoNivelFps(fps) {
+        if (fps <= 10) return 'Econômico';
+        if (fps <= 17) return 'Equilibrado';
+        if (fps <= 24) return 'Suave';
+        return 'Alto';
+    }
+
+    function atualizarControleFpsTemasEspeciais(fps) {
+        const controle = document.getElementById('fpsTemasEspeciais');
+        const valor = document.getElementById('valorFpsTemasEspeciais');
+        const nivel = document.getElementById('nivelFpsTemasEspeciais');
+        if (controle) controle.value = String(fps);
+        if (valor) valor.textContent = `${fps} FPS`;
+        if (nivel) nivel.textContent = descricaoNivelFps(fps);
+    }
+
+    function aplicarFpsTemasEspeciais(
+        valor,
+        { persistir = true, emitirEvento = true } = {},
+    ) {
+        const anterior = validarFpsTemasEspeciais(
+            document.documentElement.dataset.specialThemeFps,
+        );
+        const fps = validarFpsTemasEspeciais(valor);
+        document.documentElement.dataset.specialThemeFps = String(fps);
+        atualizarControleFpsTemasEspeciais(fps);
+        if (persistir) salvarFpsTemasEspeciais(fps);
+
+        if (emitirEvento && fps !== anterior) {
+            window.dispatchEvent(
+                new CustomEvent('garimpu:fps-temas-especiais-alterado', {
+                    detail: { fps, fpsAnterior: anterior },
+                }),
+            );
+        }
+
+        return fps;
     }
 
     function atualizarControles(paleta) {
@@ -119,10 +200,13 @@
     }
 
     function validarCategoriaPaleta(valor) {
-        return valor === 'estatica' ? 'estatica' : 'animada';
+        return ['animada', 'estatica', 'especial'].includes(valor)
+            ? valor
+            : 'animada';
     }
 
     function categoriaDaPaleta(paleta) {
+        if (PALETAS_ESPECIAIS.includes(paleta)) return 'especial';
         return PALETAS_ESTATICAS.includes(paleta) ? 'estatica' : 'animada';
     }
 
@@ -145,8 +229,10 @@
 
         const botaoAnimada = document.getElementById('btnFiltroPaletaAnimada');
         const botaoEstatica = document.getElementById('btnFiltroPaletaEstatica');
+        const botaoEspecial = document.getElementById('btnFiltroPaletaEspecial');
         botaoAnimada?.setAttribute('aria-pressed', String(categoria === 'animada'));
         botaoEstatica?.setAttribute('aria-pressed', String(categoria === 'estatica'));
+        botaoEspecial?.setAttribute('aria-pressed', String(categoria === 'especial'));
 
         if (persistir) salvarFiltroPaleta(categoria);
         return categoria;
@@ -155,7 +241,7 @@
     function lerFiltroPaletaSalvo(paletaAtual) {
         try {
             const salvo = localStorage.getItem(CHAVE_FILTRO_PALETA);
-            if (salvo === 'animada' || salvo === 'estatica') return salvo;
+            if (['animada', 'estatica', 'especial'].includes(salvo)) return salvo;
         } catch {
             // Sem storage disponível, o filtro é inferido pela paleta ativa.
         }
@@ -235,7 +321,8 @@
     function restaurarAparenciaPadrao() {
         const paleta = aplicarPaleta(PALETA_PADRAO);
         const fonte = aplicarFonte(FONTE_PADRAO);
-        return { paleta, fonte };
+        const fpsTemasEspeciais = aplicarFpsTemasEspeciais(FPS_TEMAS_ESPECIAIS_PADRAO);
+        return { paleta, fonte, fpsTemasEspeciais };
     }
 
     function inicializarTema() {
@@ -251,6 +338,11 @@
             persistir: false,
             emitirEvento: false,
         });
+
+        aplicarFpsTemasEspeciais(lerFpsTemasEspeciaisSalvo(), {
+            persistir: false,
+            emitirEvento: false,
+        });
     }
 
     window.selecionarPaleta = selecionarPaleta;
@@ -258,6 +350,7 @@
     window.selecionarFonte = selecionarFonte;
     window.restaurarFontePadrao = restaurarFontePadrao;
     window.restaurarAparenciaPadrao = restaurarAparenciaPadrao;
+    window.definirFpsTemasEspeciais = aplicarFpsTemasEspeciais;
     window.garimpuTema = Object.freeze({
         aplicarPaleta,
         lerPaletaSalva,
@@ -268,6 +361,11 @@
         fontesValidas: FONTES_VALIDAS,
         fontePadrao: FONTE_PADRAO,
         definirFiltroPaletas,
+        aplicarFpsTemasEspeciais,
+        lerFpsTemasEspeciaisSalvo,
+        fpsTemasEspeciaisPadrao: FPS_TEMAS_ESPECIAIS_PADRAO,
+        fpsTemasEspeciaisMinimo: FPS_TEMAS_ESPECIAIS_MINIMO,
+        fpsTemasEspeciaisMaximo: FPS_TEMAS_ESPECIAIS_MAXIMO,
     });
 
     if (document.readyState === 'loading') {

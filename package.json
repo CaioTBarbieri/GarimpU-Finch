@@ -4,8 +4,10 @@
   "description": "Aplicativo Windows para pesquisa de hotéis, imagens e CSV.",
   "main": "electron/main.js",
   "scripts": {
+    "prestart": "npm run prepare:assets",
     "start": "node scraper.js",
     "dev": "npm run prepare:assets && electron .",
+    "preelectron": "npm run prepare:assets",
     "electron": "electron .",
     "prepare:assets": "tailwindcss -i assets/tailwind-input.css -o public/vendor/tailwind.css --minify && node scripts/copy-vendor.js",
     "prepare:models": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-models.ps1",

@@ -57,17 +57,22 @@ const TODAS_PALETAS = [
   "oceano",
   "cyberpunk",
   "tempo",
+  "virus",
+  "multiverso",
 ];
 const PALETAS_ESTATICAS = ["dourado", "ametista", "esmeralda", "boreal"];
+const PALETAS_ESPECIAIS = ["cyberpunk", "tempo", "virus", "multiverso"];
 
-function criarAmbiente({ localStorageComErro = false, paletaSalva = null } = {}) {
+function criarAmbiente({ localStorageComErro = false, paletaSalva = null, fpsSalvo = null } = {}) {
   const radiosPaleta = TODAS_PALETAS.map((valor) =>
     criarElemento({ tipo: "radio", valor }),
   );
   const opcoesPaleta = TODAS_PALETAS.map((valor) => ({
     dataset: {
       paletteValue: valor,
-      paletteCategoria: PALETAS_ESTATICAS.includes(valor) ? "estatica" : "animada",
+      paletteCategoria: PALETAS_ESPECIAIS.includes(valor)
+        ? "especial"
+        : PALETAS_ESTATICAS.includes(valor) ? "estatica" : "animada",
       selected: "false",
     },
     hidden: true,
@@ -106,6 +111,10 @@ function criarAmbiente({ localStorageComErro = false, paletaSalva = null } = {})
 
   const botaoFiltroAnimada = criarBotaoFiltro();
   const botaoFiltroEstatica = criarBotaoFiltro();
+  const botaoFiltroEspecial = criarBotaoFiltro();
+  const controleFps = { value: "15" };
+  const valorFps = { textContent: "" };
+  const nivelFps = { textContent: "" };
 
   const document = {
     readyState: "complete",
@@ -116,6 +125,10 @@ function criarAmbiente({ localStorageComErro = false, paletaSalva = null } = {})
     getElementById(id) {
       if (id === "btnFiltroPaletaAnimada") return botaoFiltroAnimada;
       if (id === "btnFiltroPaletaEstatica") return botaoFiltroEstatica;
+      if (id === "btnFiltroPaletaEspecial") return botaoFiltroEspecial;
+      if (id === "fpsTemasEspeciais") return controleFps;
+      if (id === "valorFpsTemasEspeciais") return valorFps;
+      if (id === "nivelFpsTemasEspeciais") return nivelFps;
       return null;
     },
     querySelectorAll(seletor) {
@@ -130,6 +143,7 @@ function criarAmbiente({ localStorageComErro = false, paletaSalva = null } = {})
 
   const localStorage = new FalsoLocalStorage({ lancarErro: localStorageComErro });
   if (paletaSalva) localStorage.setItem("garimpu-paleta", paletaSalva);
+  if (fpsSalvo !== null) localStorage.setItem("garimpu-fps-temas-especiais", fpsSalvo);
 
   class CustomEvent {
     constructor(nome, { detail } = {}) {
@@ -152,6 +166,10 @@ function criarAmbiente({ localStorageComErro = false, paletaSalva = null } = {})
     localStorage,
     botaoFiltroAnimada,
     botaoFiltroEstatica,
+    botaoFiltroEspecial,
+    controleFps,
+    valorFps,
+    nivelFps,
   };
 }
 
@@ -189,6 +207,18 @@ test("nova paleta boreal é aceita", () => {
 test("nova paleta singularidade é aceita", () => {
   const { sandbox } = criarAmbiente();
   assert.equal(sandbox.window.selecionarPaleta("singularidade"), "singularidade");
+});
+
+test("nova paleta virus é aceita", () => {
+  const { sandbox } = criarAmbiente();
+  assert.equal(sandbox.window.selecionarPaleta("virus"), "virus");
+  assert.equal(sandbox.document.documentElement.dataset.palette, "virus");
+});
+
+test("nova paleta multiverso é aceita", () => {
+  const { sandbox } = criarAmbiente();
+  assert.equal(sandbox.window.selecionarPaleta("multiverso"), "multiverso");
+  assert.equal(sandbox.document.documentElement.dataset.palette, "multiverso");
 });
 
 test("paleta inválida retorna o padrão dourado", () => {
@@ -233,6 +263,30 @@ test("fonte escolhida persiste no localStorage", () => {
   assert.equal(localStorage.getItem("garimpu-fonte"), "editorial");
 });
 
+test("FPS dos temas especiais inicia no padrão econômico", () => {
+  const { documentElement, controleFps, valorFps, nivelFps } = criarAmbiente();
+  assert.equal(documentElement.dataset.specialThemeFps, "15");
+  assert.equal(controleFps.value, "15");
+  assert.equal(valorFps.textContent, "15 FPS");
+  assert.equal(nivelFps.textContent, "Equilibrado");
+});
+
+test("FPS dos temas especiais persiste e emite atualização", () => {
+  const { sandbox, localStorage, documentElement } = criarAmbiente();
+  assert.equal(sandbox.window.definirFpsTemasEspeciais(24), 24);
+  assert.equal(documentElement.dataset.specialThemeFps, "24");
+  assert.equal(localStorage.getItem("garimpu-fps-temas-especiais"), "24");
+  assert.equal(sandbox.window.eventosDisparados.at(-1).type, "garimpu:fps-temas-especiais-alterado");
+  assert.equal(sandbox.window.eventosDisparados.at(-1).detail.fps, 24);
+});
+
+test("FPS salvo é restaurado e limitado à faixa segura", () => {
+  const restaurado = criarAmbiente({ fpsSalvo: "22" });
+  assert.equal(restaurado.documentElement.dataset.specialThemeFps, "22");
+  assert.equal(restaurado.sandbox.window.definirFpsTemasEspeciais(100), 30);
+  assert.equal(restaurado.sandbox.window.definirFpsTemasEspeciais(-5), 5);
+});
+
 test("trocar a fonte não altera a paleta selecionada", () => {
   const { sandbox } = criarAmbiente();
   sandbox.window.selecionarPaleta("artico");
@@ -271,11 +325,14 @@ test("restaurar toda a aparência volta para dourado e classico", () => {
   const { sandbox } = criarAmbiente();
   sandbox.window.selecionarPaleta("galaxia");
   sandbox.window.selecionarFonte("editorial");
+  sandbox.window.definirFpsTemasEspeciais(28);
   const resultado = sandbox.window.restaurarAparenciaPadrao();
   assert.equal(resultado.paleta, "dourado");
   assert.equal(resultado.fonte, "classico");
+  assert.equal(resultado.fpsTemasEspeciais, 15);
   assert.equal(sandbox.document.documentElement.dataset.palette, "dourado");
   assert.equal(sandbox.document.documentElement.dataset.font, "classico");
+  assert.equal(sandbox.document.documentElement.dataset.specialThemeFps, "15");
 });
 
 test("continua funcionando quando localStorage lança erro", () => {
@@ -309,26 +366,34 @@ test("preserva as APIs globais existentes", () => {
   assert.equal(typeof sandbox.window.selecionarFonte, "function");
   assert.equal(typeof sandbox.window.restaurarFontePadrao, "function");
   assert.equal(typeof sandbox.window.restaurarAparenciaPadrao, "function");
+  assert.equal(typeof sandbox.window.definirFpsTemasEspeciais, "function");
   assert.ok(Array.isArray(sandbox.window.garimpuTema.paletasValidas));
   assert.ok(Array.isArray(sandbox.window.garimpuTema.fontesValidas));
   assert.equal(sandbox.window.garimpuTema.paletaPadrao, "dourado");
   assert.equal(sandbox.window.garimpuTema.fontePadrao, "classico");
+  assert.equal(sandbox.window.garimpuTema.fpsTemasEspeciaisPadrao, 15);
+  assert.equal(sandbox.window.garimpuTema.fpsTemasEspeciaisMinimo, 5);
+  assert.equal(sandbox.window.garimpuTema.fpsTemasEspeciaisMaximo, 30);
 });
 
 test("paleta estática salva abre o filtro de temas estáticos", () => {
-  const { opcoesPaleta, botaoFiltroAnimada, botaoFiltroEstatica } = criarAmbiente();
+  const { opcoesPaleta, botaoFiltroAnimada, botaoFiltroEstatica, botaoFiltroEspecial } = criarAmbiente();
   assert.ok(opcoesPaleta
     .filter((opcao) => opcao.dataset.paletteCategoria === "estatica")
     .every((opcao) => opcao.hidden === false));
   assert.ok(opcoesPaleta
     .filter((opcao) => opcao.dataset.paletteCategoria === "animada")
     .every((opcao) => opcao.hidden === true));
+  assert.ok(opcoesPaleta
+    .filter((opcao) => opcao.dataset.paletteCategoria === "especial")
+    .every((opcao) => opcao.hidden === true));
   assert.equal(botaoFiltroAnimada.getAttribute("aria-pressed"), "false");
   assert.equal(botaoFiltroEstatica.getAttribute("aria-pressed"), "true");
+  assert.equal(botaoFiltroEspecial.getAttribute("aria-pressed"), "false");
 });
 
 test("paleta animada salva abre o filtro de temas animados", () => {
-  const { opcoesPaleta, botaoFiltroAnimada, botaoFiltroEstatica } = criarAmbiente({
+  const { opcoesPaleta, botaoFiltroAnimada, botaoFiltroEstatica, botaoFiltroEspecial } = criarAmbiente({
     paletaSalva: "sakura",
   });
   assert.ok(opcoesPaleta
@@ -337,8 +402,27 @@ test("paleta animada salva abre o filtro de temas animados", () => {
   assert.ok(opcoesPaleta
     .filter((opcao) => opcao.dataset.paletteCategoria === "estatica")
     .every((opcao) => opcao.hidden === true));
+  assert.ok(opcoesPaleta
+    .filter((opcao) => opcao.dataset.paletteCategoria === "especial")
+    .every((opcao) => opcao.hidden === true));
   assert.equal(botaoFiltroAnimada.getAttribute("aria-pressed"), "true");
   assert.equal(botaoFiltroEstatica.getAttribute("aria-pressed"), "false");
+  assert.equal(botaoFiltroEspecial.getAttribute("aria-pressed"), "false");
+});
+
+test("paleta especial salva abre o filtro de temas especiais", () => {
+  const { opcoesPaleta, botaoFiltroAnimada, botaoFiltroEstatica, botaoFiltroEspecial } = criarAmbiente({
+    paletaSalva: "multiverso",
+  });
+  assert.ok(opcoesPaleta
+    .filter((opcao) => opcao.dataset.paletteCategoria === "especial")
+    .every((opcao) => opcao.hidden === false));
+  assert.ok(opcoesPaleta
+    .filter((opcao) => opcao.dataset.paletteCategoria !== "especial")
+    .every((opcao) => opcao.hidden === true));
+  assert.equal(botaoFiltroAnimada.getAttribute("aria-pressed"), "false");
+  assert.equal(botaoFiltroEstatica.getAttribute("aria-pressed"), "false");
+  assert.equal(botaoFiltroEspecial.getAttribute("aria-pressed"), "true");
 });
 
 test("definirFiltroPaletas alterna a categoria visível", () => {
@@ -349,5 +433,8 @@ test("definirFiltroPaletas alterna a categoria visível", () => {
     .every((opcao) => opcao.hidden === false));
   assert.ok(opcoesPaleta
     .filter((opcao) => opcao.dataset.paletteCategoria === "estatica")
+    .every((opcao) => opcao.hidden === true));
+  assert.ok(opcoesPaleta
+    .filter((opcao) => opcao.dataset.paletteCategoria === "especial")
     .every((opcao) => opcao.hidden === true));
 });

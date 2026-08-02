@@ -3,7 +3,7 @@
 
     const TEMAS_COM_EFEITO = Object.freeze([
         'singularidade', 'artico', 'galaxia', 'aurora', 'vulcanico', 'sakura', 'tempestade', 'dimensao',
-        'pulsar', 'supernova', 'oceano', 'noir', 'titanio', 'cyberpunk', 'tempo',
+        'pulsar', 'supernova', 'oceano', 'noir', 'titanio', 'cyberpunk', 'tempo', 'virus', 'multiverso',
     ]);
 
     let canvas = null;
@@ -11,7 +11,14 @@
     let frameId = null;
     let temaAtivo = null;
     let estado = null;
-    let prefereMenosMovimento = false;
+    let ultimoTempoDesenhado = 0;
+
+    const ORCAMENTO_TEMAS_ESPECIAIS = Object.freeze({
+        cyberpunk: { fps: 18, pixelsMaximos: 900000 },
+        tempo: { fps: 18, pixelsMaximos: 900000 },
+        virus: { fps: 18, pixelsMaximos: 900000 },
+        multiverso: { fps: 15, pixelsMaximos: 850000 },
+    });
 
     function medirViewport() {
         return {
@@ -20,13 +27,28 @@
         };
     }
 
+    function obterFpsTemaEspecial(tema) {
+        const padrao = ORCAMENTO_TEMAS_ESPECIAIS[tema]?.fps || 15;
+        const configurado = Number(document.documentElement.dataset.specialThemeFps);
+        if (!Number.isFinite(configurado)) return padrao;
+        return Math.min(30, Math.max(5, Math.round(configurado)));
+    }
+
     function ajustarTamanhoCanvas() {
         if (!canvas || !contexto) return;
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const { largura, altura } = medirViewport();
-        canvas.width = largura * dpr;
-        canvas.height = altura * dpr;
-        contexto.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // Os fundos especiais são decorativos e ficam atrás de painéis opacos.
+        // Um buffer limitado evita milhões de pixels extras em telas Full HD/4K.
+        const orcamentoEspecial = ORCAMENTO_TEMAS_ESPECIAIS[temaAtivo];
+        const escalaEspecial = orcamentoEspecial
+            ? Math.min(1, Math.sqrt(orcamentoEspecial.pixelsMaximos / Math.max(1, largura * altura)))
+            : 1;
+        const escala = orcamentoEspecial
+            ? escalaEspecial
+            : Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.max(1, Math.round(largura * escala));
+        canvas.height = Math.max(1, Math.round(altura * escala));
+        contexto.setTransform(escala, 0, 0, escala, 0, 0);
     }
 
     // --- Tema "Buraco Negro" (singularidade): disco de acreção orbitando um horizonte de eventos ---
@@ -1412,28 +1434,43 @@
     // --- Tema especial "Cyberpunk Nexo": skyline neon com prédios, chuva e glitch ---
     function gerarPrediosCyberpunk(largura, altura, alturaMin, alturaMax) {
         const predios = [];
-        let x = -20;
+        let x = -70;
         while (x < largura + 20) {
-            const largo = 30 + Math.random() * 50;
+            const largo = 72 + Math.random() * 100;
             const alt = alturaMin + Math.random() * (alturaMax - alturaMin);
-            const predio = { x, largura: largo, altura: alt, janelas: [] };
-            const colunas = Math.max(1, Math.floor(largo / 9));
-            const linhas = Math.max(2, Math.floor(alt / 14));
+            const estilo = Math.floor(Math.random() * 5);
+            const predio = {
+                x,
+                largura: largo,
+                altura: alt,
+                estilo,
+                antena: 8 + Math.random() * 28,
+                ladoIluminado: Math.random() < 0.5 ? 'esquerdo' : 'direito',
+                faixaY: 0.2 + Math.random() * 0.48,
+                faixaMatiz: Math.random() < 0.5 ? 188 : 318,
+                janelas: [],
+            };
+            const colunas = Math.max(2, Math.floor((largo - 20) / 20));
+            const linhas = Math.max(3, Math.floor((alt - 32) / 26));
+            const padraoApagado = 3 + Math.floor(Math.random() * 3);
             for (let c = 0; c < colunas; c += 1) {
                 for (let l = 0; l < linhas; l += 1) {
-                    if (Math.random() < 0.55) {
+                    const janelaEstrutural = (c + l * 2 + estilo) % padraoApagado !== 0;
+                    if (janelaEstrutural && Math.random() < 0.42) {
                         predio.janelas.push({
-                            ox: 4 + c * 9,
-                            oy: 6 + l * 14,
+                            ox: 10 + c * 20,
+                            oy: 28 + l * 26,
+                            largura: 8 + Math.random() * 5,
+                            altura: 2.5 + Math.random() * 1.5,
                             fase: Math.random() * Math.PI * 2,
-                            velocidade: 0.0008 + Math.random() * 0.003,
-                            matiz: Math.random() < 0.7 ? 45 : 190,
+                            velocidade: 0.00045 + Math.random() * 0.0011,
+                            matiz: Math.random() < 0.62 ? 42 : (Math.random() < 0.5 ? 188 : 318),
                         });
                     }
                 }
             }
             predios.push(predio);
-            x += largo + 4 + Math.random() * 10;
+            x += largo + 24 + Math.random() * 36;
         }
         return predios;
     }
@@ -1483,6 +1520,25 @@
             velocidadePisca: 0.006 + Math.random() * 0.004,
         }));
 
+        const alfabetoDados = '01A7F9NX<>/';
+        const fluxosDados = Array.from({ length: 18 }, () => ({
+            x: Math.random() * largura,
+            y: Math.random() * altura,
+            velocidade: 0.35 + Math.random() * 0.7,
+            espacamento: 11 + Math.random() * 5,
+            alfa: 0.05 + Math.random() * 0.09,
+            caracteres: Array.from(
+                { length: 4 + Math.floor(Math.random() * 5) },
+                () => alfabetoDados[Math.floor(Math.random() * alfabetoDados.length)],
+            ),
+        }));
+
+        const hud = {
+            x: largura * 0.78,
+            y: altura * 0.24,
+            raio: Math.min(largura, altura) * 0.095,
+        };
+
         return {
             prediosDistantes,
             prediosProximos,
@@ -1490,17 +1546,114 @@
             carros,
             chuva,
             drones,
+            fluxosDados,
+            hud,
             scanline: 0,
             proximoGlitch: 200 + Math.random() * 300,
             glitch: { restante: 0, y: 0, altura: 0 },
         };
     }
 
+    function tracarSilhuetaPredioCyberpunk(predio, altura) {
+        const esquerda = predio.x;
+        const direita = predio.x + predio.largura;
+        const topo = altura - predio.altura;
+        contexto.beginPath();
+        contexto.moveTo(esquerda, altura + 4);
+
+        if (predio.estilo === 0) {
+            contexto.lineTo(esquerda, topo + 22);
+            contexto.lineTo(esquerda + predio.largura * 0.16, topo + 22);
+            contexto.lineTo(esquerda + predio.largura * 0.16, topo + 9);
+            contexto.lineTo(esquerda + predio.largura * 0.38, topo + 9);
+            contexto.lineTo(esquerda + predio.largura * 0.38, topo);
+            contexto.lineTo(direita - predio.largura * 0.18, topo);
+            contexto.lineTo(direita - predio.largura * 0.18, topo + 14);
+            contexto.lineTo(direita, topo + 14);
+        } else if (predio.estilo === 1) {
+            contexto.lineTo(esquerda, topo + 14);
+            contexto.lineTo(esquerda + predio.largura * 0.37, topo + 14);
+            contexto.lineTo(esquerda + predio.largura * 0.5, topo - 9);
+            contexto.lineTo(esquerda + predio.largura * 0.63, topo + 14);
+            contexto.lineTo(direita, topo + 14);
+        } else if (predio.estilo === 2) {
+            contexto.lineTo(esquerda, topo + 24);
+            contexto.lineTo(esquerda + predio.largura * 0.68, topo);
+            contexto.lineTo(direita, topo + 17);
+        } else if (predio.estilo === 3) {
+            contexto.lineTo(esquerda, topo + 17);
+            contexto.lineTo(esquerda + predio.largura * 0.34, topo + 17);
+            contexto.lineTo(esquerda + predio.largura * 0.34, topo);
+            contexto.lineTo(esquerda + predio.largura * 0.49, topo);
+            contexto.lineTo(esquerda + predio.largura * 0.49, topo + 28);
+            contexto.lineTo(esquerda + predio.largura * 0.63, topo + 28);
+            contexto.lineTo(esquerda + predio.largura * 0.63, topo + 7);
+            contexto.lineTo(esquerda + predio.largura * 0.84, topo + 7);
+            contexto.lineTo(esquerda + predio.largura * 0.84, topo + 17);
+            contexto.lineTo(direita, topo + 17);
+        } else {
+            contexto.lineTo(esquerda, topo + 12);
+            contexto.lineTo(esquerda + predio.largura * 0.22, topo + 12);
+            contexto.lineTo(esquerda + predio.largura * 0.28, topo);
+            contexto.lineTo(esquerda + predio.largura * 0.72, topo);
+            contexto.lineTo(esquerda + predio.largura * 0.78, topo + 12);
+            contexto.lineTo(direita, topo + 12);
+        }
+
+        contexto.lineTo(direita, altura + 4);
+        contexto.closePath();
+    }
+
     function desenharCamadaPrediosCyberpunk(predios, altura, baseAlpha, tempo) {
         contexto.save();
-        contexto.fillStyle = `rgba(15, 10, 30, ${baseAlpha})`;
         for (const predio of predios) {
-            contexto.fillRect(predio.x, altura - predio.altura, predio.largura, predio.altura + 4);
+            const topo = altura - predio.altura;
+            tracarSilhuetaPredioCyberpunk(predio, altura);
+            contexto.fillStyle = `rgba(10, 8, 24, ${baseAlpha})`;
+            contexto.fill();
+            contexto.strokeStyle = `rgba(82, 72, 126, ${(baseAlpha * 0.38).toFixed(3)})`;
+            contexto.lineWidth = 0.8;
+            contexto.stroke();
+
+            const larguraLateral = Math.max(8, predio.largura * 0.12);
+            contexto.fillStyle = predio.ladoIluminado === 'direito'
+                ? `rgba(45, 226, 255, ${(baseAlpha * 0.035).toFixed(3)})`
+                : `rgba(255, 46, 196, ${(baseAlpha * 0.028).toFixed(3)})`;
+            contexto.beginPath();
+            contexto.moveTo(predio.x + predio.largura - larguraLateral, topo + 18);
+            contexto.lineTo(predio.x + predio.largura, topo + 13);
+            contexto.lineTo(predio.x + predio.largura, altura);
+            contexto.lineTo(predio.x + predio.largura - larguraLateral, altura);
+            contexto.closePath();
+            contexto.fill();
+
+            contexto.strokeStyle = `hsla(${predio.faixaMatiz}, 100%, 67%, ${(baseAlpha * 0.34).toFixed(3)})`;
+            contexto.lineWidth = 1;
+            const faixaY = topo + predio.altura * predio.faixaY;
+            contexto.beginPath();
+            contexto.moveTo(predio.x + 5, faixaY);
+            contexto.lineTo(predio.x + predio.largura - 5, faixaY);
+            contexto.stroke();
+
+            contexto.strokeStyle = `rgba(112, 98, 162, ${(baseAlpha * 0.16).toFixed(3)})`;
+            for (let divisao = 1; divisao <= 2; divisao += 1) {
+                const dx = predio.x + (predio.largura * divisao) / 3;
+                contexto.beginPath();
+                contexto.moveTo(dx, topo + 24);
+                contexto.lineTo(dx, altura);
+                contexto.stroke();
+            }
+
+            if (predio.estilo === 1 || predio.estilo === 4) {
+                const antenaX = predio.x + predio.largura * 0.5;
+                contexto.strokeStyle = `rgba(126, 232, 255, ${(baseAlpha * 0.42).toFixed(3)})`;
+                contexto.beginPath();
+                contexto.moveTo(antenaX, topo);
+                contexto.lineTo(antenaX, topo - predio.antena);
+                contexto.stroke();
+                contexto.fillStyle = `rgba(255, 46, 196, ${(baseAlpha * 0.7).toFixed(3)})`;
+                contexto.fillRect(antenaX - 1, topo - predio.antena - 2, 2, 2);
+            }
         }
         contexto.restore();
 
@@ -1509,9 +1662,14 @@
         for (const predio of predios) {
             const py = altura - predio.altura;
             for (const janela of predio.janelas) {
-                const cintilo = 0.3 + Math.abs(Math.sin(tempo * janela.velocidade + janela.fase)) * 0.7;
-                contexto.fillStyle = `hsla(${janela.matiz}, 90%, 60%, ${(cintilo * 0.8).toFixed(3)})`;
-                contexto.fillRect(predio.x + janela.ox, py + janela.oy, 4, 6);
+                const cintilo = 0.45 + Math.abs(Math.sin(tempo * janela.velocidade + janela.fase)) * 0.4;
+                contexto.fillStyle = `hsla(${janela.matiz}, 88%, 65%, ${(cintilo * baseAlpha * 0.7).toFixed(3)})`;
+                contexto.fillRect(
+                    predio.x + janela.ox,
+                    py + janela.oy,
+                    janela.largura,
+                    janela.altura,
+                );
             }
         }
         contexto.restore();
@@ -1519,7 +1677,66 @@
 
     function desenharCyberpunk(tempo) {
         const { largura, altura } = medirViewport();
-        const { prediosDistantes, prediosProximos, letreiros, carros, chuva, drones } = estado;
+        const { prediosDistantes, prediosProximos, letreiros, carros, chuva, drones, fluxosDados, hud } = estado;
+
+        // Fluxos discretos de telemetria atravessam o céu ao fundo.
+        contexto.save();
+        contexto.font = '10px "Share Tech Mono", "JetBrains Mono", monospace';
+        contexto.textAlign = 'center';
+        contexto.globalCompositeOperation = 'lighter';
+        for (const fluxo of fluxosDados) {
+            fluxo.y += fluxo.velocidade;
+            if (fluxo.y - fluxo.caracteres.length * fluxo.espacamento > altura) {
+                fluxo.y = -20;
+                fluxo.x = Math.random() * largura;
+            }
+            for (let i = 0; i < fluxo.caracteres.length; i += 1) {
+                const alfa = fluxo.alfa * (1 - i / fluxo.caracteres.length);
+                contexto.fillStyle = i % 3 === 0
+                    ? `rgba(255, 46, 196, ${alfa.toFixed(3)})`
+                    : `rgba(45, 226, 255, ${alfa.toFixed(3)})`;
+                contexto.fillText(
+                    fluxo.caracteres[i],
+                    fluxo.x,
+                    fluxo.y - i * fluxo.espacamento,
+                );
+            }
+        }
+        contexto.restore();
+
+        // HUD de rastreamento, com anéis independentes e retículo pulsante.
+        contexto.save();
+        contexto.translate(hud.x, hud.y);
+        contexto.globalCompositeOperation = 'lighter';
+        const pulsoHud = 0.55 + Math.sin(tempo * 0.0022) * 0.2;
+        contexto.strokeStyle = `rgba(45, 226, 255, ${(0.22 * pulsoHud).toFixed(3)})`;
+        contexto.lineWidth = 1;
+        contexto.setLineDash([5, 8]);
+        contexto.beginPath();
+        contexto.arc(0, 0, hud.raio, tempo * 0.00008, tempo * 0.00008 + Math.PI * 1.55);
+        contexto.stroke();
+        contexto.setLineDash([2, 5]);
+        contexto.strokeStyle = `rgba(255, 46, 196, ${(0.28 * pulsoHud).toFixed(3)})`;
+        contexto.beginPath();
+        contexto.arc(0, 0, hud.raio * 0.72, -tempo * 0.00013, -tempo * 0.00013 + Math.PI * 1.22);
+        contexto.stroke();
+        contexto.setLineDash([]);
+        contexto.strokeStyle = 'rgba(45, 226, 255, 0.16)';
+        contexto.beginPath();
+        contexto.moveTo(-hud.raio * 1.18, 0);
+        contexto.lineTo(-hud.raio * 0.28, 0);
+        contexto.moveTo(hud.raio * 0.28, 0);
+        contexto.lineTo(hud.raio * 1.18, 0);
+        contexto.moveTo(0, -hud.raio * 1.18);
+        contexto.lineTo(0, -hud.raio * 0.28);
+        contexto.moveTo(0, hud.raio * 0.28);
+        contexto.lineTo(0, hud.raio * 1.18);
+        contexto.stroke();
+        contexto.fillStyle = `rgba(255, 46, 196, ${(0.42 * pulsoHud).toFixed(3)})`;
+        contexto.beginPath();
+        contexto.arc(0, 0, 2.2 + pulsoHud, 0, Math.PI * 2);
+        contexto.fill();
+        contexto.restore();
 
         desenharCamadaPrediosCyberpunk(prediosDistantes, altura, 0.5, tempo);
         desenharCamadaPrediosCyberpunk(prediosProximos, altura, 0.85, tempo);
@@ -1645,6 +1862,559 @@
         }
     }
 
+    // --- Tema especial "Vírus Nexo": terminal hacker e infecção digital ---
+    function criarEstadoVirus() {
+        const { largura, altura } = medirViewport();
+        const caracteres = '01ABCDEF<>[]{}$#@/\\';
+
+        const colunas = Array.from({ length: Math.max(28, Math.floor(largura / 28)) }, (_, indice) => ({
+            x: indice * 28 + Math.random() * 12,
+            y: Math.random() * altura,
+            velocidade: 1.4 + Math.random() * 3.2,
+            espacamento: 13 + Math.random() * 5,
+            alfa: 0.06 + Math.random() * 0.13,
+            comprimento: 5 + Math.floor(Math.random() * 12),
+            faseTroca: Math.random() * 100,
+        }));
+
+        const nodos = Array.from({ length: 24 }, () => ({
+            x: largura * (0.08 + Math.random() * 0.84),
+            y: altura * (0.08 + Math.random() * 0.78),
+            raio: 1.5 + Math.random() * 2.5,
+            fase: Math.random() * Math.PI * 2,
+            velocidade: 0.0008 + Math.random() * 0.0014,
+            infectado: Math.random() < 0.28,
+        }));
+
+        const celulas = Array.from({ length: 13 }, () => ({
+            x: Math.random() * largura,
+            y: Math.random() * altura,
+            raio: 8 + Math.random() * 20,
+            pontas: 8 + Math.floor(Math.random() * 7),
+            rotacao: Math.random() * Math.PI * 2,
+            velocidadeRotacao: (Math.random() - 0.5) * 0.0012,
+            derivaX: (Math.random() - 0.5) * 0.18,
+            derivaY: -0.04 - Math.random() * 0.08,
+            fase: Math.random() * Math.PI * 2,
+        }));
+
+        const comandos = [
+            'sudo inject --payload nexo.bin',
+            'ACCESS_TOKEN: COMPROMISED',
+            'scanning ports... 22 80 443',
+            'root@garimpu: persistence enabled',
+            'checksum mismatch // mutation detected',
+            'uploading genome_0x7f...',
+        ].map((texto) => ({
+            texto,
+            x: Math.random() * largura,
+            y: Math.random() * altura,
+            alfa: 0.04 + Math.random() * 0.08,
+            velocidade: 0.015 + Math.random() * 0.03,
+        }));
+
+        return {
+            caracteres,
+            colunas,
+            nodos,
+            celulas,
+            comandos,
+            proximoGlitch: 180 + Math.random() * 300,
+            glitch: { restante: 0, y: 0, altura: 0 },
+        };
+    }
+
+    function desenharCelulaVirus(celula, tempo) {
+        const pulso = 0.82 + Math.sin(tempo * 0.0018 + celula.fase) * 0.14;
+        const raio = celula.raio * pulso;
+        contexto.save();
+        contexto.translate(celula.x, celula.y);
+        contexto.rotate(celula.rotacao);
+        contexto.globalCompositeOperation = 'lighter';
+        contexto.strokeStyle = 'rgba(57, 255, 111, 0.34)';
+        contexto.fillStyle = 'rgba(10, 72, 31, 0.13)';
+        contexto.lineWidth = 1;
+
+        contexto.beginPath();
+        for (let i = 0; i < celula.pontas * 2; i += 1) {
+            const angulo = (Math.PI * 2 * i) / (celula.pontas * 2);
+            const r = i % 2 === 0 ? raio * 1.38 : raio;
+            const x = Math.cos(angulo) * r;
+            const y = Math.sin(angulo) * r;
+            if (i === 0) contexto.moveTo(x, y);
+            else contexto.lineTo(x, y);
+        }
+        contexto.closePath();
+        contexto.fill();
+        contexto.stroke();
+
+        contexto.setLineDash([2, 4]);
+        contexto.strokeStyle = 'rgba(138, 255, 170, 0.42)';
+        contexto.beginPath();
+        contexto.arc(0, 0, raio * 0.68, -celula.rotacao * 2, Math.PI * 1.55 - celula.rotacao * 2);
+        contexto.stroke();
+        contexto.setLineDash([]);
+
+        const nucleo = contexto.createRadialGradient(0, 0, 0, 0, 0, raio * 0.48);
+        nucleo.addColorStop(0, 'rgba(255, 51, 79, 0.48)');
+        nucleo.addColorStop(0.35, 'rgba(57, 255, 111, 0.2)');
+        nucleo.addColorStop(1, 'rgba(57, 255, 111, 0)');
+        contexto.fillStyle = nucleo;
+        contexto.beginPath();
+        contexto.arc(0, 0, raio * 0.48, 0, Math.PI * 2);
+        contexto.fill();
+        contexto.restore();
+    }
+
+    function desenharVirus(tempo) {
+        const { largura, altura } = medirViewport();
+        const { caracteres, colunas, nodos, celulas, comandos } = estado;
+
+        contexto.save();
+        contexto.font = '11px "JetBrains Mono", "Share Tech Mono", monospace';
+        contexto.textAlign = 'center';
+        contexto.globalCompositeOperation = 'lighter';
+        for (const coluna of colunas) {
+            coluna.y += coluna.velocidade;
+            if (coluna.y - coluna.comprimento * coluna.espacamento > altura) {
+                coluna.y = -20;
+                coluna.velocidade = 1.4 + Math.random() * 3.2;
+            }
+            for (let i = 0; i < coluna.comprimento; i += 1) {
+                const indice = Math.floor(tempo * 0.008 + coluna.faseTroca + i * 7) % caracteres.length;
+                const alfa = coluna.alfa * (1 - i / coluna.comprimento);
+                contexto.fillStyle = i === 0
+                    ? `rgba(215, 255, 56, ${(alfa * 1.6).toFixed(3)})`
+                    : `rgba(57, 255, 111, ${alfa.toFixed(3)})`;
+                contexto.fillText(caracteres[indice], coluna.x, coluna.y - i * coluna.espacamento);
+            }
+        }
+        contexto.restore();
+
+        contexto.save();
+        contexto.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < nodos.length; i += 1) {
+            const atual = nodos[i];
+            for (let salto = 1; salto <= 2; salto += 1) {
+                const destino = nodos[(i + salto) % nodos.length];
+                const distancia = Math.hypot(destino.x - atual.x, destino.y - atual.y);
+                if (distancia > Math.min(largura, altura) * 0.34) continue;
+                const pulso = (Math.sin(tempo * 0.001 + atual.fase + salto) + 1) / 2;
+                contexto.strokeStyle = atual.infectado
+                    ? `rgba(255, 51, 79, ${(0.04 + pulso * 0.09).toFixed(3)})`
+                    : `rgba(57, 255, 111, ${(0.025 + pulso * 0.055).toFixed(3)})`;
+                contexto.lineWidth = 0.7;
+                contexto.beginPath();
+                contexto.moveTo(atual.x, atual.y);
+                contexto.lineTo(destino.x, destino.y);
+                contexto.stroke();
+
+                if (salto === 1) {
+                    const t = (tempo * 0.00012 + atual.fase / (Math.PI * 2)) % 1;
+                    contexto.fillStyle = atual.infectado ? 'rgba(255, 51, 79, 0.65)' : 'rgba(57, 255, 111, 0.48)';
+                    contexto.beginPath();
+                    contexto.arc(atual.x + (destino.x - atual.x) * t, atual.y + (destino.y - atual.y) * t, 1.4, 0, Math.PI * 2);
+                    contexto.fill();
+                }
+            }
+
+            const brilho = 0.35 + Math.abs(Math.sin(tempo * atual.velocidade + atual.fase)) * 0.5;
+            contexto.fillStyle = atual.infectado
+                ? `rgba(255, 51, 79, ${brilho.toFixed(3)})`
+                : `rgba(57, 255, 111, ${(brilho * 0.72).toFixed(3)})`;
+            contexto.beginPath();
+            contexto.arc(atual.x, atual.y, atual.raio, 0, Math.PI * 2);
+            contexto.fill();
+        }
+        contexto.restore();
+
+        for (const celula of celulas) {
+            celula.x += celula.derivaX;
+            celula.y += celula.derivaY;
+            celula.rotacao += celula.velocidadeRotacao;
+            if (celula.y + celula.raio * 2 < 0) {
+                celula.y = altura + celula.raio * 2;
+                celula.x = Math.random() * largura;
+            }
+            if (celula.x < -50) celula.x = largura + 50;
+            if (celula.x > largura + 50) celula.x = -50;
+            desenharCelulaVirus(celula, tempo);
+        }
+
+        contexto.save();
+        contexto.font = '10px "JetBrains Mono", monospace';
+        contexto.globalCompositeOperation = 'lighter';
+        for (const comando of comandos) {
+            comando.y -= comando.velocidade;
+            if (comando.y < -12) comando.y = altura + 12;
+            contexto.fillStyle = `rgba(138, 255, 170, ${comando.alfa.toFixed(3)})`;
+            contexto.fillText(comando.texto, comando.x, comando.y);
+        }
+        contexto.restore();
+
+        estado.proximoGlitch -= 1;
+        if (estado.proximoGlitch <= 0 && estado.glitch.restante <= 0) {
+            estado.glitch = {
+                restante: 4 + Math.floor(Math.random() * 5),
+                y: Math.random() * altura,
+                altura: 8 + Math.random() * 30,
+            };
+            estado.proximoGlitch = 240 + Math.random() * 420;
+        }
+        if (estado.glitch.restante > 0) {
+            contexto.save();
+            contexto.globalCompositeOperation = 'lighter';
+            contexto.globalAlpha = 0.14;
+            contexto.fillStyle = 'rgba(57, 255, 111, 1)';
+            contexto.fillRect(-5, estado.glitch.y, largura, estado.glitch.altura);
+            contexto.fillStyle = 'rgba(255, 51, 79, 1)';
+            contexto.fillRect(5, estado.glitch.y + 2, largura, Math.max(2, estado.glitch.altura - 4));
+            contexto.restore();
+            estado.glitch.restante -= 1;
+        }
+    }
+
+    // --- Tema especial "Multiverso Nexo": realidades paralelas e portais ---
+    function criarEstadoMultiverso() {
+        const { largura, altura } = medirViewport();
+        const menor = Math.min(largura, altura);
+
+        const estrelas = Array.from({ length: 76 }, () => ({
+            x: Math.random() * largura,
+            y: Math.random() * altura,
+            raio: 0.3 + Math.random() * 1.1,
+            fase: Math.random() * Math.PI * 2,
+            velocidade: 0.0005 + Math.random() * 0.0015,
+            camada: 0.25 + Math.random() * 0.75,
+        }));
+
+        const universos = Array.from({ length: 4 }, (_, indice) => ({
+            x: largura * (0.08 + Math.random() * 0.84),
+            y: altura * (0.08 + Math.random() * 0.78),
+            raio: menor * (0.025 + Math.random() * 0.055),
+            matiz: [275, 190, 335, 45][indice % 4],
+            fase: Math.random() * Math.PI * 2,
+            velocidade: (Math.random() - 0.5) * 0.00045,
+            derivaX: (Math.random() - 0.5) * 0.05,
+            derivaY: (Math.random() - 0.5) * 0.035,
+            satelites: 2 + Math.floor(Math.random() * 3),
+        }));
+
+        const nebulosas = Array.from({ length: 2 }, (_, indice) => ({
+            x: largura * (0.12 + Math.random() * 0.76),
+            y: altura * (0.08 + Math.random() * 0.82),
+            raioX: menor * (0.18 + Math.random() * 0.24),
+            raioY: menor * (0.08 + Math.random() * 0.12),
+            matiz: [274, 190, 326, 220, 42][indice],
+            fase: Math.random() * Math.PI * 2,
+            rotacao: Math.random() * Math.PI,
+            velocidade: (Math.random() - 0.5) * 0.000035,
+        }));
+
+        const portais = [
+            { x: largura * 0.77, y: altura * 0.72, raio: menor * 0.155, fase: 0, sentido: 1 },
+            { x: largura * 0.24, y: altura * 0.68, raio: menor * 0.095, fase: 2.2, sentido: -1 },
+            { x: largura * 0.92, y: altura * 0.18, raio: menor * 0.068, fase: 4.1, sentido: 1 },
+        ].map((portal) => ({
+            ...portal,
+            particulas: Array.from({ length: 10 }, () => ({
+                angulo: Math.random() * Math.PI * 2,
+                distancia: 0.48 + Math.random() * 0.52,
+                velocidade: (0.00018 + Math.random() * 0.00042) * portal.sentido,
+                raio: 0.5 + Math.random() * 1.5,
+                fase: Math.random() * Math.PI * 2,
+            })),
+        }));
+
+        const fendas = Array.from({ length: 2 }, () => ({
+            x: Math.random() * largura,
+            y: Math.random() * altura,
+            comprimento: menor * (0.12 + Math.random() * 0.18),
+            angulo: Math.random() * Math.PI * 2,
+            fase: Math.random() * Math.PI * 2,
+            matiz: Math.random() < 0.5 ? 190 : 285,
+        }));
+
+        const ecos = Array.from({ length: 3 }, () => ({
+            x: Math.random() * largura,
+            y: Math.random() * altura,
+            largura: 50 + Math.random() * 110,
+            altura: 18 + Math.random() * 45,
+            fase: Math.random() * Math.PI * 2,
+            velocidade: 0.0004 + Math.random() * 0.0005,
+        }));
+
+        const fragmentos = Array.from({ length: 9 }, (_, indice) => ({
+            x: Math.random() * largura,
+            y: Math.random() * altura,
+            tamanho: 4 + Math.random() * 13,
+            angulo: Math.random() * Math.PI * 2,
+            rotacao: (Math.random() - 0.5) * 0.0008,
+            derivaX: (Math.random() - 0.5) * 0.035,
+            derivaY: -0.012 - Math.random() * 0.025,
+            matiz: [190, 275, 330][indice % 3],
+            fase: Math.random() * Math.PI * 2,
+        }));
+
+        const cometas = Array.from({ length: 2 }, (_, indice) => ({
+            atraso: indice * 3100 + Math.random() * 1600,
+            ciclo: 12500 + Math.random() * 6000,
+            y: altura * (0.08 + Math.random() * 0.72),
+            comprimento: 70 + Math.random() * 130,
+            velocidade: 0.18 + Math.random() * 0.16,
+            matiz: indice % 2 ? 190 : 278,
+        }));
+
+        return { estrelas, nebulosas, universos, portais, fendas, ecos, fragmentos, cometas };
+    }
+
+    function desenharPortalMultiverso(portal, tempo) {
+        contexto.save();
+        contexto.translate(portal.x, portal.y);
+        contexto.scale(1, 0.62);
+        contexto.globalCompositeOperation = 'lighter';
+
+        const aura = contexto.createRadialGradient(0, 0, portal.raio * 0.22, 0, 0, portal.raio * 1.22);
+        aura.addColorStop(0, 'rgba(3, 1, 12, 0.96)');
+        aura.addColorStop(0.42, 'rgba(88, 28, 135, 0.16)');
+        aura.addColorStop(0.68, 'rgba(34, 211, 238, 0.1)');
+        aura.addColorStop(1, 'rgba(168, 85, 247, 0)');
+        contexto.fillStyle = aura;
+        contexto.beginPath();
+        contexto.arc(0, 0, portal.raio * 1.24, 0, Math.PI * 2);
+        contexto.fill();
+
+        for (let i = 0; i < 5; i += 1) {
+            const raio = portal.raio * (0.5 + i * 0.13);
+            const rotacao = tempo * 0.00016 * portal.sentido * (1 + i * 0.13) + portal.fase;
+            contexto.setLineDash([2 + i * 1.3, 5 + i * 1.7]);
+            contexto.lineWidth = 0.75 + i * 0.28;
+            contexto.strokeStyle = i % 3 === 0
+                ? `rgba(251, 113, 133, ${(0.4 - i * 0.025).toFixed(3)})`
+                : i % 2 === 0
+                    ? `rgba(168, 85, 247, ${(0.46 - i * 0.03).toFixed(3)})`
+                    : `rgba(34, 211, 238, ${(0.42 - i * 0.028).toFixed(3)})`;
+            contexto.beginPath();
+            contexto.arc(0, 0, raio, rotacao, rotacao + Math.PI * (1.18 + i * 0.09));
+            contexto.stroke();
+        }
+        contexto.setLineDash([]);
+
+        for (const particula of portal.particulas) {
+            const angulo = particula.angulo + tempo * particula.velocidade;
+            const oscilacao = 0.92 + Math.sin(tempo * 0.0014 + particula.fase) * 0.08;
+            const distancia = portal.raio * particula.distancia * oscilacao;
+            contexto.fillStyle = particula.distancia > 0.72
+                ? 'rgba(34, 211, 238, 0.72)'
+                : 'rgba(233, 213, 255, 0.62)';
+            contexto.beginPath();
+            contexto.arc(Math.cos(angulo) * distancia, Math.sin(angulo) * distancia, particula.raio, 0, Math.PI * 2);
+            contexto.fill();
+        }
+
+        contexto.lineWidth = 1;
+        for (let espiral = 0; espiral < 1; espiral += 1) {
+            contexto.strokeStyle = espiral === 1 ? 'rgba(34, 211, 238, 0.22)' : 'rgba(168, 85, 247, 0.22)';
+            contexto.beginPath();
+            for (let ponto = 0; ponto <= 30; ponto += 1) {
+                const progresso = ponto / 30;
+                const angulo = progresso * Math.PI * 4.5 * portal.sentido + tempo * 0.0003 + espiral * 2.1;
+                const raio = portal.raio * (0.06 + progresso * 0.46);
+                const x = Math.cos(angulo) * raio;
+                const y = Math.sin(angulo) * raio;
+                if (ponto === 0) contexto.moveTo(x, y);
+                else contexto.lineTo(x, y);
+            }
+            contexto.stroke();
+        }
+
+        const nucleo = contexto.createRadialGradient(0, 0, 0, 0, 0, portal.raio * 0.55);
+        nucleo.addColorStop(0, 'rgba(0, 0, 4, 0.98)');
+        nucleo.addColorStop(0.46, 'rgba(2, 1, 10, 0.92)');
+        nucleo.addColorStop(0.72, 'rgba(88, 28, 135, 0.3)');
+        nucleo.addColorStop(1, 'rgba(34, 211, 238, 0)');
+        contexto.fillStyle = nucleo;
+        contexto.beginPath();
+        contexto.arc(0, 0, portal.raio * 0.58, 0, Math.PI * 2);
+        contexto.fill();
+        contexto.restore();
+    }
+
+    function desenharMultiverso(tempo) {
+        const { largura, altura } = medirViewport();
+        const { estrelas, nebulosas, universos, portais, fendas, ecos, fragmentos, cometas } = estado;
+
+        contexto.save();
+        contexto.globalCompositeOperation = 'lighter';
+        for (const nebulosa of nebulosas) {
+            nebulosa.rotacao += nebulosa.velocidade;
+            const respiracao = 0.94 + Math.sin(tempo * 0.00024 + nebulosa.fase) * 0.08;
+            contexto.save();
+            contexto.translate(nebulosa.x, nebulosa.y);
+            contexto.rotate(nebulosa.rotacao);
+            contexto.scale(1, nebulosa.raioY / nebulosa.raioX);
+            const gradiente = contexto.createRadialGradient(0, 0, 0, 0, 0, nebulosa.raioX * respiracao);
+            gradiente.addColorStop(0, `hsla(${nebulosa.matiz}, 92%, 62%, 0.09)`);
+            gradiente.addColorStop(0.36, `hsla(${(nebulosa.matiz + 38) % 360}, 88%, 55%, 0.055)`);
+            gradiente.addColorStop(0.72, `hsla(${nebulosa.matiz}, 90%, 48%, 0.018)`);
+            gradiente.addColorStop(1, `hsla(${nebulosa.matiz}, 90%, 45%, 0)`);
+            contexto.fillStyle = gradiente;
+            contexto.beginPath();
+            contexto.arc(0, 0, nebulosa.raioX * respiracao, 0, Math.PI * 2);
+            contexto.fill();
+            contexto.restore();
+        }
+        contexto.restore();
+
+        contexto.save();
+        contexto.globalCompositeOperation = 'lighter';
+        for (const estrela of estrelas) {
+            const cintilo = 0.2 + Math.abs(Math.sin(tempo * estrela.velocidade + estrela.fase)) * 0.62;
+            estrela.y -= 0.012 * estrela.camada;
+            if (estrela.y < -2) estrela.y = altura + 2;
+            contexto.fillStyle = estrela.camada > 0.62
+                ? `rgba(233, 213, 255, ${(cintilo * estrela.camada).toFixed(3)})`
+                : `rgba(34, 211, 238, ${(cintilo * 0.52).toFixed(3)})`;
+            contexto.beginPath();
+            contexto.arc(estrela.x, estrela.y, estrela.raio * estrela.camada, 0, Math.PI * 2);
+            contexto.fill();
+        }
+        contexto.restore();
+
+        contexto.save();
+        contexto.globalCompositeOperation = 'lighter';
+        for (const fragmento of fragmentos) {
+            fragmento.x += fragmento.derivaX;
+            fragmento.y += fragmento.derivaY;
+            fragmento.angulo += fragmento.rotacao;
+            if (fragmento.y < -20) {
+                fragmento.y = altura + 20;
+                fragmento.x = Math.random() * largura;
+            }
+            const brilho = 0.08 + Math.abs(Math.sin(tempo * 0.0008 + fragmento.fase)) * 0.18;
+            contexto.save();
+            contexto.translate(fragmento.x, fragmento.y);
+            contexto.rotate(fragmento.angulo);
+            contexto.fillStyle = `hsla(${fragmento.matiz}, 100%, 72%, ${(brilho * 0.34).toFixed(3)})`;
+            contexto.strokeStyle = `hsla(${fragmento.matiz}, 100%, 78%, ${brilho.toFixed(3)})`;
+            contexto.lineWidth = 0.7;
+            contexto.beginPath();
+            contexto.moveTo(0, -fragmento.tamanho);
+            contexto.lineTo(fragmento.tamanho * 0.56, fragmento.tamanho * 0.42);
+            contexto.lineTo(-fragmento.tamanho * 0.38, fragmento.tamanho * 0.72);
+            contexto.closePath();
+            contexto.fill();
+            contexto.stroke();
+            contexto.restore();
+        }
+        contexto.restore();
+
+        contexto.save();
+        contexto.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < universos.length; i += 1) {
+            const universo = universos[i];
+            universo.x += universo.derivaX;
+            universo.y += universo.derivaY;
+            if (universo.x < -50) universo.x = largura + 50;
+            if (universo.x > largura + 50) universo.x = -50;
+            if (universo.y < -50) universo.y = altura + 50;
+            if (universo.y > altura + 50) universo.y = -50;
+            const pulso = 0.9 + Math.sin(tempo * 0.001 + universo.fase) * 0.1;
+            const raio = universo.raio * pulso;
+            const brilho = contexto.createRadialGradient(universo.x, universo.y, 0, universo.x, universo.y, raio);
+            brilho.addColorStop(0, `hsla(${universo.matiz}, 95%, 72%, 0.28)`);
+            brilho.addColorStop(0.46, `hsla(${universo.matiz}, 90%, 56%, 0.1)`);
+            brilho.addColorStop(1, `hsla(${universo.matiz}, 90%, 55%, 0)`);
+            contexto.fillStyle = brilho;
+            contexto.beginPath();
+            contexto.arc(universo.x, universo.y, raio, 0, Math.PI * 2);
+            contexto.fill();
+            contexto.strokeStyle = `hsla(${universo.matiz}, 100%, 76%, 0.38)`;
+            contexto.lineWidth = 1;
+            contexto.beginPath();
+            contexto.arc(universo.x, universo.y, raio * 0.72, 0, Math.PI * 2);
+            contexto.stroke();
+            for (let s = 0; s < universo.satelites; s += 1) {
+                const angulo = tempo * universo.velocidade * (s + 1) + universo.fase + s * 2.1;
+                const distancia = raio * (0.92 + s * 0.18);
+                contexto.fillStyle = s % 2 ? 'rgba(34, 211, 238, 0.62)' : 'rgba(251, 113, 133, 0.58)';
+                contexto.beginPath();
+                contexto.arc(universo.x + Math.cos(angulo) * distancia, universo.y + Math.sin(angulo) * distancia * 0.58, 1.4, 0, Math.PI * 2);
+                contexto.fill();
+            }
+            if (i < universos.length - 1) {
+                const proximo = universos[i + 1];
+                contexto.strokeStyle = `rgba(168, 85, 247, ${(0.025 + Math.abs(Math.sin(tempo * 0.0005 + i)) * 0.05).toFixed(3)})`;
+                contexto.beginPath();
+                contexto.moveTo(universo.x, universo.y);
+                contexto.lineTo(proximo.x, proximo.y);
+                contexto.stroke();
+            }
+        }
+        contexto.restore();
+
+        contexto.save();
+        contexto.globalCompositeOperation = 'lighter';
+        for (const cometa of cometas) {
+            const progresso = ((tempo - cometa.atraso) % cometa.ciclo + cometa.ciclo) % cometa.ciclo;
+            const janela = Math.min(1, progresso / 3200);
+            if (janela >= 1) continue;
+            const x = largura * 1.12 - janela * (largura * 1.35);
+            const y = cometa.y + janela * altura * 0.18;
+            const gradiente = contexto.createLinearGradient(x, y, x + cometa.comprimento, y - cometa.comprimento * 0.28);
+            gradiente.addColorStop(0, `hsla(${cometa.matiz}, 100%, 82%, ${0.72 * (1 - janela)})`);
+            gradiente.addColorStop(1, `hsla(${cometa.matiz}, 100%, 58%, 0)`);
+            contexto.strokeStyle = gradiente;
+            contexto.lineWidth = 1.2;
+            contexto.beginPath();
+            contexto.moveTo(x, y);
+            contexto.lineTo(x + cometa.comprimento, y - cometa.comprimento * 0.28);
+            contexto.stroke();
+            contexto.fillStyle = `hsla(${cometa.matiz}, 100%, 90%, ${0.8 * (1 - janela)})`;
+            contexto.beginPath();
+            contexto.arc(x, y, 1.6, 0, Math.PI * 2);
+            contexto.fill();
+        }
+        contexto.restore();
+
+        for (const portal of portais) desenharPortalMultiverso(portal, tempo);
+
+        contexto.save();
+        contexto.globalCompositeOperation = 'lighter';
+        for (const fenda of fendas) {
+            const pulso = 0.5 + Math.sin(tempo * 0.0014 + fenda.fase) * 0.28;
+            contexto.save();
+            contexto.translate(fenda.x, fenda.y);
+            contexto.rotate(fenda.angulo);
+            contexto.strokeStyle = `hsla(${fenda.matiz}, 100%, 70%, ${(0.16 * pulso).toFixed(3)})`;
+            contexto.lineWidth = 1.2;
+            contexto.beginPath();
+            contexto.moveTo(-fenda.comprimento / 2, 0);
+            for (let p = 0; p <= 12; p += 1) {
+                const x = -fenda.comprimento / 2 + (p / 12) * fenda.comprimento;
+                const y = Math.sin(p * 2.7 + tempo * 0.002 + fenda.fase) * (4 + pulso * 5);
+                contexto.lineTo(x, y);
+            }
+            contexto.stroke();
+            contexto.restore();
+        }
+        contexto.restore();
+
+        contexto.save();
+        contexto.globalCompositeOperation = 'lighter';
+        for (const eco of ecos) {
+            const alfa = 0.025 + Math.abs(Math.sin(tempo * eco.velocidade + eco.fase)) * 0.055;
+            contexto.strokeStyle = `rgba(233, 213, 255, ${alfa.toFixed(3)})`;
+            contexto.setLineDash([6, 7]);
+            contexto.strokeRect(eco.x, eco.y, eco.largura, eco.altura);
+            contexto.fillStyle = `rgba(34, 211, 238, ${(alfa * 0.65).toFixed(3)})`;
+            contexto.fillRect(eco.x + 8, eco.y + 8, eco.largura * 0.42, 1);
+            contexto.fillRect(eco.x + 8, eco.y + 13, eco.largura * 0.25, 1);
+        }
+        contexto.setLineDash([]);
+        contexto.restore();
+    }
+
     // --- Tema especial "Tempo Nexo": relógio de bronze funcional com engrenagens e pêndulo ---
     function criarEstadoTempo() {
         const { largura, altura } = medirViewport();
@@ -1688,8 +2458,14 @@
             })),
         };
 
+        const orbitas = [
+            { escala: 1.18, velocidade: 0.00008, arco: Math.PI * 0.72, fase: 0.4 },
+            { escala: 1.38, velocidade: -0.000055, arco: Math.PI * 0.48, fase: 2.1 },
+            { escala: 1.62, velocidade: 0.000035, arco: Math.PI * 0.32, fase: 4.2 },
+        ];
+
         return {
-            centroX, centroY, raioRelogio, engrenagens, particulas, numerais, ampulheta,
+            centroX, centroY, raioRelogio, engrenagens, particulas, numerais, ampulheta, orbitas,
             ultimoMinuto: -1,
             pulsosMinuto: [],
             distorcao: { restante: 0, progresso: 0, ondas: [] },
@@ -1725,7 +2501,7 @@
 
     function desenharTempo(tempo) {
         const { largura, altura } = medirViewport();
-        const { centroX, centroY, raioRelogio, engrenagens, particulas, numerais, ampulheta } = estado;
+        const { centroX, centroY, raioRelogio, engrenagens, particulas, numerais, ampulheta, orbitas } = estado;
 
         // "Distorção temporal": periodicamente o tempo tropeça em si mesmo — as
         // engrenagens desaceleram e chegam a girar ao contrário por um instante,
@@ -1837,6 +2613,41 @@
         }
         contexto.restore();
 
+        // Aros em profundidades diferentes representam linhas do tempo
+        // concorrentes tentando se sincronizar com o relógio central.
+        contexto.save();
+        contexto.translate(centroX, centroY);
+        contexto.scale(1, 0.76);
+        contexto.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < orbitas.length; i += 1) {
+            const orbita = orbitas[i];
+            const raio = raioRelogio * orbita.escala;
+            const inicio = tempo * orbita.velocidade + orbita.fase;
+            const alfa = 0.14 - i * 0.025;
+
+            contexto.setLineDash([3 + i * 2, 8 + i * 3]);
+            contexto.lineWidth = 0.8 + i * 0.25;
+            contexto.strokeStyle = `rgba(244, 207, 130, ${alfa.toFixed(3)})`;
+            contexto.beginPath();
+            contexto.arc(0, 0, raio, 0, Math.PI * 2);
+            contexto.stroke();
+
+            contexto.setLineDash([]);
+            contexto.lineWidth = 1.4;
+            contexto.strokeStyle = `rgba(217, 164, 65, ${(0.34 - i * 0.05).toFixed(3)})`;
+            contexto.beginPath();
+            contexto.arc(0, 0, raio, inicio, inicio + orbita.arco);
+            contexto.stroke();
+
+            const cursorX = Math.cos(inicio + orbita.arco) * raio;
+            const cursorY = Math.sin(inicio + orbita.arco) * raio;
+            contexto.fillStyle = `rgba(244, 207, 130, ${(0.72 - i * 0.12).toFixed(3)})`;
+            contexto.beginPath();
+            contexto.arc(cursorX, cursorY, 2.4 - i * 0.35, 0, Math.PI * 2);
+            contexto.fill();
+        }
+        contexto.restore();
+
         // Pêndulo balançando abaixo do relógio.
         const pivoY = centroY + raioRelogio * 1.05;
         const anguloPendulo = Math.sin(tempo * 0.0018) * 0.32;
@@ -1858,17 +2669,37 @@
 
         // Face do relógio, com ponteiros marcando a hora real do sistema.
         contexto.save();
+        const vidro = contexto.createRadialGradient(
+            centroX - raioRelogio * 0.25,
+            centroY - raioRelogio * 0.3,
+            0,
+            centroX,
+            centroY,
+            raioRelogio,
+        );
+        vidro.addColorStop(0, 'rgba(244, 207, 130, 0.055)');
+        vidro.addColorStop(0.58, 'rgba(217, 164, 65, 0.018)');
+        vidro.addColorStop(1, 'rgba(6, 4, 2, 0.14)');
+        contexto.fillStyle = vidro;
+        contexto.beginPath();
+        contexto.arc(centroX, centroY, raioRelogio, 0, Math.PI * 2);
+        contexto.fill();
+
         contexto.strokeStyle = 'rgba(244, 207, 130, 0.7)';
         contexto.lineWidth = 3;
         contexto.beginPath();
         contexto.arc(centroX, centroY, raioRelogio, 0, Math.PI * 2);
         contexto.stroke();
 
-        contexto.lineWidth = 2;
-        for (let i = 0; i < 12; i += 1) {
-            const angulo = (Math.PI * 2 * i) / 12 - Math.PI / 2;
-            const x1 = centroX + Math.cos(angulo) * raioRelogio * 0.86;
-            const y1 = centroY + Math.sin(angulo) * raioRelogio * 0.86;
+        for (let i = 0; i < 60; i += 1) {
+            const angulo = (Math.PI * 2 * i) / 60 - Math.PI / 2;
+            const principal = i % 5 === 0;
+            contexto.lineWidth = principal ? 2.2 : 0.75;
+            contexto.strokeStyle = principal
+                ? 'rgba(244, 207, 130, 0.72)'
+                : 'rgba(217, 164, 65, 0.3)';
+            const x1 = centroX + Math.cos(angulo) * raioRelogio * (principal ? 0.85 : 0.9);
+            const y1 = centroY + Math.sin(angulo) * raioRelogio * (principal ? 0.85 : 0.9);
             const x2 = centroX + Math.cos(angulo) * raioRelogio * 0.96;
             const y2 = centroY + Math.sin(angulo) * raioRelogio * 0.96;
             contexto.beginPath();
@@ -2003,15 +2834,36 @@
         titanio: { criarEstado: criarEstadoTitanio, desenhar: desenharTitanio },
         cyberpunk: { criarEstado: criarEstadoCyberpunk, desenhar: desenharCyberpunk },
         tempo: { criarEstado: criarEstadoTempo, desenhar: desenharTempo },
+        virus: { criarEstado: criarEstadoVirus, desenhar: desenharVirus },
+        multiverso: { criarEstado: criarEstadoMultiverso, desenhar: desenharMultiverso },
     });
 
     function limparCanvas() {
         if (!contexto || !canvas) return;
+        contexto.save();
+        contexto.setTransform(1, 0, 0, 1, 0, 0);
         contexto.clearRect(0, 0, canvas.width, canvas.height);
+        contexto.restore();
     }
 
     function loop(tempo) {
         if (!temaAtivo) return;
+
+        // O movimento dos especiais é deliberadamente cinematográfico. O limite
+        // de FPS evita competir com formulários, downloads e organização.
+        const orcamentoEspecial = ORCAMENTO_TEMAS_ESPECIAIS[temaAtivo];
+        const intervaloMinimo = orcamentoEspecial
+            ? 1000 / obterFpsTemaEspecial(temaAtivo)
+            : 0;
+        const tempoDesdeUltimoQuadro = tempo - ultimoTempoDesenhado;
+        if (document.hidden || tempoDesdeUltimoQuadro < intervaloMinimo) {
+            frameId = window.requestAnimationFrame(loop);
+            return;
+        }
+        ultimoTempoDesenhado = intervaloMinimo
+            ? tempo - (tempoDesdeUltimoQuadro % intervaloMinimo)
+            : tempo;
+
         limparCanvas();
         EFEITOS[temaAtivo].desenhar(tempo);
         frameId = window.requestAnimationFrame(loop);
@@ -2024,12 +2876,13 @@
         }
         temaAtivo = null;
         estado = null;
+        ultimoTempoDesenhado = 0;
         limparCanvas();
         if (canvas) canvas.dataset.ativo = 'false';
     }
 
     function iniciarEfeito(paleta) {
-        if (!canvas || !contexto || prefereMenosMovimento) return;
+        if (!canvas || !contexto) return;
         if (!TEMAS_COM_EFEITO.includes(paleta)) {
             pararEfeito();
             return;
@@ -2058,21 +2911,13 @@
     function inicializar() {
         canvas = document.getElementById('temaVfxCanvas');
         if (!canvas) return;
-        contexto = canvas.getContext('2d');
-
-        const consultaMovimento = window.matchMedia('(prefers-reduced-motion: reduce)');
-        prefereMenosMovimento = consultaMovimento.matches;
-        consultaMovimento.addEventListener('change', (evento) => {
-            prefereMenosMovimento = evento.matches;
-            if (prefereMenosMovimento) {
-                pararEfeito();
-            } else {
-                aplicarParaPaletaAtual();
-            }
-        });
+        contexto = canvas.getContext('2d', { alpha: true, desynchronized: true });
 
         window.addEventListener('garimpu:paleta-alterada', (evento) => {
             iniciarEfeito(evento.detail?.paleta);
+        });
+        window.addEventListener('garimpu:fps-temas-especiais-alterado', () => {
+            ultimoTempoDesenhado = 0;
         });
         window.addEventListener('resize', tratarRedimensionamento);
 

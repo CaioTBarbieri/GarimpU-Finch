@@ -27,6 +27,8 @@
                 'oceano',
                 'cyberpunk',
                 'tempo',
+                'virus',
+                'multiverso',
             ];
             const fontes = ['classico', 'moderno', 'tecnologico', 'editorial'];
 
@@ -619,7 +621,7 @@
                 <p class="section-kicker">Personalização</p>
                 <h2 id="tituloLoja" class="section-title">Loja de Temas e Fontes</h2>
                 <p class="section-description">
-                    Escolha a paleta de cores (incluindo as animadas) e o estilo de fonte utilizados na interface do GarimpU-Nexo.
+                    Escolha entre temas animados, estáticos e especiais, além do estilo de fonte utilizado na interface do GarimpU-Nexo.
                 </p>
             </div>
 
@@ -642,6 +644,15 @@
                             onclick="window.garimpuTema?.definirFiltroPaletas('estatica')"
                         >
                             Estáticos
+                        </button>
+                        <button
+                            type="button"
+                            id="btnFiltroPaletaEspecial"
+                            class="palette-filter-option"
+                            aria-pressed="false"
+                            onclick="window.garimpuTema?.definirFiltroPaletas('especial')"
+                        >
+                            Especiais
                         </button>
                     </div>
 
@@ -686,7 +697,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Ametista Nexo</h4>
+                                        <h4>Ametista</h4>
                                         <p id="descricaoPaletaAmetista">Roxo profundo com detalhes luminosos.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -712,7 +723,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Nexo Ártico <span class="palette-animated-badge">Animado</span></h4>
+                                        <h4>Ártico <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaArtico">Azul-petróleo e ciano para uma interface fria.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -764,7 +775,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Galáxia Nexo <span class="palette-animated-badge">Animado</span></h4>
+                                        <h4>Galáxia <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaGalaxia">Índigo espacial com magenta, violeta e detalhes em ciano.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -842,7 +853,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Vulcânico Nexo <span class="palette-animated-badge">Animado</span></h4>
+                                        <h4>Vulcânico <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaVulcanico">Obsidiana e lava incandescente para uma interface intensa e enérgica.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -868,7 +879,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Nexo Boreal</h4>
+                                        <h4>Boreal</h4>
                                         <p id="descricaoPaletaBoreal">Aurora verde e violeta sobre um azul-noite profundo.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -946,7 +957,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Tempestade Nexo <span class="palette-animated-badge">Animado</span></h4>
+                                        <h4>Tempestade <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaTempestade">Céu de aço sob uma tempestade elétrica, com raios que rasgam a noite e chuva torrencial.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -972,7 +983,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Dimensão Nexo <span class="palette-animated-badge">Animado</span></h4>
+                                        <h4>Dimensão <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaDimensao">Uma fenda entre realidades pulsando em magenta e ciano, sugando fragmentos ao seu redor.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -998,7 +1009,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Pulsar Nexo <span class="palette-animated-badge">Animado</span></h4>
+                                        <h4>Pulsar <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaPulsar">Uma estrela de nêutrons girando no escuro, varrendo o céu com feixes de luz ciano em ritmo constante.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -1024,7 +1035,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Supernova Nexo <span class="palette-animated-badge">Animado</span></h4>
+                                        <h4>Supernova <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaSupernova">O instante da explosão estelar: onda de choque, destroços incandescentes e uma nebulosa em expansão.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -1050,7 +1061,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Noir Nexo <span class="palette-animated-badge">Animado</span></h4>
+                                        <h4>Noir <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaNoir">Preto e branco de cinema clássico: chuva na janela, luz de veneziana e neblina rasteira sob contraste absoluto.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -1076,7 +1087,7 @@
                                 >
                                 <span class="palette-option-header">
                                     <span>
-                                        <h4>Oceano Nexo <span class="palette-animated-badge">Animado</span></h4>
+                                        <h4>Oceano <span class="palette-animated-badge">Animado</span></h4>
                                         <p id="descricaoPaletaOceano">Azul-petróleo profundo com turquesa vívido: raios de luz, bolhas subindo e plâncton à deriva, como um recife visto de longe.</p>
                                     </span>
                                     <span class="palette-current">Paleta atual</span>
@@ -1090,7 +1101,7 @@
                                 </span>
                             </label>
 
-                            <label class="palette-option" data-palette-value="cyberpunk" data-palette-categoria="animada" data-palette-especial hidden>
+                            <label class="palette-option" data-palette-value="cyberpunk" data-palette-categoria="especial" data-palette-especial hidden>
                                 <input
                                     id="paletaCyberpunk"
                                     class="palette-radio"
@@ -1116,7 +1127,7 @@
                                 </span>
                             </label>
 
-                            <label class="palette-option" data-palette-value="tempo" data-palette-categoria="animada" data-palette-especial hidden>
+                            <label class="palette-option" data-palette-value="tempo" data-palette-categoria="especial" data-palette-especial hidden>
                                 <input
                                     id="paletaTempo"
                                     class="palette-radio"
@@ -1141,8 +1152,92 @@
                                     <span class="palette-swatch"></span>
                                 </span>
                             </label>
+
+                            <label class="palette-option" data-palette-value="virus" data-palette-categoria="especial" data-palette-especial hidden>
+                                <input
+                                    id="paletaVirus"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="virus"
+                                    aria-describedby="descricaoPaletaVirus"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Vírus Nexo <span class="palette-animated-badge">Animado</span><span class="palette-special-badge">Especial</span></h4>
+                                        <p id="descricaoPaletaVirus">Terminal clandestino em verde tóxico e vermelho de alerta, com chuva de código, rede contaminada, organismos digitais, pulsos de infecção e tipografia hacker própria.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="multiverso" data-palette-categoria="especial" data-palette-especial hidden>
+                                <input
+                                    id="paletaMultiverso"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="multiverso"
+                                    aria-describedby="descricaoPaletaMultiverso"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Multiverso Nexo <span class="palette-animated-badge">Animado</span><span class="palette-special-badge">Especial</span></h4>
+                                        <p id="descricaoPaletaMultiverso">Realidades paralelas em violeta, ciano e coral, com portais orbitais, universos-bolha, fendas dimensionais, constelações e ecos de interfaces alternativas.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
                         </div>
                     </fieldset>
+
+                    <div class="special-fps-panel app-divider mt-6 border-t pt-6">
+                        <div class="special-fps-heading">
+                            <div>
+                                <h4 class="app-text text-sm font-semibold">Desempenho dos temas especiais</h4>
+                                <p id="descricaoFpsTemasEspeciais" class="app-text-subtle mt-1 text-xs leading-5">
+                                    Regule a fluidez de Cyberpunk, Tempo, Vírus e Multiverso. Valores menores consomem menos CPU e GPU.
+                                </p>
+                            </div>
+                            <div class="special-fps-readout" aria-live="polite">
+                                <output id="valorFpsTemasEspeciais" for="fpsTemasEspeciais">15 FPS</output>
+                                <span id="nivelFpsTemasEspeciais">Equilibrado</span>
+                            </div>
+                        </div>
+                        <input
+                            id="fpsTemasEspeciais"
+                            class="special-fps-range"
+                            type="range"
+                            min="5"
+                            max="30"
+                            step="1"
+                            value="15"
+                            aria-describedby="descricaoFpsTemasEspeciais escalaFpsTemasEspeciais"
+                            oninput="definirFpsTemasEspeciais(this.value)"
+                        >
+                        <div id="escalaFpsTemasEspeciais" class="special-fps-scale" aria-hidden="true">
+                            <span>5 · Econômico</span>
+                            <span>15 · Equilibrado</span>
+                            <span>24 · Suave</span>
+                            <span>30 · Alto</span>
+                        </div>
+                    </div>
 
                     <div class="app-divider mt-6 border-t pt-6">
                         <h4 class="app-text text-sm font-semibold">Tipografia</h4>
