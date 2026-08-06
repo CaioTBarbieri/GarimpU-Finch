@@ -1,6 +1,6 @@
 {
   "name": "garimpu-finch",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "description": "Aplicativo Windows para pesquisa de hotéis, imagens e CSV.",
   "main": "electron/main.js",
   "scripts": {
