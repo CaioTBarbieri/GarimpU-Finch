@@ -486,30 +486,6 @@
                 filtrarResultadosLote(FILTRO_TODAS_LOCALIZACOES);
             }
 
-            // A correspondência de hotel na Booking/Expedia é feita só pelo
-            // nome digitado (ver escolherMelhorCandidato no backend), então
-            // um homônimo em outra cidade ou país pode passar batido. O
-            // backend já sinaliza isso (dados.localizacaoForaDaArea) quando
-            // o hotel encontrado fica muito longe do ponto de referência da
-            // busca; aqui só perguntamos ao usuário se quer manter mesmo
-            // assim ou descartar.
-            function confirmarLocalizacaoForaDaArea(dados) {
-                const distanciaTexto = Number.isFinite(dados.distanciaReferenciaKm)
-                    ? Math.round(dados.distanciaReferenciaKm) + ' km'
-                    : 'desconhecida';
-                const localizacaoEncontrada = resumirLocalizacaoHotel(
-                    dados.bairro,
-                    dados.endereco
-                );
-                return window.confirm(
-                    '⚠️ "' + dados.nome + '" foi encontrado bem longe da área pesquisada.\n\n' +
-                    'Localização encontrada: ' + localizacaoEncontrada + '\n' +
-                    'Endereço: ' + dados.endereco + '\n' +
-                    'Distância do ponto de referência: ' + distanciaTexto + '\n\n' +
-                    'Clique em OK para manter esse hotel mesmo assim, ou em Cancelar para descartá-lo.'
-                );
-            }
-
             // Junta, ao final da lista de resultados do lote, um botão para
             // copiar os hotéis que deram erro e os que ficaram com
             // localização muito diferente da pesquisada — para o usuário
@@ -729,24 +705,20 @@
                                 hoteisLocalizacaoSuspeita.push(
                                     entrada.textoOriginal || entrada.consulta
                                 );
-                                if (!confirmarLocalizacaoForaDaArea(dados)) {
-                                    throw Object.assign(
-                                        new Error(
-                                            entrada.consulta +
-                                            ': hotel descartado por estar fora da área pesquisada.'
-                                        ),
-                                        { ignorado: true }
-                                    );
-                                }
                             }
+                            const avisoLocalizacao = dados.localizacaoForaDaArea
+                                ? ' ⚠ localização bem distante da área pesquisada'
+                                : '';
 
                             if (baixarImagens) {
                                 if (entrada.idWix) dadosAtuais.idWix = entrada.idWix;
                                 baixados += 1;
-                                linhaResultado.className = 'app-status-success';
+                                linhaResultado.className = dados.localizacaoForaDaArea
+                                    ? 'app-status-warning'
+                                    : 'app-status-success';
                                 linhaResultado.textContent =
                                     '✓ ' + rotuloId(entrada.idWix) + dados.nome +
-                                    ': imagens baixadas' + fonteTexto;
+                                    ': imagens baixadas' + fonteTexto + avisoLocalizacao;
                             } else {
                                 if (entrada.idWix) {
                                     dadosAtuais.idWix = entrada.idWix;
@@ -787,9 +759,12 @@
                                 }
 
                                 adicionados += 1;
-                                linhaResultado.className = 'app-status-success';
+                                linhaResultado.className = dados.localizacaoForaDaArea
+                                    ? 'app-status-warning'
+                                    : 'app-status-success';
                                 linhaResultado.textContent =
-                                    '✓ ' + rotuloId(entrada.idWix) + dados.nome + fonteTexto;
+                                    '✓ ' + rotuloId(entrada.idWix) + dados.nome +
+                                    fonteTexto + avisoLocalizacao;
                             }
                         } catch (erro) {
                             if (erro.ignorado) {
@@ -951,16 +926,6 @@
                     const dados = await response.json();
                     if (!response.ok) throw new Error(dados.erro || 'Falha no pedido');
 
-                    if (dados.localizacaoForaDaArea &&
-                        !confirmarLocalizacaoForaDaArea(dados)) {
-                        atualizarMensagemPesquisa(
-                            'Hotel descartado: "' + dados.nome +
-                            '" estava fora da área pesquisada.',
-                            'erro'
-                        );
-                        return;
-                    }
-
                     dadosAtuais = dados;
                     dadosAtuais.idWix = '';
 
@@ -1013,7 +978,18 @@
                     if (dados.baixouLocal) {
                         carregarBibliotecaFotos({ silencioso: true });
                     }
-                    atualizarMensagemPesquisa('Achado confirmado: consulta concluída.', 'sucesso');
+                    if (dados.localizacaoForaDaArea) {
+                        const distanciaTexto = Number.isFinite(dados.distanciaReferenciaKm)
+                            ? Math.round(dados.distanciaReferenciaKm) + ' km'
+                            : 'desconhecida';
+                        atualizarMensagemPesquisa(
+                            '⚠ Atenção: este hotel está a ' + distanciaTexto +
+                            ' da área pesquisada. Confira o endereço antes de usar o resultado.',
+                            'erro'
+                        );
+                    } else {
+                        atualizarMensagemPesquisa('Achado confirmado: consulta concluída.', 'sucesso');
+                    }
 
                 } catch (err) {
                     atualizarMensagemPesquisa(
