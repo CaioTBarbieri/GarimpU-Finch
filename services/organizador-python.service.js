@@ -114,7 +114,7 @@ function criarOrganizadorPythonService({
     });
   }
 
-  async function prepararEIniciarProcesso() {
+  async function prepararEIniciarProcesso({ reorganizar = false } = {}) {
     try {
       const scriptPython = encontrarScriptPython();
       const python = await localizarPython();
@@ -129,15 +129,17 @@ function criarOrganizadorPythonService({
           `(Python ${python.versao})`,
       );
 
+      const argumentos = [
+        ...python.argumentosIniciais,
+        "-u",
+        scriptPython,
+        "--pasta",
+        PASTA_IMAGENS,
+      ];
+      if (reorganizar) argumentos.push("--reorganizar");
       const processo = criarProcesso(
         python.comando,
-        [
-          ...python.argumentosIniciais,
-          "-u",
-          scriptPython,
-          "--pasta",
-          PASTA_IMAGENS,
-        ],
+        argumentos,
         {
           cwd: diretorioProjeto,
           windowsHide: true,
@@ -160,7 +162,7 @@ function criarOrganizadorPythonService({
     }
   }
 
-  function iniciarOrganizacao() {
+  function iniciarOrganizacao({ reorganizar = false } = {}) {
     if (estaExecutando()) return false;
 
     iniciando = true;
@@ -170,7 +172,7 @@ function criarOrganizadorPythonService({
       `\n[${new Date(inicioOrganizacao).toLocaleString("pt-BR")}] ` +
         "[+] Iniciando IA de Lote para TODOS os hotéis...",
     );
-    void prepararEIniciarProcesso();
+    void prepararEIniciarProcesso({ reorganizar });
     return true;
   }
 

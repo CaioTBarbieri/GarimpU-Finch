@@ -2,7 +2,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from python_organizador.arquivos import listar_imagens_soltas
+from python_organizador.arquivos import (
+    escrever_alt_texts,
+    listar_hoteis,
+    listar_imagens_categorizadas,
+    listar_imagens_soltas,
+)
 from python_organizador.nomes import (
     criar_nome_final,
     limpar_para_nome_arquivo,
@@ -112,6 +117,61 @@ class TestArquivos(unittest.TestCase):
                 [arquivo.name for arquivo in encontrados],
                 ["solta.jpg"],
             )
+
+    def test_lista_imagens_ja_categorizadas_com_nome_antigo(self):
+        with tempfile.TemporaryDirectory() as diretorio:
+            hotel = Path(diretorio) / "Jericoacoara" / "Hotel"
+            categoria = hotel / "Acomodações"
+            categoria.mkdir(parents=True)
+            imagem = categoria / "foto antiga.jpg"
+            imagem.touch()
+
+            encontrados = listar_imagens_categorizadas(
+                hotel,
+                ["acomodacoes", "gastronomia"],
+            )
+
+            self.assertEqual(encontrados, {imagem: "acomodacoes"})
+            self.assertEqual(
+                listar_hoteis(diretorio, ["acomodacoes"]),
+                [hotel],
+            )
+
+    def test_encontra_hoteis_com_imagens_soltas_dentro_de_pastas_maes(self):
+        with tempfile.TemporaryDirectory() as diretorio:
+            raiz = Path(diretorio)
+            hotel_itacare = raiz / "Itacaré" / "Hotel Praia"
+            hotel_jeri = raiz / "Jericoacoara" / "Hotel Duna"
+            hotel_itacare.mkdir(parents=True)
+            hotel_jeri.mkdir(parents=True)
+            (hotel_itacare / "foto.jpg").touch()
+            (hotel_jeri / "foto.png").touch()
+
+            encontrados = listar_hoteis(raiz)
+
+            self.assertEqual(
+                set(encontrados),
+                {hotel_itacare, hotel_jeri},
+            )
+
+    def test_nao_confunde_pasta_de_categoria_com_hotel(self):
+        with tempfile.TemporaryDirectory() as diretorio:
+            raiz = Path(diretorio)
+            categoria = raiz / "Jericoacoara" / "Hotel" / "Gastronomia"
+            categoria.mkdir(parents=True)
+            (categoria / "foto.jpg").touch()
+
+            self.assertEqual(listar_hoteis(raiz), [])
+
+    def test_preserva_alt_texts_existentes_ao_escrever(self):
+        with tempfile.TemporaryDirectory() as diretorio:
+            pasta = Path(diretorio)
+            escrever_alt_texts(pasta, {"antiga.jpg": "Descrição antiga"})
+            escrever_alt_texts(pasta, {"nova.jpg": "Descrição nova"})
+
+            conteudo = (pasta / "alt_texts.json").read_text(encoding="utf-8")
+            self.assertIn('"antiga.jpg": "Descrição antiga"', conteudo)
+            self.assertIn('"nova.jpg": "Descrição nova"', conteudo)
 
 
 class TestStatus(unittest.TestCase):

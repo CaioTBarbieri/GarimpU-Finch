@@ -47,7 +47,9 @@ import warnings
 from python_organizador.arquivos import (
     criar_pasta,
     escrever_alt_texts,
+    ler_alt_texts,
     listar_hoteis,
+    listar_imagens_categorizadas,
     listar_imagens_soltas,
     mover_ou_copiar,
 )
@@ -290,19 +292,42 @@ def treinar_classificador(modelo, pasta_exemplos):
     return clf, categorias_encontradas
 
 
-def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
+def classificar_e_organizar(
+    modelo,
+    clf,
+    pasta_hoteis,
+    modo_copia=True,
+    reorganizar=False,
+):
     """Classifica imagens de cada hotel e organiza nas subpastas."""
     from sklearn.preprocessing import normalize
     from PIL import Image
 
     pasta_hoteis = Path(pasta_hoteis)
 
-    pastas_hoteis = listar_hoteis(pasta_hoteis)
+    categorias_organizadas = CATEGORIAS if reorganizar else None
+    pastas_hoteis = listar_hoteis(pasta_hoteis, categorias_organizadas)
 
-    imagens_por_hotel = {
-        pasta_hotel: listar_imagens_soltas(pasta_hotel)
-        for pasta_hotel in pastas_hoteis
-    }
+    imagens_por_hotel = {}
+    categorias_por_imagem = {}
+    for pasta_hotel in pastas_hoteis:
+        imagens_soltas = listar_imagens_soltas(pasta_hotel)
+        imagens_categorizadas = {}
+        if reorganizar:
+            nomes_ja_processados = set(ler_alt_texts(pasta_hotel))
+            imagens_categorizadas = {
+                imagem: categoria
+                for imagem, categoria in listar_imagens_categorizadas(
+                    pasta_hotel,
+                    CATEGORIAS,
+                ).items()
+                if imagem.name not in nomes_ja_processados
+            }
+        imagens_por_hotel[pasta_hotel] = [
+            *imagens_soltas,
+            *imagens_categorizadas,
+        ]
+        categorias_por_imagem.update(imagens_categorizadas)
     total_imagens_geral = sum(
         len(imagens) for imagens in imagens_por_hotel.values()
     )
@@ -347,7 +372,7 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
             print("   ℹ️  Nenhuma imagem solta encontrada.")
             continue
 
-        print(f"   📸 {len(imagens)} imagens para classificar")
+        print(f"   📸 {len(imagens)} imagens para processar")
 
         if not processamento_imagens_iniciado:
             emitir_status(
@@ -357,6 +382,14 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
             )
             processamento_imagens_iniciado = True
 
+        # Imagens já categorizadas conservam a categoria e passam pelo Florence.
+        imagens_organizadas = [
+            arq for arq in imagens if arq in categorias_por_imagem
+        ]
+        imagens_para_classificar = [
+            arq for arq in imagens if arq not in categorias_por_imagem
+        ]
+
         # ── Etapa 1: filtra humanos via YOLO ──
         sem_humanos = []
         qtd_humanos_detectados = 0
@@ -364,7 +397,11 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
         if detector_yolo:
             print("   👤 Verificando presença de pessoas (YOLO)...")
             for indice, arq in enumerate(
-                tqdm(imagens, desc="   Detectando pessoas", unit="img"),
+                tqdm(
+                    imagens_para_classificar,
+                    desc="   Detectando pessoas",
+                    unit="img",
+                ),
                 start=1,
             ):
                 if parece_foto_com_humano(arq, detector_yolo):
@@ -410,17 +447,20 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
                     sem_humanos.append(arq)
             print(f"   👤 {qtd_humanos_detectados} foto(s) com pessoas → _Com_Humanos")
         else:
-            sem_humanos = imagens
+            sem_humanos = imagens_para_classificar
 
-        if not sem_humanos:
+        if not sem_humanos and not imagens_organizadas:
             print("   ℹ️  Todas as imagens continham pessoas.")
             continue
 
         # ── Etapa 2: classifica imagens via CLIP + Florence-2 ──
         imagens_concluidas_hotel = qtd_humanos_detectados
-        embs, validos = calcular_embeddings(
-            modelo, sem_humanos, desc="   Analisando categorias"
-        )
+        if sem_humanos:
+            embs, validos = calcular_embeddings(
+                modelo, sem_humanos, desc="   Analisando categorias"
+            )
+        else:
+            embs, validos = np.array([]), []
 
         caminhos_validos = {str(arq) for arq in validos}
         for arq in sem_humanos:
@@ -447,20 +487,35 @@ def classificar_e_organizar(modelo, clf, pasta_hoteis, modo_copia=True):
                 mensagem=f"{arq.name} terminou com erro durante a análise.",
             )
 
-        if len(embs) == 0:
+        if len(embs) == 0 and not imagens_organizadas:
             continue
 
-        embs_norm = normalize(embs)
-        predicoes = clf.predict(embs_norm)
-        distancias, _ = clf.kneighbors(embs_norm)
-        confiancas = 1 - (distancias.mean(axis=1) / 2)
+        if len(embs) > 0:
+            embs_norm = normalize(embs)
+            predicoes = clf.predict(embs_norm)
+            distancias, _ = clf.kneighbors(embs_norm)
+            confiancas = 1 - (distancias.mean(axis=1) / 2)
+        else:
+            predicoes, confiancas = [], []
 
         stats = {cat: 0 for cat in CATEGORIAS}
         stats["_Revisar"] = 0
         textos_alternativos = {}
+        itens_para_florence = [
+            (arq, categorias_por_imagem[arq], None)
+            for arq in imagens_organizadas
+        ]
+        itens_para_florence.extend(
+            (arq, pred, conf)
+            for arq, pred, conf in zip(validos, predicoes, confiancas)
+        )
 
-        for arq, pred, conf in zip(validos, predicoes, confiancas):
-            if conf < CONFIANCA_MINIMA:
+        for arq, pred, conf in itens_para_florence:
+            if conf is None:
+                categoria_dest = pred
+                stats[pred] = stats.get(pred, 0) + 1
+                stats_total["classificadas"] += 1
+            elif conf < CONFIANCA_MINIMA:
                 categoria_dest = "_Revisar"
                 stats["_Revisar"] += 1
                 stats_total["revisar"] += 1
@@ -621,6 +676,11 @@ def main():
     parser.add_argument(
         "--pasta", type=str, default=None, help="Pasta do hotel a ser organizada"
     )
+    parser.add_argument(
+        "--reorganizar",
+        action="store_true",
+        help="Inclui imagens já categorizadas que ainda não passaram pelo Florence",
+    )
     args = parser.parse_args()
 
     versao_esperada = os.environ.get("PYTHON_VERSION_ESPERADA")
@@ -669,7 +729,13 @@ def main():
     clf, categorias = treinar_classificador(modelo, PASTA_EXEMPLOS)
 
     # 6. Classifica e organiza a pasta alvo específica
-    classificar_e_organizar(modelo, clf, pasta_alvo, modo_copia=modo_copia)
+    classificar_e_organizar(
+        modelo,
+        clf,
+        pasta_alvo,
+        modo_copia=modo_copia,
+        reorganizar=args.reorganizar,
+    )
 
 
 if __name__ == "__main__":

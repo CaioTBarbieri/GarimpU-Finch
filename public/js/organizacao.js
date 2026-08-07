@@ -225,14 +225,25 @@ async function consultarStatusOrganizacao() {
         intervaloStatusOrganizacao = null;
 
         const btn = document.getElementById('btnOrganizarTudo');
+        const opcaoReorganizar = document.getElementById(
+            'reorganizarImagensOrganizadas'
+        );
         btn.disabled = false;
+        opcaoReorganizar.disabled = false;
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 }
 
 async function organizarLoteIA() {
+    const opcaoReorganizar = document.getElementById(
+        'reorganizarImagensOrganizadas'
+    );
+    const reorganizar = opcaoReorganizar.checked;
     const confirmacao = confirm(
         'Isto irá ativar a IA para TODOS os hotéis salvos na sua pasta. ' +
+        (reorganizar
+            ? 'As imagens antigas já organizadas também serão renomeadas com o Florence. '
+            : '') +
         'O processo pode levar vários minutos (ou horas, dependendo do volume). ' +
         'Deseja continuar?',
     );
@@ -243,12 +254,15 @@ async function organizarLoteIA() {
 
     resultadoContainer.classList.add('hidden');
     btn.disabled = true;
+    opcaoReorganizar.disabled = true;
     btn.classList.add('opacity-50', 'cursor-not-allowed');
     prepararPainelOrganizacao();
 
     try {
         const response = await fetch('/api/organizar-tudo', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reorganizar }),
         });
         const dados = await response.json();
         if (!response.ok) {
@@ -275,6 +289,7 @@ async function organizarLoteIA() {
             historicoMensagens: ['Erro: ' + erro.message],
         });
         btn.disabled = false;
+        opcaoReorganizar.disabled = false;
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 }

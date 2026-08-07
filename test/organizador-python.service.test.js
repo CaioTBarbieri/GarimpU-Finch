@@ -121,3 +121,33 @@ test("eventos error e close finalizam o estado somente uma vez", async () => {
   assert.equal(sucessos, 0);
   assert.equal(service.estaExecutando(), false);
 });
+
+test("repassa a opção de reorganizar ao processo Python", async () => {
+  const processo = criarProcessoFalso();
+  let argumentosSpawn;
+  const service = criarOrganizadorPythonService({
+    criarProcesso(_comando, argumentos) {
+      argumentosSpawn = argumentos;
+      return processo;
+    },
+    localizarPython: async () => ({
+      comando: "python",
+      argumentosIniciais: [],
+      versao: "3.12.10",
+    }),
+    estado: {
+      reiniciarEstado() {},
+      atualizarDadosPython() {},
+      finalizarConcluido() {},
+      finalizarErro() {},
+    },
+    sistemaArquivos: { existsSync: () => true },
+    logger: { log() {}, warn() {}, error() {} },
+  });
+
+  service.iniciarOrganizacao({ reorganizar: true });
+  await proximaIteracao();
+
+  assert.equal(argumentosSpawn.at(-1), "--reorganizar");
+  processo.emit("close", 0);
+});
