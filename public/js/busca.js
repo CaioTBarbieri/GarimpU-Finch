@@ -1,5 +1,7 @@
             let pesquisaLoteEmAndamento = false;
             const idsPorLinhaLote = new Map();
+            let textoProblemasLote = '';
+            let rotuloProblemasLote = '';
 
             function aguardarMs(ms) {
                 return new Promise(resolve => setTimeout(resolve, ms));
@@ -484,6 +486,84 @@
                 filtrarResultadosLote(FILTRO_TODAS_LOCALIZACOES);
             }
 
+            // A correspondência de hotel na Booking/Expedia é feita só pelo
+            // nome digitado (ver escolherMelhorCandidato no backend), então
+            // um homônimo em outra cidade ou país pode passar batido. O
+            // backend já sinaliza isso (dados.localizacaoForaDaArea) quando
+            // o hotel encontrado fica muito longe do ponto de referência da
+            // busca; aqui só perguntamos ao usuário se quer manter mesmo
+            // assim ou descartar.
+            function confirmarLocalizacaoForaDaArea(dados) {
+                const distanciaTexto = Number.isFinite(dados.distanciaReferenciaKm)
+                    ? Math.round(dados.distanciaReferenciaKm) + ' km'
+                    : 'desconhecida';
+                const localizacaoEncontrada = resumirLocalizacaoHotel(
+                    dados.bairro,
+                    dados.endereco
+                );
+                return window.confirm(
+                    '⚠️ "' + dados.nome + '" foi encontrado bem longe da área pesquisada.\n\n' +
+                    'Localização encontrada: ' + localizacaoEncontrada + '\n' +
+                    'Endereço: ' + dados.endereco + '\n' +
+                    'Distância do ponto de referência: ' + distanciaTexto + '\n\n' +
+                    'Clique em OK para manter esse hotel mesmo assim, ou em Cancelar para descartá-lo.'
+                );
+            }
+
+            // Junta, ao final da lista de resultados do lote, um botão para
+            // copiar os hotéis que deram erro e os que ficaram com
+            // localização muito diferente da pesquisada — para o usuário
+            // revisar ou pesquisar de novo por fora, sem mexer na lista atual.
+            function atualizarBotaoProblemasLote(hoteisComErro, hoteisLocalizacaoSuspeita) {
+                const btn = document.getElementById('btnCopiarProblemasLote');
+                const total = hoteisComErro.length + hoteisLocalizacaoSuspeita.length;
+
+                if (total === 0) {
+                    textoProblemasLote = '';
+                    rotuloProblemasLote = '';
+                    btn.classList.add('hidden');
+                    return;
+                }
+
+                const secoes = [];
+                if (hoteisComErro.length > 0) {
+                    secoes.push(
+                        'Hotéis com erro (' + hoteisComErro.length + '):\n' +
+                        hoteisComErro.join('\n')
+                    );
+                }
+                if (hoteisLocalizacaoSuspeita.length > 0) {
+                    secoes.push(
+                        'Hotéis com localização muito diferente da pesquisada (' +
+                        hoteisLocalizacaoSuspeita.length + '):\n' +
+                        hoteisLocalizacaoSuspeita.join('\n')
+                    );
+                }
+                textoProblemasLote = secoes.join('\n\n');
+                rotuloProblemasLote =
+                    '📋 Copiar lista de hotéis com erro/localização suspeita (' +
+                    total + ')';
+
+                btn.textContent = rotuloProblemasLote;
+                btn.classList.remove('hidden');
+            }
+
+            async function copiarProblemasLote() {
+                if (!textoProblemasLote) return;
+                const btn = document.getElementById('btnCopiarProblemasLote');
+
+                try {
+                    await navigator.clipboard.writeText(textoProblemasLote);
+                    btn.textContent = '✓ Lista copiada para a área de transferência.';
+                } catch (erro) {
+                    btn.textContent = '✕ Não foi possível copiar automaticamente.';
+                } finally {
+                    window.setTimeout(() => {
+                        btn.textContent = rotuloProblemasLote;
+                    }, 2500);
+                }
+            }
+
             async function pesquisarHoteisEmLote() {
                 if (pesquisaLoteEmAndamento) return;
 
@@ -572,11 +652,15 @@
                     .classList.add('hidden');
                 btnBaixarCsvLote.classList.add('hidden');
                 btnBaixarCsvLote.classList.remove('flex');
+                document.getElementById('btnCopiarProblemasLote')
+                    .classList.add('hidden');
 
                 let adicionados = 0;
                 let baixados = 0;
                 let ignorados = 0;
                 let erros = 0;
+                const hoteisComErro = [];
+                const hoteisLocalizacaoSuspeita = [];
 
                 try {
                     for (let indice = 0; indice < hoteis.length; indice++) {
@@ -641,6 +725,21 @@
                             dadosLocalizacao = dados;
                             const fonteTexto = dados.fonte ? ' • ' + dados.fonte : '';
 
+                            if (dados.localizacaoForaDaArea) {
+                                hoteisLocalizacaoSuspeita.push(
+                                    entrada.textoOriginal || entrada.consulta
+                                );
+                                if (!confirmarLocalizacaoForaDaArea(dados)) {
+                                    throw Object.assign(
+                                        new Error(
+                                            entrada.consulta +
+                                            ': hotel descartado por estar fora da área pesquisada.'
+                                        ),
+                                        { ignorado: true }
+                                    );
+                                }
+                            }
+
                             if (baixarImagens) {
                                 if (entrada.idWix) dadosAtuais.idWix = entrada.idWix;
                                 baixados += 1;
@@ -700,6 +799,9 @@
                                     '↷ ' + rotuloId(entrada.idWix) + erro.message;
                             } else {
                                 erros += 1;
+                                hoteisComErro.push(
+                                    entrada.textoOriginal || entrada.consulta
+                                );
                                 linhaResultado.className = 'app-status-danger';
                                 linhaResultado.textContent =
                                     '✕ ' + rotuloId(entrada.idWix) + entrada.consulta +
@@ -732,6 +834,10 @@
                         : 'Concluído: ' + adicionados + ' adicionados, ' +
                             ignorados + ' ignorados, ' + erros + ' com erro.';
                     renderizarResumoLocalizacoesLote();
+                    atualizarBotaoProblemasLote(
+                        hoteisComErro,
+                        hoteisLocalizacaoSuspeita
+                    );
                     if (!baixarImagens && adicionados > 0) {
                         btnBaixarCsvLote.classList.remove('hidden');
                         btnBaixarCsvLote.classList.add('flex');
@@ -844,6 +950,16 @@
 
                     const dados = await response.json();
                     if (!response.ok) throw new Error(dados.erro || 'Falha no pedido');
+
+                    if (dados.localizacaoForaDaArea &&
+                        !confirmarLocalizacaoForaDaArea(dados)) {
+                        atualizarMensagemPesquisa(
+                            'Hotel descartado: "' + dados.nome +
+                            '" estava fora da área pesquisada.',
+                            'erro'
+                        );
+                        return;
+                    }
 
                     dadosAtuais = dados;
                     dadosAtuais.idWix = '';

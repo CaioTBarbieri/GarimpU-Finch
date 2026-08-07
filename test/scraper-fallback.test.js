@@ -238,6 +238,42 @@ test("rasparDadosHotel: nome do hotel vazio retorna erro sem acionar nenhuma fon
   assert.equal(chamouAlguma, false);
 });
 
+// 22. Hotel encontrado longe da referência é sinalizado (evita aceitar em
+// silêncio um homônimo de outra cidade/país, já que o casamento por nome
+// não valida localização)
+test("rasparDadosHotel: hotel encontrado longe da referência é sinalizado como fora da área", async () => {
+  const { coordenador } = criarCoordenadorDeTeste({
+    buscarNaBooking: async () => ({
+      ...RESULTADO_BOOKING_OK,
+      coordenadas: "40.4168, -3.7038", // Madrid, Espanha
+    }),
+    buscarNaExpedia: async () => RESULTADO_BOOKING_OK,
+  });
+
+  // Referência padrão do coordenador de teste fica no Brasil.
+  const resultado = await coordenador.rasparDadosHotel("Hotel Exemplo");
+
+  assert.equal(resultado.localizacaoForaDaArea, true);
+  assert.ok(resultado.distanciaReferenciaKm > 300);
+});
+
+test("rasparDadosHotel: hotel encontrado perto da referência não é sinalizado", async () => {
+  const { coordenador } = criarCoordenadorDeTeste({
+    buscarNaBooking: async () => RESULTADO_BOOKING_OK,
+    buscarNaExpedia: async () => RESULTADO_BOOKING_OK,
+  });
+
+  const resultado = await coordenador.rasparDadosHotel(
+    "Hotel Exemplo",
+    true,
+    -3.1,
+    -38.5, // mesma coordenada de RESULTADO_BOOKING_OK
+  );
+
+  assert.equal(resultado.localizacaoForaDaArea, false);
+  assert.equal(resultado.distanciaReferenciaKm, 0);
+});
+
 test("rasparDadosHotel: link direto da Expedia vai direto para a Expedia sem tentar Booking", async () => {
   let chamouBooking = false;
   const { coordenador } = criarCoordenadorDeTeste({

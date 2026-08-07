@@ -63,6 +63,45 @@ function montarMensagemFalhaCombinada(erroBooking, erroExpedia) {
 }
 
 // ==========================================
+// SANIDADE DE LOCALIZAÇÃO (evita aceitar em silêncio um hotel de outra
+// região/país que só bateu pelo nome — ver candidatoCompativel/
+// escolherMelhorCandidato, que comparam apenas texto)
+// ==========================================
+// A correspondência por nome às vezes encontra um hotel homônimo em outra
+// cidade ou até outro país. Como o usuário já informa (ou aceita o padrão de)
+// um ponto de referência por busca — latitudeReferencia/longitudeReferencia,
+// pensado originalmente para o cálculo de distância ao aeroporto —, esse
+// mesmo ponto serve como âncora do "entorno" esperado da busca. Um raio bem
+// generoso, pensado para pegar apenas discrepâncias grosseiras (outro país/
+// continente) sem incomodar buscas legítimas dentro do Brasil.
+const RAIO_ALERTA_LOCALIZACAO_KM = 300;
+
+function avaliarLocalizacaoForaDaArea(
+  resultado,
+  latitudeReferencia,
+  longitudeReferencia,
+) {
+  const [latTexto, lngTexto] = String(resultado.coordenadas || "")
+    .split(",")
+    .map((parte) => parte.trim());
+  const lat = Number(latTexto);
+  const lng = Number(lngTexto);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    resultado.distanciaReferenciaKm = null;
+    resultado.localizacaoForaDaArea = false;
+    return resultado;
+  }
+
+  const distanciaKm = Number(
+    calcularDistanciaCarroKm(lat, lng, latitudeReferencia, longitudeReferencia),
+  );
+  resultado.distanciaReferenciaKm = distanciaKm;
+  resultado.localizacaoForaDaArea = distanciaKm > RAIO_ALERTA_LOCALIZACAO_KM;
+  return resultado;
+}
+
+// ==========================================
 // COORDENADOR (fábrica testável: recebe as fontes e o lançador do browser
 // por injeção, para permitir testes sem Puppeteer/rede real)
 // ==========================================
@@ -228,6 +267,12 @@ function criarCoordenadorScraper({
           }
         }
       }
+
+      avaliarLocalizacaoForaDaArea(
+        resultado,
+        latitudeReferencia,
+        longitudeReferencia,
+      );
 
       console.log(`[Scraper] Fonte utilizada: ${resultado.fonte}`);
       return resultado;
