@@ -79,11 +79,12 @@ router.get("/api/estimativa-florence", (req, res) => {
       }),
     );
   } catch (erro) {
+    if (erro instanceof TypeError) {
+      return res.status(400).json({ erro: erro.message });
+    }
     console.error("Erro ao calcular estimativa Florence:", erro);
-    res.status(erro instanceof TypeError ? 400 : 500).json({
-      erro: erro instanceof TypeError
-        ? erro.message
-        : "Não foi possível calcular a estimativa do Florence.",
+    res.status(500).json({
+      erro: "Não foi possível calcular a estimativa do Florence.",
     });
   }
 });
