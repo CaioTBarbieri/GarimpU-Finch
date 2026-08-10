@@ -12,13 +12,13 @@ const REFERENCIA_RIO = {
 
 test("filtro combinado aprova hotel da cidade dentro do raio", () => {
   const proximo = avaliarFiltroDownload({
-    filtro: { modo: "ambos", raioKm: 10, cidade: "Rio de Janeiro" },
+    filtro: { modo: "ambos", raioKm: 10, cidade: "Rio de Janeiro", estado: "RJ" },
     endereco: "Centro, Rio de Janeiro - RJ, Brasil",
     coordenadas: "-22.9068, -43.1729",
     ...REFERENCIA_RIO,
   });
   const distante = avaliarFiltroDownload({
-    filtro: { modo: "ambos", raioKm: 10, cidade: "São Paulo" },
+    filtro: { modo: "ambos", raioKm: 10, cidade: "São Paulo", estado: "SP" },
     endereco: "São Paulo - SP, Brasil",
     coordenadas: "-23.5505, -46.6333",
     ...REFERENCIA_RIO,
@@ -31,7 +31,7 @@ test("filtro combinado aprova hotel da cidade dentro do raio", () => {
 
 test("filtro combinado compara cidade sem diferenciar acentos e maiúsculas", () => {
   const resultado = avaliarFiltroDownload({
-    filtro: { modo: "ambos", cidade: "sao paulo", raioKm: 500 },
+    filtro: { modo: "ambos", cidade: "sao paulo", estado: "SP", raioKm: 500 },
     endereco: "Avenida Paulista, São Paulo - SP, Brasil",
     coordenadas: "-23.5505, -46.6333",
     ...REFERENCIA_RIO,
@@ -43,7 +43,7 @@ test("filtro combinado compara cidade sem diferenciar acentos e maiúsculas", ()
 
 test("filtro combinado não confunde o nome de uma rua com a cidade", () => {
   const resultado = avaliarFiltroDownload({
-    filtro: { modo: "ambos", cidade: "São Paulo", raioKm: 20 },
+    filtro: { modo: "ambos", cidade: "São Paulo", estado: "RJ", raioKm: 20 },
     endereco: "Rua São Paulo, 120, Centro, Rio de Janeiro - RJ, Brasil",
     coordenadas: "-22.9068, -43.1729",
     ...REFERENCIA_RIO,
@@ -55,7 +55,7 @@ test("filtro combinado não confunde o nome de uma rua com a cidade", () => {
 
 test("filtro combinado exige raio e cidade ao mesmo tempo", () => {
   const resultado = avaliarFiltroDownload({
-    filtro: { modo: "ambos", raioKm: 20, cidade: "Niterói" },
+    filtro: { modo: "ambos", raioKm: 20, cidade: "Niterói", estado: "RJ" },
     endereco: "Centro, Rio de Janeiro - RJ, Brasil",
     coordenadas: "-22.9068, -43.1729",
     ...REFERENCIA_RIO,
@@ -68,7 +68,7 @@ test("filtro combinado exige raio e cidade ao mesmo tempo", () => {
 
 test("filtro combinado rejeita hotel sem coordenadas", () => {
   const resultado = avaliarFiltroDownload({
-    filtro: { modo: "ambos", raioKm: 50, cidade: "Rio de Janeiro" },
+    filtro: { modo: "ambos", raioKm: 50, cidade: "Rio de Janeiro", estado: "RJ" },
     endereco: "Rio de Janeiro - RJ, Brasil",
     coordenadas: "GPS não disponível",
     ...REFERENCIA_RIO,
@@ -110,13 +110,32 @@ test("filtro por estado rejeita uma UF diferente", () => {
   assert.match(resultado.motivo, /estado RJ, não SP/);
 });
 
+test("filtro combinado também exige o estado correto", () => {
+  const resultado = avaliarFiltroDownload({
+    filtro: {
+      modo: "ambos",
+      cidade: "Rio de Janeiro",
+      estado: "SP",
+      raioKm: 20,
+    },
+    endereco: "Centro, Rio de Janeiro - RJ, Brasil",
+    coordenadas: "-22.9068, -43.1729",
+    ...REFERENCIA_RIO,
+  });
+
+  assert.equal(resultado.atendeCidade, true);
+  assert.equal(resultado.atendeRaio, true);
+  assert.equal(resultado.atendeEstado, false);
+  assert.equal(resultado.aprovado, false);
+});
+
 test("valida os campos exigidos por cada modo", () => {
   assert.throws(
-    () => normalizarFiltroDownload({ modo: "ambos", raioKm: 0, cidade: "Rio" }),
+    () => normalizarFiltroDownload({ modo: "ambos", raioKm: 0, cidade: "Rio", estado: "RJ" }),
     /raio válido/,
   );
   assert.throws(
-    () => normalizarFiltroDownload({ modo: "ambos", raioKm: 10, cidade: "" }),
+    () => normalizarFiltroDownload({ modo: "ambos", raioKm: 10, cidade: "", estado: "RJ" }),
     /Informe a cidade/,
   );
   assert.throws(

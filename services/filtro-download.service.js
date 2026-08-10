@@ -48,7 +48,7 @@ function normalizarFiltroDownload(filtro = {}) {
 
   const exigeRaio = modo === "ambos";
   const exigeCidade = modo === "ambos";
-  const exigeEstado = modo === "estado";
+  const exigeEstado = modo === "estado" || modo === "ambos";
   const raioKm = exigeRaio ? Number(filtro.raioKm) : null;
   const cidade = exigeCidade ? String(filtro.cidade || "").trim() : "";
   const estado = exigeEstado ? String(filtro.estado || "").trim().toUpperCase() : "";
@@ -138,7 +138,7 @@ function avaliarFiltroDownload({
 
   const exigeRaio = configuracao.modo === "ambos";
   const exigeCidade = configuracao.modo === "ambos";
-  const exigeEstado = configuracao.modo === "estado";
+  const exigeEstado = configuracao.modo === "estado" || configuracao.modo === "ambos";
   const pontoHotel = extrairCoordenadas(coordenadas);
   const referenciaValida =
     Number.isFinite(Number(latitudeReferencia)) &&

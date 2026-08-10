@@ -255,7 +255,7 @@
                 const modo = document.getElementById('modoFiltroDownloadLote').value;
                 const usaRaio = modo === 'ambos';
                 const usaCidade = modo === 'ambos';
-                const usaEstado = modo === 'estado';
+                const usaEstado = modo === 'estado' || modo === 'ambos';
                 document.getElementById('campoRaioDownloadLote')
                     .classList.toggle('hidden', !usaRaio);
                 document.getElementById('campoCidadeDownloadLote')
@@ -266,7 +266,7 @@
                 const descricoes = {
                     nenhum: 'Sem filtro: todos os hotéis encontrados terão as imagens baixadas.',
                     estado: 'Confere a UF no endereço encontrado antes de baixar.',
-                    ambos: 'Baixa somente quando o hotel está na cidade informada e dentro do raio.'
+                    ambos: 'Exige cidade e estado corretos, além da proximidade das coordenadas configuradas.'
                 };
                 document.getElementById('ajudaFiltroDownloadLote').textContent =
                     descricoes[modo] || descricoes.nenhum;
@@ -296,7 +296,7 @@
                         throw new Error('Informe a cidade usada no filtro de download.');
                     }
                 }
-                if (modo === 'estado') {
+                if (modo === 'estado' || modo === 'ambos') {
                     filtro.estado = document.getElementById(
                         'estadoDownloadLote'
                     ).value;
