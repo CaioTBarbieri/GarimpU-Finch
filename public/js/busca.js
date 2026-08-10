@@ -253,18 +253,20 @@
 
             function atualizarCamposFiltroDownloadLote() {
                 const modo = document.getElementById('modoFiltroDownloadLote').value;
-                const usaRaio = modo === 'raio' || modo === 'ambos';
-                const usaCidade = modo === 'cidade' || modo === 'ambos';
+                const usaRaio = modo === 'ambos';
+                const usaCidade = modo === 'ambos';
+                const usaEstado = modo === 'estado';
                 document.getElementById('campoRaioDownloadLote')
                     .classList.toggle('hidden', !usaRaio);
                 document.getElementById('campoCidadeDownloadLote')
                     .classList.toggle('hidden', !usaCidade);
+                document.getElementById('campoEstadoDownloadLote')
+                    .classList.toggle('hidden', !usaEstado);
 
                 const descricoes = {
                     nenhum: 'Sem filtro: todos os hotéis encontrados terão as imagens baixadas.',
-                    raio: 'Usa as coordenadas de referência das Configurações como centro do raio.',
-                    cidade: 'Confere a cidade informada no endereço encontrado antes de baixar.',
-                    ambos: 'Baixa somente quando o hotel está dentro do raio e na cidade informada.'
+                    estado: 'Confere a UF no endereço encontrado antes de baixar.',
+                    ambos: 'Baixa somente quando o hotel está na cidade informada e dentro do raio.'
                 };
                 document.getElementById('ajudaFiltroDownloadLote').textContent =
                     descricoes[modo] || descricoes.nenhum;
@@ -275,7 +277,7 @@
 
                 const modo = document.getElementById('modoFiltroDownloadLote').value;
                 const filtro = { modo };
-                if (modo === 'raio' || modo === 'ambos') {
+                if (modo === 'ambos') {
                     filtro.raioKm = Number(
                         document.getElementById('raioDownloadLote').value
                     );
@@ -286,12 +288,20 @@
                         );
                     }
                 }
-                if (modo === 'cidade' || modo === 'ambos') {
+                if (modo === 'ambos') {
                     filtro.cidade = document.getElementById(
                         'cidadeDownloadLote'
                     ).value.trim();
                     if (filtro.cidade.length < 2) {
                         throw new Error('Informe a cidade usada no filtro de download.');
+                    }
+                }
+                if (modo === 'estado') {
+                    filtro.estado = document.getElementById(
+                        'estadoDownloadLote'
+                    ).value;
+                    if (!filtro.estado) {
+                        throw new Error('Selecione o estado usado no filtro de download.');
                     }
                 }
                 return filtro;
@@ -660,6 +670,7 @@
                     'modoFiltroDownloadLote',
                     'raioDownloadLote',
                     'cidadeDownloadLote',
+                    'estadoDownloadLote',
                     'latitudeReferenciaInput',
                     'longitudeReferenciaInput',
                     'colunaRegimeCsv',

@@ -305,9 +305,23 @@
                             <span class="app-label">Filtrar por</span>
                             <select id="modoFiltroDownloadLote" class="app-input" onchange="atualizarCamposFiltroDownloadLote()">
                                 <option value="nenhum">Sem filtro</option>
-                                <option value="raio">Raio</option>
-                                <option value="cidade">Cidade</option>
-                                <option value="ambos">Raio e cidade</option>
+                                <option value="estado">Estado</option>
+                                <option value="ambos">Cidade + raio</option>
+                            </select>
+                        </label>
+                        <label id="campoEstadoDownloadLote" class="hidden">
+                            <span class="app-label">Estado obrigatório</span>
+                            <select id="estadoDownloadLote" class="app-input">
+                                <option value="">Selecione a UF</option>
+                                <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option>
+                                <option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option>
+                                <option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option>
+                                <option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option>
+                                <option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option>
+                                <option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option>
+                                <option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option>
+                                <option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option>
+                                <option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option>
                             </select>
                         </label>
                         <label id="campoRaioDownloadLote" class="hidden">
@@ -318,7 +332,7 @@
                             </span>
                         </label>
                         <label id="campoCidadeDownloadLote" class="hidden">
-                            <span class="app-label">Cidade obrigatória</span>
+                            <span class="app-label">Cidade do raio</span>
                             <input id="cidadeDownloadLote" type="text" class="app-input" placeholder="Ex.: Jericoacoara" autocomplete="address-level2">
                         </label>
                     </div>
@@ -1894,7 +1908,7 @@
     <script src="/js/interface.js"></script>
     <script src="/js/organizacao.js?v=20260810-estimativa-recursiva"></script>
     <script src="/js/galeria.js?v=20260810-pesquisa-biblioteca"></script>
-    <script src="/js/busca.js?v=20260810-filtro-download-lote"></script>
+    <script src="/js/busca.js?v=20260810-filtro-estado-download"></script>
     <script src="/js/terminal.js?v=20260810-pesquisa-terminal"></script>
 </body>
 </html>

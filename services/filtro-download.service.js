@@ -1,6 +1,35 @@
 const { calcularDistanciaCarroKm } = require("./scraper/scraper-utils");
 
-const MODOS_FILTRO_DOWNLOAD = new Set(["nenhum", "raio", "cidade", "ambos"]);
+const MODOS_FILTRO_DOWNLOAD = new Set(["nenhum", "estado", "ambos"]);
+const ESTADOS_BRASILEIROS = {
+  AC: "acre",
+  AL: "alagoas",
+  AP: "amapa",
+  AM: "amazonas",
+  BA: "bahia",
+  CE: "ceara",
+  DF: "distrito federal",
+  ES: "espirito santo",
+  GO: "goias",
+  MA: "maranhao",
+  MT: "mato grosso",
+  MS: "mato grosso do sul",
+  MG: "minas gerais",
+  PA: "para",
+  PB: "paraiba",
+  PR: "parana",
+  PE: "pernambuco",
+  PI: "piaui",
+  RJ: "rio de janeiro",
+  RN: "rio grande do norte",
+  RS: "rio grande do sul",
+  RO: "rondonia",
+  RR: "roraima",
+  SC: "santa catarina",
+  SP: "sao paulo",
+  SE: "sergipe",
+  TO: "tocantins",
+};
 
 function normalizarTextoLocalizacao(valor) {
   return String(valor || "")
@@ -17,10 +46,12 @@ function normalizarFiltroDownload(filtro = {}) {
     throw new TypeError("Selecione um filtro de download válido.");
   }
 
-  const exigeRaio = modo === "raio" || modo === "ambos";
-  const exigeCidade = modo === "cidade" || modo === "ambos";
+  const exigeRaio = modo === "ambos";
+  const exigeCidade = modo === "ambos";
+  const exigeEstado = modo === "estado";
   const raioKm = exigeRaio ? Number(filtro.raioKm) : null;
   const cidade = exigeCidade ? String(filtro.cidade || "").trim() : "";
+  const estado = exigeEstado ? String(filtro.estado || "").trim().toUpperCase() : "";
 
   if (exigeRaio && (!Number.isFinite(raioKm) || raioKm <= 0 || raioKm > 20000)) {
     throw new TypeError("Informe um raio válido, maior que 0 e de até 20.000 km.");
@@ -28,8 +59,11 @@ function normalizarFiltroDownload(filtro = {}) {
   if (exigeCidade && cidade.length < 2) {
     throw new TypeError("Informe a cidade usada no filtro de download.");
   }
+  if (exigeEstado && !Object.hasOwn(ESTADOS_BRASILEIROS, estado)) {
+    throw new TypeError("Selecione um estado válido para o filtro de download.");
+  }
 
-  return { modo, raioKm, cidade };
+  return { modo, raioKm, cidade, estado };
 }
 
 function extrairCoordenadas(coordenadas) {
@@ -58,6 +92,28 @@ function enderecoCorrespondeCidade(endereco, cidade) {
     );
 }
 
+function extrairUfEndereco(endereco) {
+  const partesOriginais = String(endereco || "").split(/[,;]/);
+
+  for (const parteOriginal of partesOriginais) {
+    const sigla = parteOriginal.trim().toUpperCase().match(/(?:^|\s-\s)([A-Z]{2})$/)?.[1];
+    if (sigla && Object.hasOwn(ESTADOS_BRASILEIROS, sigla)) return sigla;
+  }
+
+  const partesLocalidade = partesOriginais
+    .map(normalizarTextoLocalizacao)
+    .filter(Boolean)
+    .filter((parte) => !/^(?:rua|avenida|av\.?|rodovia|estrada|travessa|alameda|praca)\b/.test(parte));
+
+  return Object.entries(ESTADOS_BRASILEIROS).find(([, nome]) =>
+    partesLocalidade.some((parte) =>
+      parte === nome ||
+      parte === `estado de ${nome}` ||
+      parte.startsWith(`${nome} -`),
+    ),
+  )?.[0] || "";
+}
+
 function avaliarFiltroDownload({
   filtro,
   endereco,
@@ -73,13 +129,16 @@ function avaliarFiltroDownload({
       aprovado: true,
       atendeRaio: true,
       atendeCidade: true,
+      atendeEstado: true,
+      ufEncontrada: "",
       distanciaKm: null,
       motivo: "Sem filtro de download.",
     };
   }
 
-  const exigeRaio = configuracao.modo === "raio" || configuracao.modo === "ambos";
-  const exigeCidade = configuracao.modo === "cidade" || configuracao.modo === "ambos";
+  const exigeRaio = configuracao.modo === "ambos";
+  const exigeCidade = configuracao.modo === "ambos";
+  const exigeEstado = configuracao.modo === "estado";
   const pontoHotel = extrairCoordenadas(coordenadas);
   const referenciaValida =
     Number.isFinite(Number(latitudeReferencia)) &&
@@ -99,7 +158,9 @@ function avaliarFiltroDownload({
     endereco,
     configuracao.cidade,
   );
-  const aprovado = atendeRaio && atendeCidade;
+  const ufEncontrada = exigeEstado ? extrairUfEndereco(endereco) : "";
+  const atendeEstado = !exigeEstado || ufEncontrada === configuracao.estado;
+  const aprovado = atendeRaio && atendeCidade && atendeEstado;
 
   let motivo = "Hotel aprovado pelo filtro.";
   if (!aprovado) {
@@ -112,6 +173,11 @@ function avaliarFiltroDownload({
     if (!atendeCidade) {
       falhas.push(`endereço não corresponde à cidade ${configuracao.cidade}`);
     }
+    if (!atendeEstado) {
+      falhas.push(ufEncontrada
+        ? `endereço pertence ao estado ${ufEncontrada}, não ${configuracao.estado}`
+        : `não foi possível confirmar o estado ${configuracao.estado} no endereço`);
+    }
     motivo = falhas.join(" e ");
   }
 
@@ -121,6 +187,8 @@ function avaliarFiltroDownload({
     aprovado,
     atendeRaio,
     atendeCidade,
+    atendeEstado,
+    ufEncontrada,
     distanciaKm,
     motivo,
   };
@@ -130,6 +198,7 @@ module.exports = {
   MODOS_FILTRO_DOWNLOAD,
   normalizarTextoLocalizacao,
   enderecoCorrespondeCidade,
+  extrairUfEndereco,
   normalizarFiltroDownload,
   avaliarFiltroDownload,
 };
