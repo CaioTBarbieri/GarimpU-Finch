@@ -4,6 +4,7 @@
             let rotuloProblemasLote = '';
             let requisicaoCidadesFiltroLote = 0;
             const cacheCidadesFiltroLote = new Map();
+            let pastasMaeDownloadCarregadas = false;
 
             function aguardarMs(ms) {
                 return new Promise(resolve => setTimeout(resolve, ms));
@@ -240,7 +241,7 @@
                 );
             }
 
-            function atualizarModoPesquisaLote() {
+            async function atualizarModoPesquisaLote() {
                 const baixarImagens = document.getElementById(
                     'baixarImagensLoteInput'
                 ).checked;
@@ -250,15 +251,76 @@
                     baixarImagens
                         ? 'Baixar imagens dos hotéis da lista'
                         : 'Pesquisar lista e adicionar ao CSV';
+                if (baixarImagens) await carregarPastasMaeDownloadLote();
                 atualizarCamposFiltroDownloadLote();
+            }
+
+            async function carregarPastasMaeDownloadLote() {
+                if (pastasMaeDownloadCarregadas) return;
+                const seletor = document.getElementById(
+                    'destinoPastaMaeDownloadLote'
+                );
+                const status = document.getElementById(
+                    'statusPastaMaeDownloadLote'
+                );
+                seletor.disabled = true;
+                status.textContent = 'Carregando pastas existentes...';
+                try {
+                    const response = await fetch('/api/pastas-mae-download');
+                    const dados = await response.json();
+                    if (!response.ok) {
+                        throw new Error(dados.erro || 'Não foi possível listar as pastas.');
+                    }
+                    const pastas = Array.isArray(dados.pastasMae)
+                        ? dados.pastasMae
+                        : [];
+                    seletor.replaceChildren();
+                    const principal = new Option('Pasta principal de imagens', '');
+                    seletor.appendChild(principal);
+                    pastas.forEach((pasta) => {
+                        seletor.appendChild(new Option(pasta, pasta));
+                    });
+                    seletor.appendChild(
+                        new Option('+ Criar uma nova pasta-mãe', '__nova__')
+                    );
+                    pastasMaeDownloadCarregadas = true;
+                    status.textContent = pastas.length > 0
+                        ? pastas.length + (pastas.length === 1
+                            ? ' pasta existente disponível.'
+                            : ' pastas existentes disponíveis.')
+                        : 'Nenhuma pasta-mãe existente; você pode criar uma nova.';
+                } catch (erro) {
+                    status.textContent = erro.message;
+                } finally {
+                    seletor.disabled = false;
+                    atualizarDestinoPastaMaeDownloadLote();
+                }
+            }
+
+            function atualizarDestinoPastaMaeDownloadLote() {
+                const seletor = document.getElementById(
+                    'destinoPastaMaeDownloadLote'
+                );
+                const campoNova = document.getElementById(
+                    'pastaMaeDownloadLote'
+                );
+                const criando = seletor.value === '__nova__';
+                campoNova.classList.toggle('hidden', !criando);
+                campoNova.disabled = !criando;
+                if (criando) campoNova.focus();
             }
 
             function obterPastaMaeDownloadLote(baixarImagens) {
                 if (!baixarImagens) return '';
-                const nome = document.getElementById(
-                    'pastaMaeDownloadLote'
-                ).value.replace(/\s+/g, ' ').trim();
-                if (!nome) return '';
+                const destino = document.getElementById(
+                    'destinoPastaMaeDownloadLote'
+                ).value;
+                if (destino !== '__nova__') return destino;
+                const nome = document.getElementById('pastaMaeDownloadLote')
+                    .value.replace(/\s+/g, ' ').trim();
+                if (!nome) {
+                    throw new Error('Digite o nome da nova pasta-mãe.');
+                }
                 if (
                     nome.length > 100 ||
                     nome === '.' ||
@@ -795,6 +857,7 @@
                     'raioDownloadLote',
                     'cidadeDownloadLote',
                     'estadoDownloadLote',
+                    'destinoPastaMaeDownloadLote',
                     'pastaMaeDownloadLote',
                     'latitudeReferenciaInput',
                     'longitudeReferenciaInput',
@@ -1036,6 +1099,7 @@
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     btnBuscar.classList.remove('opacity-50', 'cursor-not-allowed');
                     camposBloqueados.forEach(campo => { campo.disabled = false; });
+                    atualizarDestinoPastaMaeDownloadLote();
                     atualizarCamposFiltroDownloadLote();
                 }
             }

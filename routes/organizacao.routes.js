@@ -26,19 +26,32 @@ router.post("/api/organizar-tudo", (req, res) => {
   const reorganizar =
     req.body?.reorganizar === true ||
     req.body?.reorganizar === "true";
-  let pastaSelecionada = PASTA_FLORENCE;
-  let pastaMae = "";
-  if (reorganizar && req.body?.pastaMae) {
+  let pastasSelecionadas = [PASTA_FLORENCE];
+  let pastasMae = [];
+  if (reorganizar) {
     try {
-      pastaMae = String(req.body.pastaMae).trim();
-      pastaSelecionada = resolverPastaMaeFlorence(PASTA_FLORENCE, pastaMae);
+      const recebidas = Array.isArray(req.body?.pastasMae)
+        ? req.body.pastasMae
+        : req.body?.pastaMae
+          ? [req.body.pastaMae]
+          : [];
+      pastasMae = [...new Set(recebidas.map((nome) => String(nome).trim()))]
+        .filter(Boolean);
+      if (pastasMae.length === 0) {
+        return res.status(400).json({
+          erro: "Selecione ao menos uma pasta-mãe para reorganizar.",
+        });
+      }
+      pastasSelecionadas = pastasMae.map((pastaMae) =>
+        resolverPastaMaeFlorence(PASTA_FLORENCE, pastaMae),
+      );
     } catch (erro) {
       return res.status(400).json({ erro: erro.message });
     }
   }
   if (
     estaExecutando() ||
-    !iniciarOrganizacao({ reorganizar, pastaImagens: pastaSelecionada })
+    !iniciarOrganizacao({ reorganizar, pastasImagens: pastasSelecionadas })
   ) {
     return res.status(409).json({
       erro: "Já existe uma organização de imagens em andamento.",
@@ -48,7 +61,7 @@ router.post("/api/organizar-tudo", (req, res) => {
   return res.status(202).json({
     sucesso: true,
     reorganizar,
-    pastaMae: pastaMae || null,
+    pastasMae,
     mensagem: "Organização iniciada.",
   });
 });
@@ -68,12 +81,19 @@ router.get("/api/status-organizacao", (req, res) => {
 router.get("/api/estimativa-florence", (req, res) => {
   try {
     const reorganizar = req.query?.reorganizar === "true";
-    const pastaSelecionada = reorganizar && req.query?.pastaMae
-      ? resolverPastaMaeFlorence(PASTA_FLORENCE, req.query.pastaMae)
-      : PASTA_FLORENCE;
+    const nomesRecebidos = Array.isArray(req.query?.pastaMae)
+      ? req.query.pastaMae
+      : req.query?.pastaMae
+        ? [req.query.pastaMae]
+        : [];
+    const pastasSelecionadas = reorganizar && nomesRecebidos.length > 0
+      ? [...new Set(nomesRecebidos)].map((pastaMae) =>
+          resolverPastaMaeFlorence(PASTA_FLORENCE, pastaMae),
+        )
+      : [PASTA_FLORENCE];
     res.json(
       calcularEstimativaFlorence({
-        pastaImagens: pastaSelecionada,
+        pastasImagens: pastasSelecionadas,
         pastaLogs: PASTA_LOGS_FLORENCE,
         reorganizar,
       }),

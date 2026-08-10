@@ -128,7 +128,7 @@ function criarOrganizadorPythonService({
 
   async function prepararEIniciarProcesso({
     reorganizar = false,
-    pastaImagens = PASTA_FLORENCE,
+    pastasImagens = [PASTA_FLORENCE],
   } = {}) {
     try {
       const scriptPython = encontrarScriptPython();
@@ -144,14 +144,17 @@ function criarOrganizadorPythonService({
           `(Python ${python.versao})`,
       );
 
+      const argumentosPastas = pastasImagens.flatMap((pasta) => [
+        "--pasta",
+        pasta,
+      ]);
       const argumentos = python.executavelEmpacotado
-        ? ["--pasta", pastaImagens]
+        ? argumentosPastas
         : [
             ...python.argumentosIniciais,
             "-u",
             scriptPython,
-            "--pasta",
-            pastaImagens,
+            ...argumentosPastas,
           ];
       if (reorganizar) argumentos.push("--reorganizar");
       const diretorioExecucao = python.executavelEmpacotado
@@ -189,17 +192,25 @@ function criarOrganizadorPythonService({
   function iniciarOrganizacao({
     reorganizar = false,
     pastaImagens = PASTA_FLORENCE,
+    pastasImagens,
   } = {}) {
     if (estaExecutando()) return false;
 
+    const destinos = Array.isArray(pastasImagens) && pastasImagens.length > 0
+      ? [...new Set(pastasImagens)]
+      : [pastaImagens];
     iniciando = true;
     const inicioOrganizacao = agora();
     estado.reiniciarEstado(inicioOrganizacao);
     logger.log(
       `\n[${new Date(inicioOrganizacao).toLocaleString("pt-BR")}] ` +
-        `[+] Iniciando IA de Lote em ${pastaImagens}...`,
+        `[+] Iniciando IA de Lote em ${destinos.length} pasta(s): ` +
+        `${destinos.join(", ")}...`,
     );
-    void prepararEIniciarProcesso({ reorganizar, pastaImagens });
+    void prepararEIniciarProcesso({
+      reorganizar,
+      pastasImagens: destinos,
+    });
     return true;
   }
 

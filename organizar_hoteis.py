@@ -725,7 +725,10 @@ def main():
     # Configuração para receber a pasta do Node.js
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--pasta", type=str, default=None, help="Pasta do hotel a ser organizada"
+        "--pasta",
+        action="append",
+        dest="pastas",
+        help="Pasta de hotéis a ser organizada; pode ser repetida",
     )
     parser.add_argument(
         "--reorganizar",
@@ -748,18 +751,20 @@ def main():
     verificar_dependencias()
 
     # 2. Define qual pasta será organizada
-    if args.pasta:
-        pasta_alvo = args.pasta
-        print(f"🏨 Organizando pasta recebida do scraper: {pasta_alvo}")
+    if args.pastas:
+        pastas_alvo = list(dict.fromkeys(args.pastas))
+        print(f"🏨 Organizando {len(pastas_alvo)} pasta(s) recebida(s) do scraper:")
+        for pasta_alvo in pastas_alvo:
+            print(f"   • {pasta_alvo}")
     else:
-        pasta_alvo = PASTA_HOTEIS
+        pastas_alvo = [PASTA_HOTEIS]
         if not Path(PASTA_HOTEIS).exists():
             print(f"\n❌ PASTA_HOTEIS não encontrada:\n   {PASTA_HOTEIS}")
             sys.exit(1)
 
     # 3. Configuração de modo automático
     print(f"\n📂 Pasta de exemplos: {PASTA_EXEMPLOS}")
-    print(f"🏨 Pasta alvo:  {pasta_alvo}")
+    print(f"🏨 Pastas alvo: {len(pastas_alvo)}")
     print(
         "   → Modo Automático: MOVER (arquivos originais serão movidos para as categorias)"
     )
@@ -780,13 +785,15 @@ def main():
     clf, categorias = treinar_classificador(modelo, PASTA_EXEMPLOS)
 
     # 6. Classifica e organiza a pasta alvo específica
-    classificar_e_organizar(
-        modelo,
-        clf,
-        pasta_alvo,
-        modo_copia=modo_copia,
-        reorganizar=args.reorganizar,
-    )
+    for indice, pasta_alvo in enumerate(pastas_alvo, start=1):
+        print(f"\n📂 Pasta {indice} de {len(pastas_alvo)}: {pasta_alvo}")
+        classificar_e_organizar(
+            modelo,
+            clf,
+            pasta_alvo,
+            modo_copia=modo_copia,
+            reorganizar=args.reorganizar,
+        )
 
 
 if __name__ == "__main__":

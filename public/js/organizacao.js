@@ -15,6 +15,7 @@ function formatarDuracao(totalSegundos) {
 
 let downloadAutomaticoLogFlorencePendente = false;
 let pastasMaeOrganizacaoCarregadas = false;
+let requisicaoEstimativaFlorence = 0;
 
 async function lerRespostaJsonOrganizacao(response, url) {
     const texto = await response.text();
@@ -54,6 +55,7 @@ function formatarTamanhoBytes(totalBytes) {
 }
 
 async function carregarEstimativaFlorence() {
+    const requisicaoAtual = ++requisicaoEstimativaFlorence;
     const botao = document.getElementById(
         'btnAtualizarEstimativaFlorence'
     );
@@ -70,8 +72,17 @@ async function carregarEstimativaFlorence() {
     const parametros = new URLSearchParams();
     if (reorganizar) {
         parametros.set('reorganizar', 'true');
-        const pastaMae = document.getElementById('pastaMaeOrganizacao')?.value;
-        if (pastaMae) parametros.set('pastaMae', pastaMae);
+        const pastasMae = obterPastasMaeSelecionadasOrganizacao();
+        if (pastasMae.length === 0) {
+            titulo.textContent = 'Selecione ao menos uma pasta-mãe';
+            detalhes.textContent =
+                'Marque as pastas que devem entrar nesta reorganização.';
+            botao.disabled = false;
+            return;
+        }
+        pastasMae.forEach((pastaMae) =>
+            parametros.append('pastaMae', pastaMae)
+        );
     }
     const url = '/api/estimativa-florence' +
         (parametros.size > 0 ? '?' + parametros.toString() : '');
@@ -82,6 +93,7 @@ async function carregarEstimativaFlorence() {
             response,
             url
         );
+        if (requisicaoAtual !== requisicaoEstimativaFlorence) return;
         if (!response.ok) {
             throw new Error(
                 dados.erro || 'Não foi possível calcular a estimativa.'
@@ -109,20 +121,25 @@ async function carregarEstimativaFlorence() {
                 ? ' execução histórica'
                 : ' execuções históricas');
     } catch (erro) {
+        if (requisicaoAtual !== requisicaoEstimativaFlorence) return;
         titulo.textContent = 'Estimativa indisponível';
         detalhes.textContent = erro.message;
     } finally {
-        botao.disabled = false;
+        if (requisicaoAtual === requisicaoEstimativaFlorence) {
+            botao.disabled = false;
+        }
     }
 }
 
 async function carregarPastasMaeOrganizacao({ forcar = false } = {}) {
     if (pastasMaeOrganizacaoCarregadas && !forcar) return;
 
-    const seletor = document.getElementById('pastaMaeOrganizacao');
+    const lista = document.getElementById('pastasMaeOrganizacaoLista');
     const status = document.getElementById('statusPastasMaeOrganizacao');
-    const selecaoAnterior = seletor.value;
-    seletor.disabled = true;
+    const selecaoAnterior = new Set(
+        obterPastasMaeSelecionadasOrganizacao()
+    );
+    definirPastasMaeOrganizacaoDesabilitadas(true);
     status.textContent = 'Carregando pastas-mãe...';
 
     try {
@@ -135,32 +152,66 @@ async function carregarPastasMaeOrganizacao({ forcar = false } = {}) {
             throw new Error(dados.erro || 'Não foi possível listar as pastas-mãe.');
         }
 
-        seletor.replaceChildren();
-        const todas = document.createElement('option');
-        todas.value = '';
-        todas.textContent = 'Todas as pastas-mãe';
-        seletor.appendChild(todas);
+        lista.replaceChildren();
         const pastasMae = Array.isArray(dados.pastasMae) ? dados.pastasMae : [];
         pastasMae.forEach((pastaMae) => {
-                const opcao = document.createElement('option');
-                opcao.value = pastaMae;
-                opcao.textContent = pastaMae;
-                seletor.appendChild(opcao);
+            const rotulo = document.createElement('label');
+            rotulo.className = 'ia-folder-option';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'app-checkbox h-4 w-4 rounded';
+            checkbox.value = pastaMae;
+            checkbox.checked = selecaoAnterior.size === 0 ||
+                selecaoAnterior.has(pastaMae);
+            checkbox.addEventListener('change', () => {
+                atualizarResumoPastasMaeOrganizacao();
+                carregarEstimativaFlorence();
             });
-        seletor.value = Array.from(seletor.options).some(
-            (opcao) => opcao.value === selecaoAnterior
-        ) ? selecaoAnterior : '';
+            const nome = document.createElement('span');
+            nome.textContent = pastaMae;
+            rotulo.append(checkbox, nome);
+            lista.appendChild(rotulo);
+        });
         pastasMaeOrganizacaoCarregadas = true;
-        status.textContent = pastasMae.length > 0
-            ? pastasMae.length +
-                (pastasMae.length === 1 ? ' pasta-mãe encontrada' : ' pastas-mãe encontradas')
-            : 'Nenhuma pasta-mãe encontrada; será usada a pasta completa.';
+        atualizarResumoPastasMaeOrganizacao();
     } catch (erro) {
         status.textContent = erro.message;
         pastasMaeOrganizacaoCarregadas = false;
     } finally {
-        seletor.disabled = false;
+        definirPastasMaeOrganizacaoDesabilitadas(false);
     }
+}
+
+function obterPastasMaeSelecionadasOrganizacao() {
+    return Array.from(document.querySelectorAll(
+        '#pastasMaeOrganizacaoLista input[type="checkbox"]:checked'
+    )).map((checkbox) => checkbox.value);
+}
+
+function definirPastasMaeOrganizacaoDesabilitadas(desabilitadas) {
+    document.querySelectorAll(
+        '#campoPastaMaeOrganizacao input, #campoPastaMaeOrganizacao button'
+    ).forEach((controle) => { controle.disabled = desabilitadas; });
+}
+
+function atualizarResumoPastasMaeOrganizacao() {
+    const total = document.querySelectorAll(
+        '#pastasMaeOrganizacaoLista input[type="checkbox"]'
+    ).length;
+    const selecionadas = obterPastasMaeSelecionadasOrganizacao().length;
+    document.getElementById('statusPastasMaeOrganizacao').textContent =
+        total === 0
+            ? 'Nenhuma pasta-mãe encontrada.'
+            : selecionadas + ' de ' + total +
+                (total === 1 ? ' pasta selecionada.' : ' pastas selecionadas.');
+}
+
+function marcarTodasPastasMaeOrganizacao(marcar) {
+    document.querySelectorAll(
+        '#pastasMaeOrganizacaoLista input[type="checkbox"]'
+    ).forEach((checkbox) => { checkbox.checked = marcar; });
+    atualizarResumoPastasMaeOrganizacao();
+    carregarEstimativaFlorence();
 }
 
 async function atualizarFiltroPastaMaeOrganizacao() {
@@ -348,10 +399,9 @@ async function consultarStatusOrganizacao() {
         const opcaoReorganizar = document.getElementById(
             'reorganizarImagensOrganizadas'
         );
-        const opcaoPastaMae = document.getElementById('pastaMaeOrganizacao');
         btn.disabled = false;
         opcaoReorganizar.disabled = false;
-        opcaoPastaMae.disabled = false;
+        definirPastasMaeOrganizacaoDesabilitadas(false);
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
         carregarEstimativaFlorence();
 
@@ -374,12 +424,20 @@ async function organizarLoteIA() {
         'reorganizarImagensOrganizadas'
     );
     const reorganizar = opcaoReorganizar.checked;
-    const opcaoPastaMae = document.getElementById('pastaMaeOrganizacao');
-    const pastaMae = reorganizar ? opcaoPastaMae.value : '';
+    const pastasMae = reorganizar
+        ? obterPastasMaeSelecionadasOrganizacao()
+        : [];
+    if (reorganizar && pastasMae.length === 0) {
+        alert('Selecione ao menos uma pasta-mãe para reorganizar.');
+        return;
+    }
     const confirmacao = confirm(
         'Isto irá ativar a IA para ' +
-        (pastaMae
-            ? 'os hotéis da pasta-mãe "' + pastaMae + '". '
+        (reorganizar
+            ? 'os hotéis de ' + pastasMae.length +
+                (pastasMae.length === 1
+                    ? ' pasta-mãe selecionada. '
+                    : ' pastas-mãe selecionadas. ')
             : 'TODOS os hotéis salvos na sua pasta. ') +
         (reorganizar
             ? 'As imagens antigas já organizadas também serão renomeadas com o Florence. '
@@ -396,7 +454,7 @@ async function organizarLoteIA() {
     resultadoContainer.classList.add('hidden');
     btn.disabled = true;
     opcaoReorganizar.disabled = true;
-    opcaoPastaMae.disabled = true;
+    definirPastasMaeOrganizacaoDesabilitadas(true);
     btn.classList.add('opacity-50', 'cursor-not-allowed');
     prepararPainelOrganizacao();
 
@@ -404,7 +462,7 @@ async function organizarLoteIA() {
         const response = await fetch('/api/organizar-tudo', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reorganizar, pastaMae: pastaMae || null }),
+            body: JSON.stringify({ reorganizar, pastasMae }),
         });
         const dados = await lerRespostaJsonOrganizacao(
             response,
@@ -418,9 +476,13 @@ async function organizarLoteIA() {
                 'O servidor não ativou o modo Reorganizar. Reinicie o aplicativo e tente novamente.'
             );
         }
-        if (pastaMae && dados.pastaMae !== pastaMae) {
+        if (reorganizar && (
+            !Array.isArray(dados.pastasMae) ||
+            dados.pastasMae.length !== pastasMae.length ||
+            !pastasMae.every((pastaMae) => dados.pastasMae.includes(pastaMae))
+        )) {
             throw new Error(
-                'O servidor não aplicou a pasta-mãe selecionada. Reinicie o aplicativo e tente novamente.'
+                'O servidor não aplicou todas as pastas-mãe selecionadas. Reinicie o aplicativo e tente novamente.'
             );
         }
 
@@ -449,7 +511,7 @@ async function organizarLoteIA() {
         });
         btn.disabled = false;
         opcaoReorganizar.disabled = false;
-        opcaoPastaMae.disabled = false;
+        definirPastasMaeOrganizacaoDesabilitadas(false);
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 }

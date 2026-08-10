@@ -125,3 +125,33 @@ test("estima reorganização de hotéis dentro de pastas mães", (t) => {
   assert.equal(resultado.numeroImagens, 2);
   assert.equal(resultado.tamanhoTotalBytes, 300);
 });
+
+test("soma somente as pastas mãe selecionadas", (t) => {
+  const raiz = fs.mkdtempSync(path.join(os.tmpdir(), "estimativa-multiplas-"));
+  const pastaLogs = path.join(raiz, "logs");
+  const itacare = path.join(raiz, "img", "Itacaré");
+  const jeri = path.join(raiz, "img", "Jericoacoara");
+  const bahia = path.join(raiz, "img", "Bahia");
+  t.after(() => fs.rmSync(raiz, { recursive: true, force: true }));
+
+  criarArquivo(path.join(itacare, "Hotel A", "foto.jpg"), 100);
+  criarArquivo(path.join(jeri, "Hotel B", "foto.jpg"), 200);
+  criarArquivo(path.join(bahia, "Hotel C", "foto.jpg"), 400);
+  fs.mkdirSync(pastaLogs, { recursive: true });
+  fs.writeFileSync(
+    path.join(pastaLogs, "historico.csv"),
+    [
+      "execucao_id;hotel;duracao_segundos;numero_imagens;tamanho_total_bytes;numero_hoteis;status",
+      "exec-1;HOTEL;20;2;300;2;concluido",
+    ].join("\n"),
+  );
+
+  const resultado = calcularEstimativaFlorence({
+    pastasImagens: [itacare, jeri],
+    pastaLogs,
+  });
+
+  assert.equal(resultado.numeroHoteis, 2);
+  assert.equal(resultado.numeroImagens, 2);
+  assert.equal(resultado.tamanhoTotalBytes, 300);
+});

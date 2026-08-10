@@ -56,7 +56,7 @@
     <link rel="stylesheet" href="/vendor/tailwind.css">
     <script src="/vendor/jszip.min.js"></script>
     <script src="/vendor/papaparse.min.js"></script>
-    <link rel="stylesheet" href="/css/styles.css?v=20260810-organizacao-ui">
+    <link rel="stylesheet" href="/css/styles.css?v=20260810-pastas-multiplas">
 </head>
 <body class="min-h-screen overflow-x-hidden antialiased">
     <canvas id="temaVfxCanvas" class="tema-vfx-canvas" aria-hidden="true"></canvas>
@@ -300,20 +300,26 @@
                         </div>
                         <span class="app-status-ai shrink-0 text-xs font-medium">Filtro antes de salvar</span>
                     </div>
-                    <label class="batch-parent-folder mt-4">
-                        <span class="app-label">Salvar dentro da pasta-mãe</span>
-                        <input
-                            id="pastaMaeDownloadLote"
-                            type="text"
-                            class="app-input"
-                            maxlength="100"
-                            placeholder="Ex.: Itacaré (opcional)"
-                            autocomplete="off"
-                        >
-                        <span class="app-text-subtle mt-1 block text-xs leading-5">
-                            Se informada, a pasta será criada dentro do diretório de imagens e cada hotel continuará separado em sua própria subpasta.
+                    <div class="batch-parent-folder mt-4">
+                        <label for="destinoPastaMaeDownloadLote" class="app-label">Pasta-mãe de destino</label>
+                        <div class="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <select id="destinoPastaMaeDownloadLote" class="app-input" onchange="atualizarDestinoPastaMaeDownloadLote()">
+                                <option value="">Pasta principal de imagens</option>
+                                <option value="__nova__">+ Criar uma nova pasta-mãe</option>
+                            </select>
+                            <input
+                                id="pastaMaeDownloadLote"
+                                type="text"
+                                class="app-input hidden"
+                                maxlength="100"
+                                placeholder="Nome da nova pasta-mãe"
+                                autocomplete="off"
+                            >
+                        </div>
+                        <span id="statusPastaMaeDownloadLote" class="app-text-subtle mt-1 block text-xs leading-5" aria-live="polite">
+                            Selecione uma pasta existente, crie uma nova ou salve na pasta principal.
                         </span>
-                    </label>
+                    </div>
                     <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <label>
                             <span class="app-label">Filtrar por</span>
@@ -1487,13 +1493,17 @@
                             <span class="app-text-subtle text-xs leading-5">Inclui fotos já categorizadas e aplica os novos nomes.</span>
                         </span>
                     </label>
-                    <label id="campoPastaMaeOrganizacao" class="ia-folder-filter hidden">
-                        <span class="app-label">Pasta-mãe para reorganizar</span>
-                        <select id="pastaMaeOrganizacao" class="app-input" onchange="carregarEstimativaFlorence()">
-                            <option value="">Todas as pastas-mãe</option>
-                        </select>
-                        <span id="statusPastasMaeOrganizacao" class="app-text-subtle mt-1 block text-xs" aria-live="polite"></span>
-                    </label>
+                    <div id="campoPastaMaeOrganizacao" class="ia-folder-filter hidden">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="app-label">Pastas-mãe para reorganizar</span>
+                            <span class="flex gap-2">
+                                <button type="button" class="ia-folder-action" onclick="marcarTodasPastasMaeOrganizacao(true)">Todas</button>
+                                <button type="button" class="ia-folder-action" onclick="marcarTodasPastasMaeOrganizacao(false)">Limpar</button>
+                            </span>
+                        </div>
+                        <div id="pastasMaeOrganizacaoLista" class="ia-folder-options mt-2"></div>
+                        <span id="statusPastasMaeOrganizacao" class="app-text-subtle mt-2 block text-xs" aria-live="polite"></span>
+                    </div>
                     <div class="ia-action-grid">
                         <button
                             id="btnOrganizarTudo"
@@ -1949,9 +1959,9 @@
     <script src="/js/navegacao.js"></script>
     <script src="/js/configuracoes.js"></script>
     <script src="/js/interface.js"></script>
-    <script src="/js/organizacao.js?v=20260810-filtro-pasta-mae"></script>
+    <script src="/js/organizacao.js?v=20260810-multiplas-pastas-mae"></script>
     <script src="/js/galeria.js?v=20260810-filtro-pasta-mae"></script>
-    <script src="/js/busca.js?v=20260810-pasta-mae-download"></script>
+    <script src="/js/busca.js?v=20260810-selecionar-pasta-mae"></script>
     <script src="/js/terminal.js?v=20260810-pesquisa-terminal"></script>
 </body>
 </html>

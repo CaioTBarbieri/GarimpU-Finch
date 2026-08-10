@@ -251,14 +251,30 @@ function lerExecucoesHistoricas(pastaLogs, sistemaArquivos = fs) {
 
 function calcularEstimativaFlorence({
   pastaImagens,
+  pastasImagens,
   pastaLogs,
   sistemaArquivos = fs,
   reorganizar = false,
 }) {
-  const inventario = inventariarLoteFlorence(
-    pastaImagens,
-    sistemaArquivos,
-    { reorganizar },
+  const pastasSelecionadas =
+    Array.isArray(pastasImagens) && pastasImagens.length
+      ? [...new Set(pastasImagens)]
+      : [pastaImagens];
+  const inventario = pastasSelecionadas.reduce(
+    (total, pastaSelecionada) => {
+      const parcial = inventariarLoteFlorence(
+        pastaSelecionada,
+        sistemaArquivos,
+        { reorganizar },
+      );
+      return {
+        numeroHoteis: total.numeroHoteis + parcial.numeroHoteis,
+        numeroImagens: total.numeroImagens + parcial.numeroImagens,
+        tamanhoTotalBytes:
+          total.tamanhoTotalBytes + parcial.tamanhoTotalBytes,
+      };
+    },
+    { numeroHoteis: 0, numeroImagens: 0, tamanhoTotalBytes: 0 },
   );
   const execucoes = lerExecucoesHistoricas(
     pastaLogs,

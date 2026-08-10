@@ -230,3 +230,45 @@ test("repassa a pasta mãe selecionada ao processo Python", async () => {
   assert.equal(argumentosSpawn.at(-1), "--reorganizar");
   processo.emit("close", 0);
 });
+
+test("repassa múltiplas pastas mãe ao mesmo processo Python", async () => {
+  const processo = criarProcessoFalso();
+  let argumentosSpawn;
+  const pastasSelecionadas = [
+    path.resolve("img", "Itacaré"),
+    path.resolve("img", "Jericoacoara"),
+  ];
+  const service = criarOrganizadorPythonService({
+    criarProcesso(_comando, argumentos) {
+      argumentosSpawn = argumentos;
+      return processo;
+    },
+    localizarPython: async () => ({
+      comando: "python",
+      argumentosIniciais: [],
+      versao: "3.12.10",
+    }),
+    estado: {
+      reiniciarEstado() {},
+      atualizarDadosPython() {},
+      finalizarConcluido() {},
+      finalizarErro() {},
+    },
+    sistemaArquivos: { existsSync: () => true },
+    logger: { log() {}, warn() {}, error() {} },
+  });
+
+  service.iniciarOrganizacao({
+    reorganizar: true,
+    pastasImagens: pastasSelecionadas,
+  });
+  await proximaIteracao();
+
+  assert.deepEqual(
+    argumentosSpawn.filter((_argumento, indice) =>
+      indice > 0 && argumentosSpawn[indice - 1] === "--pasta"),
+    pastasSelecionadas,
+  );
+  assert.equal(argumentosSpawn.at(-1), "--reorganizar");
+  processo.emit("close", 0);
+});

@@ -1788,6 +1788,53 @@ details[open] > summary .details-chevron {
     margin-top: 0.35rem;
 }
 
+.ia-folder-action {
+    border: 0;
+    background: transparent;
+    color: var(--ai);
+    font-size: 0.6875rem;
+    font-weight: 650;
+    padding: 0.15rem 0.25rem;
+}
+
+.ia-folder-action:hover:not(:disabled) {
+    text-decoration: underline;
+}
+
+.ia-folder-options {
+    display: grid;
+    max-height: 8.5rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    overflow-y: auto;
+}
+
+.ia-folder-option {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.55rem;
+    background: rgb(var(--surface-rgb) / 55%);
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    padding: 0.5rem 0.6rem;
+}
+
+.ia-folder-option:has(input:checked) {
+    border-color: rgb(var(--ai-rgb) / 40%);
+    background: rgb(var(--ai-rgb) / 8%);
+    color: var(--text);
+}
+
+.ia-folder-option span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .ia-action-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -1932,6 +1979,10 @@ details[open] > summary .details-chevron {
 
     .ia-refresh-button {
         width: 100%;
+    }
+
+    .ia-folder-options {
+        grid-template-columns: 1fr;
     }
 }
 

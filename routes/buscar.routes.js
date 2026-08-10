@@ -3,6 +3,7 @@ const { PASTA_IMAGENS } = require("../config");
 const { normalizarFiltroDownload } = require("../services/filtro-download.service");
 const { listarMunicipiosPorUf } = require("../services/localidades.service");
 const { resolverPastaMaeDownload } = require("../services/pasta-download.service");
+const { listarPastasMaeFlorence } = require("../services/pastas-florence.service");
 
 function criarBuscarRouter({
   rasparDadosHotel,
@@ -11,6 +12,14 @@ function criarBuscarRouter({
   pastaImagensBase = PASTA_IMAGENS,
 }) {
   const router = express.Router();
+
+  router.get("/api/pastas-mae-download", (_req, res) => {
+    try {
+      res.json({ pastasMae: listarPastasMaeFlorence(pastaImagensBase) });
+    } catch (_) {
+      res.status(500).json({ erro: "Não foi possível listar as pastas-mãe." });
+    }
+  });
 
   router.get("/api/localidades/estados/:uf/municipios", async (req, res) => {
     try {
