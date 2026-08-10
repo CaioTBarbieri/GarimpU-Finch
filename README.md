@@ -1,4 +1,4 @@
-# GarimpU Finch
+# GarimpU-Nexo
 
 Aplicação local para pesquisar hotéis na Booking.com, extrair e revisar dados úteis
 para cadastro, baixar galerias de fotos e preparar arquivos CSV compatíveis com uma
@@ -98,6 +98,16 @@ CLIP, exemplos do diretório `Fotos exemplos`, KNN e YOLOv8 para detectar fotos
 com pessoas. Também pode gerar `alt_texts.json`. Esse processamento é separado da
 extração principal e pode ser demorado, especialmente em CPU.
 
+Durante a etapa CLIP/Florence, o organizador registra por hotel o horário de
+início, término, duração, quantidade de imagens e status em
+`logs/florence/log_classificacao_florence.csv`. O registro também contém o
+tamanho individual das imagens, o volume total e a quantidade de hotéis do
+lote. Outros CSVs históricos podem ser colocados em `logs/florence/`.
+
+A aba Organização IA lê esses históricos e estima o tempo da próxima execução
+com base na quantidade de imagens, no volume em bytes e no número de hotéis. O
+log principal pode ser baixado pelo botão **Baixar log Florence**.
+
 ## Tecnologias
 
 - Node.js e Express;
@@ -132,6 +142,29 @@ organizar_hoteis.py
 - `public/index.html`: estrutura visual servida pelo Express;
 - `public/js/`: lógica executada no navegador;
 - `organizar_hoteis.py`: classificação, organização e descrição das imagens.
+
+## Aplicativo Windows e atualizações
+
+O instalador NSIS verifica novas versões na página de Releases do repositório
+`CaioTBarbieri/GarimpU-Finch` cinco segundos após a abertura e, depois, a cada
+quatro horas. Quando há uma versão superior, o usuário escolhe se deseja baixar
+e quando reiniciar para instalar. Arquivos e configurações do usuário são
+preservados.
+
+Um commit ou push isolado não atualiza instalações existentes. Para publicar uma
+atualização:
+
+1. aumente `version` em `package.json` e `package-lock.json`;
+2. configure `GH_TOKEN` com permissão para publicar Releases;
+3. execute `npm run release:win`.
+
+O comando publica o instalador, o arquivo `.exe.blockmap` e o `latest.yml`.
+Esses três arquivos precisam ser gerados juntos pelo mesmo build. A Release não
+pode permanecer como rascunho, pois rascunhos não são encontrados pelo
+atualizador.
+
+Quem instalou uma versão anterior à `1.2.0` precisa instalar a `1.2.0`
+manualmente uma vez. As versões seguintes passam a usar o fluxo automático.
 
 ## Pré-requisitos
 
@@ -205,12 +238,18 @@ const path = require("path");
 module.exports = {
   PORT: 3000,
   PASTA_IMAGENS: path.resolve("D:\\", "Imagens de hotéis"),
+  PASTA_FLORENCE: path.resolve("D:\\", "Imagens para processar"),
   LATITUDE_PADRAO: -14.815,
   LONGITUDE_PADRAO: -39.0333,
   PYTHON_EXECUTABLE: path.resolve(".venv", "Scripts", "python.exe"),
   PYTHON_VERSION_ESPERADA: "3.12",
 };
 ```
+
+No aplicativo Windows, `PASTA_IMAGENS` e `PASTA_FLORENCE` também podem ser
+alteradas visualmente na aba **Configurações → Diretórios de imagens e IA**. A
+primeira recebe as fotos baixadas; a segunda é a pasta que Florence, CLIP e YOLO
+processam. Ao salvar, o aplicativo reinicia para aplicar os novos caminhos.
 
 Opções disponíveis:
 

@@ -13,6 +13,8 @@ function formatarDuracao(totalSegundos) {
         String(segundos).padStart(2, '0');
 }
 
+let downloadAutomaticoLogFlorencePendente = false;
+
 function definirTextoStatus(id, valor, valorPadrao = '—') {
     document.getElementById(id).textContent =
         valor == null || valor === '' ? valorPadrao : String(valor);
@@ -22,85 +24,79 @@ function limitarPercentual(valor) {
     return Math.min(Math.max(Number(valor) || 0, 0), 100);
 }
 
+function formatarTamanhoBytes(totalBytes) {
+    const bytes = Math.max(0, Number(totalBytes) || 0);
+    if (bytes < 1024) return bytes + ' B';
+
+    const unidades = ['KB', 'MB', 'GB', 'TB'];
+    let valor = bytes / 1024;
+    let indice = 0;
+    while (valor >= 1024 && indice < unidades.length - 1) {
+        valor /= 1024;
+        indice += 1;
+    }
+    return valor.toLocaleString('pt-BR', {
+        maximumFractionDigits: 1,
+    }) + ' ' + unidades[indice];
+}
+
+async function carregarEstimativaFlorence() {
+    const botao = document.getElementById(
+        'btnAtualizarEstimativaFlorence'
+    );
+    const titulo = document.getElementById(
+        'estimativaHistoricaFlorence'
+    );
+    const detalhes = document.getElementById(
+        'detalhesEstimativaFlorence'
+    );
+    botao.disabled = true;
+
+    try {
+        const response = await fetch('/api/estimativa-florence');
+        const dados = await response.json();
+        if (!response.ok) {
+            throw new Error(
+                dados.erro || 'Não foi possível calcular a estimativa.'
+            );
+        }
+
+        if (!dados.disponivel) {
+            titulo.textContent = 'Estimativa indisponível';
+            detalhes.textContent = dados.motivo;
+            return;
+        }
+
+        titulo.textContent =
+            formatarDuracao(dados.faixaMinimaSegundos) +
+            ' a ' +
+            formatarDuracao(dados.faixaMaximaSegundos);
+        detalhes.textContent =
+            dados.numeroImagens +
+            (dados.numeroImagens === 1 ? ' imagem • ' : ' imagens • ') +
+            formatarTamanhoBytes(dados.tamanhoTotalBytes) + ' • ' +
+            dados.numeroHoteis +
+            (dados.numeroHoteis === 1 ? ' hotel • ' : ' hotéis • ') +
+            dados.execucoesHistoricas +
+            (dados.execucoesHistoricas === 1
+                ? ' execução histórica'
+                : ' execuções históricas');
+    } catch (erro) {
+        titulo.textContent = 'Estimativa indisponível';
+        detalhes.textContent = erro.message;
+    } finally {
+        botao.disabled = false;
+    }
+}
+
 function aplicarVisualEstadoIA(estado) {
     const card = document.getElementById('statusCardIA');
-    const titulo = document.getElementById('statusTituloIA');
-    const mensagem = document.getElementById('statusMensagemIA');
     const spinner = document.getElementById('statusSpinnerIA');
-    const barraGeral = document.getElementById('statusBarraGeralIA');
-    const barraHotel = document.getElementById('statusBarraHotelIA');
-    const estilos = {
-        processando: {
-            borda: 'border-purple-500/30',
-            texto: 'text-purple-400',
-            barra: 'bg-purple-500',
-            spinner: 'border-t-purple-500',
-        },
-        concluido: {
-            borda: 'border-emerald-500/30',
-            texto: 'text-emerald-400',
-            barra: 'bg-emerald-500',
-            spinner: 'border-t-emerald-500',
-        },
-        erro: {
-            borda: 'border-red-500/30',
-            texto: 'text-red-400',
-            barra: 'bg-red-500',
-            spinner: 'border-t-red-500',
-        },
-        ocioso: {
-            borda: 'border-slate-600',
-            texto: 'text-slate-400',
-            barra: 'bg-slate-500',
-            spinner: 'border-t-slate-500',
-        },
-    };
-    const estilo = estilos[estado] || estilos.ocioso;
+    const estadosConhecidos = ['processando', 'concluido', 'erro'];
+    const estadoVisual = estadosConhecidos.includes(estado) ? estado : 'ocioso';
 
-    card.classList.remove(
-        'border-purple-500/30',
-        'border-emerald-500/30',
-        'border-red-500/30',
-        'border-slate-600',
-    );
-    titulo.classList.remove(
-        'text-purple-400',
-        'text-emerald-400',
-        'text-red-400',
-        'text-slate-400',
-    );
-    mensagem.classList.remove(
-        'text-purple-400',
-        'text-emerald-400',
-        'text-red-400',
-        'text-slate-400',
-    );
-    spinner.classList.remove(
-        'border-t-purple-500',
-        'border-t-emerald-500',
-        'border-t-red-500',
-        'border-t-slate-500',
-    );
-    barraGeral.classList.remove(
-        'bg-purple-500',
-        'bg-emerald-500',
-        'bg-red-500',
-        'bg-slate-500',
-    );
-    barraHotel.classList.remove(
-        'bg-purple-500',
-        'bg-emerald-500',
-        'bg-red-500',
-        'bg-slate-500',
-    );
-
-    card.classList.add(estilo.borda);
-    titulo.classList.add(estilo.texto);
-    mensagem.classList.add(estilo.texto);
-    spinner.classList.add(estilo.spinner);
-    barraGeral.classList.add(estilo.barra);
-    barraHotel.classList.add(estilo.barra);
-    spinner.classList.toggle('animate-spin', estado === 'processando');
+    card.dataset.state = estadoVisual;
+    spinner.classList.toggle('animate-spin', estadoVisual === 'processando');
 }
 
 function atualizarPainelOrganizacao(status) {
@@ -119,7 +115,7 @@ function atualizarPainelOrganizacao(status) {
     definirTextoStatus(
         'statusMensagemIA',
         status.mensagem,
-        'Processando...',
+        'Lapidando as imagens...',
     );
     definirTextoStatus('statusHotelIA', status.hotel);
     definirTextoStatus('statusPastaIA', status.pasta);
@@ -201,7 +197,7 @@ function prepararPainelOrganizacao() {
     atualizarPainelOrganizacao({
         estado: 'processando',
         etapa: 'iniciando',
-        mensagem: 'Iniciando...',
+        mensagem: 'Preparando a frente de organização...',
         imagemAtual: 0,
         totalImagens: 0,
         imagensProcessadasGeral: 0,
@@ -210,6 +206,43 @@ function prepararPainelOrganizacao() {
         tempoDecorridoSegundos: 0,
         historicoMensagens: [],
     });
+}
+
+async function baixarLogFlorence({ automatico = false } = {}) {
+    const botao = document.getElementById('btnBaixarLogFlorence');
+    const status = document.getElementById('statusLogFlorence');
+    botao.disabled = true;
+    status.className = 'app-text-muted text-xs';
+    status.textContent = 'Preparando download...';
+
+    try {
+        const response = await fetch('/api/log-florence');
+        if (!response.ok) {
+            const dados = await response.json();
+            throw new Error(
+                dados.erro || 'Não foi possível baixar o log do Florence.'
+            );
+        }
+
+        const arquivo = await response.blob();
+        const url = URL.createObjectURL(arquivo);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'log_classificacao_florence.csv';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        status.className = 'app-status-success text-xs';
+        status.textContent = automatico
+            ? 'Organização concluída. Log baixado automaticamente.'
+            : 'Download iniciado.';
+    } catch (erro) {
+        status.className = 'app-status-danger text-xs';
+        status.textContent = erro.message;
+    } finally {
+        botao.disabled = false;
+    }
 }
 
 async function consultarStatusOrganizacao() {
@@ -231,8 +264,21 @@ async function consultarStatusOrganizacao() {
         btn.disabled = false;
         opcaoReorganizar.disabled = false;
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        carregarEstimativaFlorence();
+
+        if (
+            status.estado === 'concluido' &&
+            downloadAutomaticoLogFlorencePendente
+        ) {
+            downloadAutomaticoLogFlorencePendente = false;
+            await baixarLogFlorence({ automatico: true });
+        }
     }
+
+    return status;
 }
+
+carregarEstimativaFlorence();
 
 async function organizarLoteIA() {
     const opcaoReorganizar = document.getElementById(
@@ -249,6 +295,7 @@ async function organizarLoteIA() {
     );
     if (!confirmacao) return;
 
+    downloadAutomaticoLogFlorencePendente = false;
     const btn = document.getElementById('btnOrganizarTudo');
     const resultadoContainer = document.getElementById('resultadoContainer');
 
@@ -274,13 +321,17 @@ async function organizarLoteIA() {
             );
         }
 
-        await consultarStatusOrganizacao();
-        intervaloStatusOrganizacao = setInterval(() => {
-            consultarStatusOrganizacao().catch((erro) => {
-                console.error(erro);
-            });
-        }, 1000);
+        downloadAutomaticoLogFlorencePendente = true;
+        const statusInicial = await consultarStatusOrganizacao();
+        if (statusInicial.estado === 'processando') {
+            intervaloStatusOrganizacao = setInterval(() => {
+                consultarStatusOrganizacao().catch((erro) => {
+                    console.error(erro);
+                });
+            }, 1000);
+        }
     } catch (erro) {
+        downloadAutomaticoLogFlorencePendente = false;
         atualizarPainelOrganizacao({
             estado: 'erro',
             etapa: 'erro',

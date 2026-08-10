@@ -1,0 +1,23 @@
+# Pastas de imagens e binários pesados — sem valor para leitura de código,
+# só consomem tokens em buscas/listagens.
+img/
+Fotos exemplos/
+cache_embeddings_treino.npz
+yolov8n.pt
+
+# Artefatos de build e dependências
+node_modules/
+dist/
+build/
+resources/
+public/vendor/
+logs/
+
+# Binários e mídia em geral
+*.npz
+*.pt
+*.zip
+*.jpg
+*.jpeg
+*.png
+*.gif

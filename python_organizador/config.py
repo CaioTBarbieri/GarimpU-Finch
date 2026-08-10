@@ -15,6 +15,12 @@ PASTA_HOTEIS = Path(
         DIRETORIO_PROJETO / "img",
     )
 ).resolve()
+PASTA_LOGS_FLORENCE = Path(
+    os.environ.get(
+        "PASTA_LOGS_FLORENCE",
+        DIRETORIO_PROJETO / "logs" / "florence",
+    )
+).resolve()
 
 CATEGORIAS = [
     "entretenimento",
@@ -35,7 +41,11 @@ EXTENSOES = {
 CONFIANCA_MINIMA = 0.45
 CACHE_EMBEDDINGS = os.environ.get(
     "CACHE_EMBEDDINGS",
-    "cache_embeddings_treino.npz",
+    str(DIRETORIO_PROJETO / "cache_embeddings_treino.npz"),
+)
+YOLO_MODEL = os.environ.get(
+    "YOLO_MODEL",
+    str(DIRETORIO_PROJETO / "yolov8n.pt"),
 )
 REMOVER_FOTOS_COM_HUMANOS = True
 CONFIANCA_YOLO_HUMANO = 0.45

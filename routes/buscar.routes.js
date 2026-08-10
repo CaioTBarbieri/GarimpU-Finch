@@ -14,7 +14,10 @@ function criarBuscarRouter({
     const { nome, baixarImagens, latitudeReferencia, longitudeReferencia } =
       req.body;
 
-    if (!nome) {
+    const nomeNormalizado =
+      typeof nome === "string" ? nome.replace(/\s+/g, " ").trim() : "";
+
+    if (!nomeNormalizado) {
       return res.status(400).json({
         erro: "O nome do hotel é obrigatório",
       });
@@ -53,7 +56,7 @@ function criarBuscarRouter({
     }
 
     const resultado = await rasparDadosHotel(
-      nome,
+      nomeNormalizado,
       deveBaixar,
       latitudeFinal,
       longitudeFinal,

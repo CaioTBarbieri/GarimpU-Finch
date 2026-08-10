@@ -36,6 +36,7 @@ ESTRUTURA QUE SERÁ CRIADA NOS HOTÉIS:
 """
 
 from deep_translator import GoogleTranslator
+from datetime import datetime
 import os
 import sys
 import argparse
@@ -60,14 +61,17 @@ from python_organizador.config import (
     CONFIANCA_YOLO_HUMANO,
     PASTA_EXEMPLOS,
     PASTA_HOTEIS,
+    PASTA_LOGS_FLORENCE,
     REMOVER_FOTOS_COM_HUMANOS,
     TAMANHO_MINIMO_PESSOA,
+    YOLO_MODEL,
 )
 from python_organizador.nomes import (
     criar_nome_final,
     limpar_para_nome_arquivo,
     resolver_nome_duplicado,
 )
+from python_organizador.log_classificacao import registrar_tempo_classificacao
 from python_organizador.status import emitir_status
 
 warnings.filterwarnings("ignore")
@@ -187,7 +191,7 @@ def carregar_detector_yolo():
 
     print("\n🔄 Carregando detector de pessoas (YOLOv8n, ~6MB)...")
     # yolov8n é o modelo nano — rápido na CPU e preciso o suficiente para este caso
-    detector = YOLO("yolov8n.pt")
+    detector = YOLO(YOLO_MODEL)
     print("✅ Detector de pessoas carregado!")
     return detector
 
@@ -361,6 +365,8 @@ def classificar_e_organizar(
 
     stats_total = {"classificadas": 0, "revisar": 0, "com_humanos": 0, "erros": 0}
     processamento_imagens_iniciado = False
+    execucao_id = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%z")
+    numero_hoteis_lote = len(pastas_hoteis)
 
     for pasta_hotel in pastas_hoteis:
         print(f"\n{'─'*60}")
@@ -373,6 +379,15 @@ def classificar_e_organizar(
             continue
 
         print(f"   📸 {len(imagens)} imagens para processar")
+        tamanhos_imagens_hotel = []
+        for imagem in imagens:
+            try:
+                tamanho_bytes = imagem.stat().st_size
+            except OSError:
+                tamanho_bytes = 0
+            tamanhos_imagens_hotel.append(
+                {"nome": imagem.name, "bytes": tamanho_bytes}
+            )
 
         if not processamento_imagens_iniciado:
             emitir_status(
@@ -454,6 +469,11 @@ def classificar_e_organizar(
             continue
 
         # ── Etapa 2: classifica imagens via CLIP + Florence-2 ──
+        inicio_classificacao_hotel = datetime.now().astimezone()
+        print(
+            "   ⏱️ Classificação Florence iniciada em: "
+            f"{inicio_classificacao_hotel.isoformat(timespec='seconds')}"
+        )
         imagens_concluidas_hotel = qtd_humanos_detectados
         if sem_humanos:
             embs, validos = calcular_embeddings(
@@ -488,6 +508,17 @@ def classificar_e_organizar(
             )
 
         if len(embs) == 0 and not imagens_organizadas:
+            fim_classificacao_hotel = datetime.now().astimezone()
+            registrar_tempo_classificacao(
+                PASTA_LOGS_FLORENCE,
+                execucao_id,
+                pasta_hotel.name,
+                inicio_classificacao_hotel,
+                fim_classificacao_hotel,
+                tamanhos_imagens_hotel,
+                numero_hoteis_lote,
+                status="sem_embeddings_validos",
+            )
             continue
 
         if len(embs) > 0:
@@ -646,6 +677,26 @@ def classificar_e_organizar(
                 print(f"      {emoji_map.get(cat, '📁')} {cat}: {qtd} imagens")
         if qtd_humanos_detectados > 0:
             print(f"      👤 _Com_Humanos: {qtd_humanos_detectados} imagens")
+
+        fim_classificacao_hotel = datetime.now().astimezone()
+        caminho_log = registrar_tempo_classificacao(
+            PASTA_LOGS_FLORENCE,
+            execucao_id,
+            pasta_hotel.name,
+            inicio_classificacao_hotel,
+            fim_classificacao_hotel,
+            tamanhos_imagens_hotel,
+            numero_hoteis_lote,
+        )
+        duracao_classificacao = (
+            fim_classificacao_hotel - inicio_classificacao_hotel
+        ).total_seconds()
+        print(
+            "   ⏱️ Classificação Florence concluída em: "
+            f"{fim_classificacao_hotel.isoformat(timespec='seconds')} "
+            f"({duracao_classificacao:.3f} segundos)"
+        )
+        print(f"   🧾 Log atualizado: {caminho_log}")
 
     print(f"\n{'═'*60}")
     print(f"🏁 CONCLUÍDO!")

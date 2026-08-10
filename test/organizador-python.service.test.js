@@ -1,9 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { EventEmitter } = require("node:events");
+const path = require("node:path");
 const {
   criarOrganizadorPythonService,
 } = require("../services/organizador-python.service");
+const { PASTA_FLORENCE } = require("../config");
 
 function criarProcessoFalso() {
   const processo = new EventEmitter();
@@ -80,6 +82,7 @@ test("processa STATUS_JSON quebrado em chunks e a última linha do buffer", asyn
     "-u",
     argumentosSpawn.argumentos[2],
   ]);
+  assert.equal(argumentosSpawn.argumentos.at(-1), PASTA_FLORENCE);
   assert.equal(argumentosSpawn.opcoes.windowsHide, true);
   assert.equal(
     argumentosSpawn.opcoes.env.PYTHONIOENCODING,
@@ -120,6 +123,44 @@ test("eventos error e close finalizam o estado somente uma vez", async () => {
   assert.deepEqual(erros, ["Falha ao iniciar"]);
   assert.equal(sucessos, 0);
   assert.equal(service.estaExecutando(), false);
+});
+
+test("usa a pasta real do executavel empacotado como cwd", async () => {
+  const processo = criarProcessoFalso();
+  const pastaExecutavel = path.resolve("teste-python-organizer");
+  const executavel = path.join(
+    pastaExecutavel,
+    "organizar_hoteis.exe",
+  );
+  let opcoesSpawn;
+  const service = criarOrganizadorPythonService({
+    criarProcesso(_comando, _argumentos, opcoes) {
+      opcoesSpawn = opcoes;
+      return processo;
+    },
+    localizarPython: async () => ({
+      comando: executavel,
+      argumentosIniciais: [],
+      versao: "empacotado",
+      executavelEmpacotado: true,
+    }),
+    estado: {
+      reiniciarEstado() {},
+      atualizarDadosPython() {},
+      finalizarConcluido() {},
+      finalizarErro(mensagem) {
+        assert.fail(`Nao deveria finalizar com erro: ${mensagem}`);
+      },
+    },
+    sistemaArquivos: { existsSync: () => true },
+    logger: { log() {}, warn() {}, error() {} },
+  });
+
+  service.iniciarOrganizacao();
+  await proximaIteracao();
+
+  assert.equal(opcoesSpawn.cwd, pastaExecutavel);
+  processo.emit("close", 0);
 });
 
 test("repassa a opção de reorganizar ao processo Python", async () => {

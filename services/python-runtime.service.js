@@ -2,6 +2,7 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const {
+  ORGANIZADOR_EXECUTABLE,
   PYTHON_EXECUTABLE,
   PYTHON_VERSION_ESPERADA,
 } = require("../config");
@@ -146,6 +147,18 @@ function criarCandidatos() {
 }
 
 async function localizarPythonCompativel() {
+  if (
+    ORGANIZADOR_EXECUTABLE &&
+    fs.existsSync(ORGANIZADOR_EXECUTABLE)
+  ) {
+    return {
+      comando: ORGANIZADOR_EXECUTABLE,
+      argumentosIniciais: [],
+      versao: "empacotado",
+      executavelEmpacotado: true,
+    };
+  }
+
   for (const candidato of criarCandidatos()) {
     const encontrado = await verificarVersao(candidato);
     if (encontrado) return encontrado;

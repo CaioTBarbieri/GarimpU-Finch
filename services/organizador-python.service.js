@@ -2,8 +2,13 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const {
-  PASTA_IMAGENS,
+  CACHE_EMBEDDINGS,
+  ORGANIZADOR_EXECUTABLE,
+  PASTA_EXEMPLOS,
+  PASTA_FLORENCE,
+  PASTA_LOGS_FLORENCE,
   PYTHON_VERSION_ESPERADA,
+  YOLO_MODEL,
 } = require("../config");
 const statusOrganizacao = require("../state/status-organizacao");
 const {
@@ -28,6 +33,13 @@ function criarOrganizadorPythonService({
   }
 
   function encontrarScriptPython() {
+    if (
+      ORGANIZADOR_EXECUTABLE &&
+      sistemaArquivos.existsSync(ORGANIZADOR_EXECUTABLE)
+    ) {
+      return ORGANIZADOR_EXECUTABLE;
+    }
+
     const scriptPython = path.resolve(
       diretorioProjeto,
       "organizar_hoteis.py",
@@ -129,24 +141,33 @@ function criarOrganizadorPythonService({
           `(Python ${python.versao})`,
       );
 
-      const argumentos = [
-        ...python.argumentosIniciais,
-        "-u",
-        scriptPython,
-        "--pasta",
-        PASTA_IMAGENS,
-      ];
+      const argumentos = python.executavelEmpacotado
+        ? ["--pasta", PASTA_FLORENCE]
+        : [
+            ...python.argumentosIniciais,
+            "-u",
+            scriptPython,
+            "--pasta",
+            PASTA_FLORENCE,
+          ];
       if (reorganizar) argumentos.push("--reorganizar");
+      const diretorioExecucao = python.executavelEmpacotado
+        ? path.dirname(python.comando)
+        : diretorioProjeto;
       const processo = criarProcesso(
         python.comando,
         argumentos,
         {
-          cwd: diretorioProjeto,
+          cwd: diretorioExecucao,
           windowsHide: true,
           env: {
             ...process.env,
             PYTHONIOENCODING: "utf-8",
             PYTHON_VERSION_ESPERADA,
+            PASTA_LOGS_FLORENCE,
+            ...(PASTA_EXEMPLOS ? { PASTA_EXEMPLOS } : {}),
+            ...(CACHE_EMBEDDINGS ? { CACHE_EMBEDDINGS } : {}),
+            ...(YOLO_MODEL ? { YOLO_MODEL } : {}),
           },
         },
       );
@@ -176,10 +197,27 @@ function criarOrganizadorPythonService({
     return true;
   }
 
+  function encerrarOrganizacao() {
+    iniciando = false;
+    const processo = processoAtual;
+    processoAtual = null;
+    if (!processo) return false;
+
+    try {
+      processo.kill();
+    } catch (erro) {
+      logger.warn(
+        `[-] Não foi possível encerrar o organizador: ${erro.message}`,
+      );
+    }
+    return true;
+  }
+
   return {
     iniciarOrganizacao,
     estaExecutando,
     encontrarScriptPython,
+    encerrarOrganizacao,
   };
 }
 
@@ -189,4 +227,5 @@ module.exports = {
   criarOrganizadorPythonService,
   iniciarOrganizacao: organizadorPython.iniciarOrganizacao,
   estaExecutando: organizadorPython.estaExecutando,
+  encerrarOrganizacao: organizadorPython.encerrarOrganizacao,
 };

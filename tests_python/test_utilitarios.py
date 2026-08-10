@@ -1,5 +1,7 @@
 import tempfile
 import unittest
+import csv
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from python_organizador.arquivos import (
@@ -8,6 +10,7 @@ from python_organizador.arquivos import (
     listar_imagens_categorizadas,
     listar_imagens_soltas,
 )
+from python_organizador.log_classificacao import registrar_tempo_classificacao
 from python_organizador.nomes import (
     criar_nome_final,
     limpar_para_nome_arquivo,
@@ -199,6 +202,47 @@ class TestStatus(unittest.TestCase):
             'STATUS_JSON:{"etapa": "arquivo_concluido", '
             '"mensagem": "Ação concluída."}',
         )
+
+
+class TestLogClassificacao(unittest.TestCase):
+    def test_registra_inicio_fim_e_duracao_sem_repetir_cabecalho(self):
+        with tempfile.TemporaryDirectory() as diretorio:
+            inicio = datetime(2026, 1, 2, 10, 30, tzinfo=timezone.utc)
+            fim = inicio + timedelta(seconds=75.25)
+
+            caminho = registrar_tempo_classificacao(
+                diretorio,
+                "execucao-1",
+                "HOTEL ÁGUA FRESCA",
+                inicio,
+                fim,
+                [
+                    {"nome": "foto 1.jpg", "bytes": 1500},
+                    {"nome": "foto 2.jpg", "bytes": 2500},
+                ],
+                2,
+            )
+            registrar_tempo_classificacao(
+                diretorio,
+                "execucao-1",
+                "HOTEL SOMBRA",
+                fim,
+                fim + timedelta(seconds=10),
+                [{"nome": "foto 3.jpg", "bytes": 500}],
+                2,
+            )
+
+            with caminho.open(encoding="utf-8-sig", newline="") as arquivo:
+                registros = list(csv.DictReader(arquivo, delimiter=";"))
+
+            self.assertEqual(len(registros), 2)
+            self.assertEqual(registros[0]["hotel"], "HOTEL ÁGUA FRESCA")
+            self.assertEqual(registros[0]["duracao_segundos"], "75.250")
+            self.assertEqual(registros[0]["numero_imagens"], "2")
+            self.assertEqual(registros[0]["tamanho_total_bytes"], "4000")
+            self.assertEqual(registros[0]["numero_hoteis"], "2")
+            self.assertIn('"nome":"foto 1.jpg"', registros[0]["tamanhos_imagens_bytes"])
+            self.assertEqual(registros[0]["status"], "concluido")
 
 
 if __name__ == "__main__":

@@ -1,400 +1,1821 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-palette="dourado" data-font="classico">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <title>GarimpU-Nexo</title>
+    <script>
+        (() => {
+            const paletas = [
+                'dourado',
+                'ametista',
+                'artico',
+                'esmeralda',
+                'galaxia',
+                'sakura',
+                'titanio',
+                'vulcanico',
+                'boreal',
+                'singularidade',
+                'aurora',
+                'tempestade',
+                'dimensao',
+                'pulsar',
+                'supernova',
+                'noir',
+                'oceano',
+                'cyberpunk',
+                'tempo',
+                'virus',
+                'multiverso',
+            ];
+            const fontes = ['classico', 'moderno', 'tecnologico', 'editorial'];
 
-    <!DOCTYPE html>
-    <html lang="pt-br">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>GarimpU Finch</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    </head>
-    <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
-        <div class="max-w-6xl mx-auto px-4 py-12">
-            
-            <div class="text-center mb-12">
-                <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-2">
-                    GarimpU Finch
-                </h1>
-                <p class="text-slate-400">Pesquise hotéis, extraia coordenadas, regimes alimentares e exporte dados CSV.</p>
+            let paleta = 'dourado';
+            let fonte = 'classico';
+
+            try {
+                const paletaSalva = localStorage.getItem('garimpu-paleta');
+                const fonteSalva = localStorage.getItem('garimpu-fonte');
+
+                if (paletas.includes(paletaSalva)) paleta = paletaSalva;
+                if (fontes.includes(fonteSalva)) fonte = fonteSalva;
+            } catch {
+                // As configurações padrão permanecem ativas quando o storage está indisponível.
+            }
+
+            document.documentElement.dataset.palette = paleta;
+            document.documentElement.dataset.font = fonte;
+        })();
+    </script>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141009'/%3E%3Cpath d='M8 22l4-12h8l4 12h-4l-1-3h-6l-1 3H8zm6-6h4l-2-5-2 5z' fill='%23e3b768'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Playfair+Display:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@600;700;800&family=Share+Tech+Mono&family=Cinzel:wght@600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="/vendor/tailwind.css">
+    <script src="/vendor/jszip.min.js"></script>
+    <script src="/vendor/papaparse.min.js"></script>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="min-h-screen overflow-x-hidden antialiased">
+    <canvas id="temaVfxCanvas" class="tema-vfx-canvas" aria-hidden="true"></canvas>
+    <aside class="app-sidebar" aria-label="Navegação principal">
+        <div class="app-sidebar-brand">
+            <div class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none">
+                    <path d="M8 23 13 8h6l5 15h-4l-1.2-4h-5.7L12 23H8Z" fill="currentColor"/>
+                    <path class="brand-mark-cutout" d="m14.2 15.5 1.8-5 1.7 5h-3.5Z"/>
+                </svg>
+            </div>
+            <div>
+                <p class="brand-eyebrow">Garimpo de dados</p>
+                <h1>GarimpU-Nexo</h1>
+            </div>
+        </div>
+        <nav class="app-tabs" aria-label="Áreas da aplicação">
+            <button type="button" class="app-tab" data-tab-button="pesquisa" aria-pressed="true" onclick="selecionarAba('pesquisa')">
+                <svg class="app-tab-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="m14.5 14.5 5 5m-2.75-10a7.25 7.25 0 1 1-14.5 0 7.25 7.25 0 0 1 14.5 0Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="m7 10 2 2 4-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Pesquisa</span>
+            </button>
+            <button type="button" class="app-tab" data-tab-button="fotos" aria-pressed="false" onclick="selecionarAba('fotos')">
+                <svg class="app-tab-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="m5.5 17 4.2-4.5 3.2 3 2.5-2.5 3.1 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="15.8" cy="8.5" r="1.4" fill="currentColor"/>
+                </svg>
+                <span>Fotos salvas</span>
+            </button>
+            <button type="button" class="app-tab" data-tab-button="ia" aria-pressed="false" onclick="selecionarAba('ia')">
+                <svg class="app-tab-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M8 3v3m8-3v3M8 18v3m8-3v3M3 8h3m12 0h3M3 16h3m12 0h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <rect x="6" y="6" width="12" height="12" rx="3" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M9.5 13.8c1.2 1.1 3.8 1.1 5 0M10 10h.01M14 10h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <span>Organização IA</span>
+            </button>
+            <button type="button" class="app-tab" data-tab-button="terminal" data-dev-only hidden aria-pressed="false" onclick="selecionarAba('terminal')">
+                <svg class="app-tab-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="m7 9 3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M13 15h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <span>Terminal</span>
+            </button>
+            <button type="button" class="app-tab" data-tab-button="configuracoes" aria-pressed="false" onclick="selecionarAba('configuracoes')">
+                <svg class="app-tab-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/>
+                </svg>
+                <span>Configurações</span>
+            </button>
+            <button type="button" class="app-tab" data-tab-button="loja" aria-pressed="false" onclick="selecionarAba('loja')">
+                <svg class="app-tab-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 9.5 5.3 4h13.4l1.3 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M4.5 9.5h15L19 20H5L4.5 9.5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 13v-1.5a3 3 0 0 1 6 0V13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <span>Loja</span>
+            </button>
+        </nav>
+        <div class="app-sidebar-status">
+            <span class="status-pulse" aria-hidden="true"></span>
+            <div>
+                <strong>Operação local</strong>
+                <span>Seus achados ficam neste computador</span>
+            </div>
+        </div>
+    </aside>
+
+    <div class="app-workspace">
+        <header class="app-mobile-header">
+            <div class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none">
+                    <path d="M8 23 13 8h6l5 15h-4l-1.2-4h-5.7L12 23H8Z" fill="currentColor"/>
+                    <path class="brand-mark-cutout" d="m14.2 15.5 1.8-5 1.7 5h-3.5Z"/>
+                </svg>
+            </div>
+            <div>
+                <span>Garimpo de dados</span>
+                <strong>GarimpU-Nexo</strong>
+            </div>
+        </header>
+
+    <main class="app-main space-y-8">
+
+        <aside id="csvContextoGlobal" class="csv-context hidden" aria-live="polite">
+            <div class="min-w-0">
+                <span class="app-status-success block text-xs font-medium uppercase tracking-wider">CSV Wix carregado</span>
+                <strong id="csvContextoNome" class="app-text mt-1 block truncate text-sm"></strong>
+                <span id="csvContextoResumo" class="app-text-muted mt-1 block text-xs"></span>
+            </div>
+            <button type="button" class="app-button app-button-tertiary shrink-0" onclick="selecionarAba('configuracoes')">
+                Abrir configurações
+            </button>
+        </aside>
+
+        <!-- Pesquisa -->
+        <section class="app-card mx-auto max-w-4xl" aria-labelledby="tituloPesquisa" data-tab-panel="pesquisa">
+            <div class="mb-6">
+                <p class="section-kicker">Consulta individual</p>
+                <h2 id="tituloPesquisa" class="section-title">Pesquisar hotel</h2>
+                <p class="section-description">
+                    Digite o nome do hotel ou cole um link da Booking ou da Expedia para buscar os dados.
+                </p>
+                <p class="section-description">
+                    A Booking será consultada primeiro. Se necessário, o GarimpU tentará a Expedia.
+                </p>
             </div>
 
-            <div class="bg-slate-800 p-6 rounded-2xl shadow-xl max-w-2xl mx-auto mb-12 border border-slate-700">
-                <div class="flex gap-4">
-                    <input type="text" id="hotelInput" placeholder="Digite o nome ou cole o link da Booking..." 
-                        class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-blue-500 transition-all"
-                        onkeypress="if(event.key === 'Enter') iniciarBusca()">
-                    <button id="btnBuscar" onclick="iniciarBusca()" 
-                        class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-xl font-semibold shadow-lg shadow-blue-900/30 transition-all flex items-center gap-2">
-                        Pesquisar
-                    </button>
+            <div class="flex flex-col gap-3 sm:flex-row">
+                <div class="min-w-0 flex-1">
+                    <label for="hotelInput" class="app-text-secondary mb-2 block text-sm font-medium">
+                        Nome ou link do hotel
+                    </label>
+                    <input
+                        id="hotelInput"
+                        type="text"
+                        placeholder="Ex.: Hotel Atlântico ou link da Booking/Expedia"
+                        class="app-input"
+                        onkeypress="if(event.key === 'Enter') iniciarBusca()"
+                    >
                 </div>
+                <button
+                    id="btnBuscar"
+                    type="button"
+                    onclick="iniciarBusca()"
+                    class="app-button app-button-primary mt-auto sm:w-auto"
+                >
+                    <span class="button-spinner" aria-hidden="true"></span>
+                    <span>Pesquisar</span>
+                </button>
+            </div>
 
-                <details id="painelPesquisaLote" class="group mt-4 overflow-hidden rounded-xl border border-slate-700 bg-slate-900/50 transition-colors open:border-indigo-500/40">
-                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-left select-none hover:bg-slate-700/30 transition-colors">
-                        <div>
-                            <span class="block text-sm font-semibold text-slate-200">Pesquisa de hotéis em lote</span>
-                            <span class="block text-xs text-slate-500">Pesquisa e adiciona automaticamente ao CSV, sem baixar imagens</span>
-                        </div>
-                        <svg class="h-4 w-4 text-slate-400 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </summary>
-                    <div class="border-t border-slate-700/70 p-4">
-                        <label for="listaHoteisInput" class="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400">
-                            Um nome ou link da Booking.com por linha
-                        </label>
-                        <textarea id="listaHoteisInput" rows="6"
-                            placeholder="Hotel Exemplo 1&#10;Hotel Exemplo 2&#10;https://www.booking.com/hotel/..."
-                            class="w-full resize-y rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/10"></textarea>
-                        <button id="btnPesquisarLote" onclick="pesquisarHoteisEmLote()"
-                            class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-500/50 bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/20 transition-all hover:bg-indigo-500">
-                            Pesquisar lista e adicionar ao CSV
-                        </button>
-                        <div id="statusPesquisaLote" class="hidden mt-4">
-                            <div class="mb-2 flex items-center justify-between text-xs text-slate-400">
-                                <span id="textoStatusPesquisaLote">Preparando...</span>
-                                <span id="contadorPesquisaLote">0 de 0</span>
-                            </div>
-                            <div class="h-2 overflow-hidden rounded-full bg-slate-950">
-                                <div id="barraPesquisaLote" class="h-2 rounded-full bg-indigo-500 transition-all duration-300" style="width: 0%"></div>
-                            </div>
-                            <div id="resultadosPesquisaLote" class="mt-3 max-h-40 space-y-1 overflow-y-auto text-xs"></div>
-                            <button id="btnBaixarCsvLote" onclick="baixarDadosCSV()"
-                                class="hidden mt-4 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-900/20 transition-all hover:bg-emerald-500">
-                                Baixar CSV com os hotéis processados
-                            </button>
-                        </div>
+            <div class="app-divider mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <label class="app-text-secondary inline-flex cursor-pointer items-center gap-3 text-sm">
+                    <input
+                        id="baixarImagensInput"
+                        type="checkbox"
+                        checked
+                        class="app-checkbox h-4 w-4 rounded"
+                    >
+                    Baixar imagens automaticamente
+                </label>
+                <p class="app-text-subtle text-xs leading-5">
+                    Desative para consultar somente os dados do hotel.
+                </p>
+            </div>
+            <p id="mensagemPesquisa" class="mt-4 hidden text-sm" role="status" aria-live="polite"></p>
+        </section>
+
+        <!-- Status da pesquisa -->
+        <section id="loader" class="app-card mx-auto hidden max-w-4xl" aria-live="polite" aria-busy="true" data-tab-panel="pesquisa">
+            <div class="flex items-start gap-4">
+                <span class="loading-spinner mt-1" aria-hidden="true"></span>
+                <div class="min-w-0 flex-1">
+                    <p id="loaderTexto" class="app-text font-medium">
+                        Escavando os dados do hotel...
+                    </p>
+                    <p id="loaderAjuda" class="app-text-muted mt-1 text-sm leading-6">
+                        Isso pode levar alguns minutos.
+                    </p>
+                    <div class="mt-5 space-y-2" aria-hidden="true">
+                        <div class="skeleton-line w-4/5"></div>
+                        <div class="skeleton-line w-3/5"></div>
                     </div>
-                </details>
+                </div>
+            </div>
+        </section>
 
-                                </div>
-
-                <details id="painelCoordenadas" class="group mt-4 overflow-hidden rounded-xl border border-slate-700 bg-slate-900/50 transition-colors open:border-blue-500/40">
-                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-left select-none hover:bg-slate-700/30 transition-colors">
-                        <div class="flex items-center gap-3">
-                            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21s7-5.1 7-12a7 7 0 10-14 0c0 6.9 7 12 7 12z"></path>
-                                    <circle cx="12" cy="9" r="2.5" stroke-width="2"></circle>
-                                </svg>
-                            </span>
-                            <div>
-                                <span class="block text-sm font-semibold text-slate-200">Coordenadas do aeroporto</span>
-                                <span class="block text-xs text-slate-500">Ajuste a referência usada no cálculo da distância</span>
-                            </div>
+        <!-- Pesquisa em lote -->
+        <details id="painelPesquisaLote" class="app-details mx-auto max-w-4xl" data-tab-panel="pesquisa">
+            <summary>
+                <span>
+                    <span class="app-text block font-medium">Pesquisa em lote</span>
+                    <span class="app-text-muted mt-1 block text-sm">
+                        Consulte uma lista sem baixar imagens e adicione os resultados ao CSV.
+                    </span>
+                </span>
+                <span class="details-chevron" aria-hidden="true">⌄</span>
+            </summary>
+            <div class="details-content">
+                <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
+                    <div>
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                            <label for="listaHoteisInput" class="app-text-secondary text-sm font-medium">
+                                Um hotel ou link por linha
+                            </label>
+                            <span id="contadorEntradaLote" class="app-text-subtle text-xs">0 hotéis</span>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="rounded-full bg-slate-700/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Opcional</span>
-                            <svg class="h-4 w-4 text-slate-400 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </div>
-                    </summary>
-
-                    <div class="border-t border-slate-700/70 px-4 pb-4 pt-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label for="latitudeReferenciaInput" class="text-xs font-medium uppercase tracking-wide text-slate-400 block mb-2">
-                                    Latitude
-                                </label>
-                                <input
-                                    id="latitudeReferenciaInput"
-                                    type="number"
-                                    step="any"
-                                    min="-90"
-                                    max="90"
-                                    value="-14.815"
-                                    placeholder="Ex.: -14.8150"
-                                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 font-mono text-sm text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
-                                >
-                            </div>
-
-                            <div>
-                                <label for="longitudeReferenciaInput" class="text-xs font-medium uppercase tracking-wide text-slate-400 block mb-2">
-                                    Longitude
-                                </label>
-                                <input
-                                    id="longitudeReferenciaInput"
-                                    type="number"
-                                    step="any"
-                                    min="-180"
-                                    max="180"
-                                    value="-39.0333"
-                                    placeholder="Ex.: -39.0333"
-                                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 font-mono text-sm text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
-                                >
-                            </div>
-                        </div>
-
-                        <p class="mt-3 flex items-start gap-2 text-xs leading-relaxed text-slate-500">
-                            <span class="text-blue-400">ℹ</span>
-                            Essas coordenadas são usadas somente quando a Booking.com não informa a distância do aeroporto.
+                        <textarea
+                            id="listaHoteisInput"
+                            rows="7"
+                            placeholder="Pousada Pedra da Pipa&#10;Hotel Sombra e Água Fresca&#10;https://www.booking.com/hotel/..."
+                            class="app-input min-h-44 resize-y"
+                            oninput="atualizarContadorEntradaLote(); atualizarPainelIdsLote();"
+                        ></textarea>
+                        <p class="app-text-subtle mt-2 text-xs">
+                            Informe um hotel por linha, usando o nome, um link ou apenas o ID do Wix.
+                        </p>
+                        <p class="app-text-subtle mt-1 text-xs">
+                            Quando um ID do Wix for informado ao lado, ele será usado diretamente e a
+                            correspondência automática por nome não será executada.
+                        </p>
+                        <p class="app-text-subtle mt-1 text-xs">
+                            Espaços extras e linhas vazias são ignorados automaticamente.
                         </p>
                     </div>
-                </details>
+                    <div class="lote-ids-panel app-divider app-surface-deep rounded-xl border p-3">
+                        <p class="app-text-secondary text-xs font-medium">IDs do Wix (opcional)</p>
+                        <p class="app-text-subtle mt-1 text-xs">
+                            Uma linha aparece aqui para cada hotel digitado.
+                        </p>
+                        <div id="idsLoteContainer" class="lote-id-list mt-3"></div>
+                    </div>
+                </div>
+                <label class="app-divider app-surface-deep app-text-secondary mt-4 flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm">
+                    <input
+                        id="baixarImagensLoteInput"
+                        type="checkbox"
+                        onchange="atualizarModoPesquisaLote()"
+                        class="app-checkbox mt-0.5 h-4 w-4 rounded"
+                    >
+                    <span>
+                        Baixar imagens de todos os hotéis da lista
+                        <span class="app-text-subtle mt-1 block text-xs leading-5">
+                            Aumenta o tempo de processamento e salva as fotos na pasta configurada.
+                        </span>
+                    </span>
+                </label>
+                <button
+                    id="btnPesquisarLote"
+                    type="button"
+                    onclick="pesquisarHoteisEmLote()"
+                    class="app-button app-button-secondary mt-4 w-full"
+                >
+                    <span class="button-spinner" aria-hidden="true"></span>
+                    <span id="textoBtnPesquisarLote">Pesquisar lista e adicionar ao CSV</span>
+                </button>
 
-                <details id="painelColunasCsv" class="group mt-3 overflow-hidden rounded-xl border border-slate-700 bg-slate-900/50 transition-colors open:border-emerald-500/40">
-                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-left select-none hover:bg-slate-700/30 transition-colors">
-                        <div class="flex items-center gap-3">
-                            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16M9 4v16M15 4v16"></path>
-                                </svg>
-                            </span>
+                <div id="statusPesquisaLote" class="mt-5 hidden" aria-live="polite">
+                    <div class="mb-2 flex items-center justify-between gap-4 text-sm">
+                        <span id="textoStatusPesquisaLote" class="app-text-secondary min-w-0 truncate">Preparando...</span>
+                        <span id="contadorPesquisaLote" class="app-text-subtle shrink-0">0 de 0</span>
+                    </div>
+                    <div class="progress-track" role="progressbar" aria-label="Progresso da pesquisa em lote">
+                        <div id="barraPesquisaLote" class="progress-fill app-accent-background" style="width: 0%"></div>
+                    </div>
+                    <div
+                        id="resultadosPesquisaLote"
+                        class="status-list app-divider app-surface-deep mt-4 max-h-52 space-y-2 overflow-y-auto rounded-xl border p-3 text-sm"
+                    ></div>
+                    <button
+                        id="btnCopiarProblemasLote"
+                        type="button"
+                        onclick="copiarProblemasLote()"
+                        class="app-button app-button-tertiary mt-3 hidden w-full"
+                    ></button>
+                    <div
+                        id="resumoLocalizacoesLote"
+                        class="app-divider app-surface-deep mt-4 hidden rounded-xl border p-4"
+                    >
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                             <div>
-                                <span class="block text-sm font-semibold text-slate-200">Nomes das colunas do CSV</span>
-                                <span class="block text-xs text-slate-500">Personalize os campos antes de adicionar hotéis</span>
+                                <p class="app-text-secondary text-sm font-medium">
+                                    Localizações encontradas
+                                </p>
+                                <p id="contadorLocalizacoesLote" class="app-text-muted mt-1 text-xs"></p>
+                            </div>
+                            <label class="w-full sm:w-72">
+                                <span class="app-label">Filtrar resultados</span>
+                                <select
+                                    id="filtroLocalizacaoLote"
+                                    class="app-input"
+                                    onchange="filtrarResultadosLote(this.value)"
+                                ></select>
+                            </label>
+                        </div>
+                        <div id="listaLocalizacoesLote" class="batch-location-summary mt-3"></div>
+                    </div>
+                    <button
+                        id="btnBaixarCsvLote"
+                        type="button"
+                        onclick="baixarDadosCSV()"
+                        class="app-button app-button-success mt-4 hidden w-full"
+                    >
+                        Baixar CSV processado
+                    </button>
+                </div>
+                <div id="tooltipLocalizacaoLote" class="batch-location-tooltip hidden" role="tooltip"></div>
+            </div>
+        </details>
+
+        <!-- Configurações -->
+        <section id="painelConfiguracoes" class="mx-auto max-w-5xl" data-tab-panel="configuracoes" hidden aria-labelledby="tituloConfiguracoes">
+            <div class="mb-6">
+                <p class="section-kicker">Preferências da aplicação</p>
+                <h2 id="tituloConfiguracoes" class="section-title">Configurações</h2>
+                <p class="section-description">
+                    Ajuste diretórios, coordenadas, integração Wix e nomes das colunas utilizadas na exportação.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <article id="painelAparenciaAviso" class="configuration-card lg:col-span-2">
+                    <div class="configuration-card-header">
+                        <h3>Aparência</h3>
+                        <p>Temas e fontes agora têm um espaço próprio, com paletas animadas e estáticas.</p>
+                    </div>
+                    <p class="app-text-subtle text-sm leading-6">
+                        Escolha a paleta de cores e o estilo de fonte na aba <strong>Loja</strong>.
+                    </p>
+                    <button type="button" class="app-button app-button-tertiary mt-4" onclick="selecionarAba(&#39;loja&#39;)">
+                        Abrir a Loja de temas e fontes
+                    </button>
+                </article>
+
+                <article id="painelDiretorios" class="configuration-card lg:col-span-2">
+                    <div class="configuration-card-header">
+                        <h3>Diretórios de imagens e IA</h3>
+                        <p>Escolha onde as fotos serão salvas e qual pasta o Florence deverá processar.</p>
+                    </div>
+
+                    <div class="space-y-5">
+                        <div>
+                            <label for="pastaImagensInput" class="app-label">
+                                Imagens baixadas
+                            </label>
+                            <div class="mt-2 flex flex-col gap-3 sm:flex-row">
+                                <input
+                                    id="pastaImagensInput"
+                                    type="text"
+                                    readonly
+                                    class="app-input min-w-0 flex-1 font-mono text-xs"
+                                    placeholder="Selecione a pasta das imagens"
+                                >
+                                <button
+                                    id="btnSelecionarPastaImagens"
+                                    type="button"
+                                    class="app-button app-button-secondary shrink-0"
+                                    onclick="selecionarPastaConfiguracao('imagens')"
+                                >
+                                    Selecionar pasta
+                                </button>
+                            </div>
+                            <p class="app-text-subtle mt-2 text-xs leading-5">
+                                Novas fotos extraídas da Booking.com serão gravadas neste local.
+                            </p>
+                        </div>
+
+                        <div class="app-divider border-t pt-5">
+                            <label for="pastaFlorenceInput" class="app-label">
+                                Pasta processada pelo Florence
+                            </label>
+                            <div class="mt-2 flex flex-col gap-3 sm:flex-row">
+                                <input
+                                    id="pastaFlorenceInput"
+                                    type="text"
+                                    readonly
+                                    class="app-input min-w-0 flex-1 font-mono text-xs"
+                                    placeholder="Selecione a pasta que será processada"
+                                >
+                                <button
+                                    id="btnSelecionarPastaFlorence"
+                                    type="button"
+                                    class="app-button app-button-secondary shrink-0"
+                                    onclick="selecionarPastaConfiguracao('florence')"
+                                >
+                                    Selecionar pasta
+                                </button>
+                            </div>
+                            <p class="app-text-subtle mt-2 text-xs leading-5">
+                                Florence, CLIP e YOLO reconhecerão e moverão as imagens desta pasta para as categorias.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="app-divider mt-5 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:flex-wrap">
+                        <button
+                            id="btnUsarMesmaPastaFlorence"
+                            type="button"
+                            class="app-button app-button-tertiary"
+                            onclick="usarPastaImagensNoFlorence()"
+                        >
+                            Usar a pasta das imagens na IA
+                        </button>
+                        <button
+                            id="btnRestaurarPastas"
+                            type="button"
+                            class="app-button app-button-tertiary"
+                            onclick="restaurarDiretoriosPadrao()"
+                        >
+                            Restaurar padrão
+                        </button>
+                        <button
+                            id="btnSalvarDiretorios"
+                            type="button"
+                            class="app-button app-button-primary sm:ml-auto"
+                            onclick="salvarDiretorios()"
+                        >
+                            <span class="button-spinner" aria-hidden="true"></span>
+                            <span>Salvar e reiniciar</span>
+                        </button>
+                    </div>
+                    <p id="statusDiretorios" class="app-text-subtle mt-3 text-sm" role="status" aria-live="polite">
+                        Carregando diretórios...
+                    </p>
+                </article>
+
+                <article id="painelCoordenadas" class="configuration-card">
+                    <div class="configuration-card-header">
+                        <h3>Coordenadas do aeroporto</h3>
+                        <p>Referência utilizada para calcular a distância.</p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="latitudeReferenciaInput" class="app-label">Latitude</label>
+                            <input
+                                id="latitudeReferenciaInput"
+                                type="number"
+                                step="any"
+                                min="-90"
+                                max="90"
+                                value="-14.815"
+                                placeholder="Ex.: -14.815"
+                                class="app-input font-mono"
+                            >
+                        </div>
+                        <div>
+                            <label for="longitudeReferenciaInput" class="app-label">Longitude</label>
+                            <input
+                                id="longitudeReferenciaInput"
+                                type="number"
+                                step="any"
+                                min="-180"
+                                max="180"
+                                value="-39.0333"
+                                placeholder="Ex.: -39.0333"
+                                class="app-input font-mono"
+                            >
+                        </div>
+                    </div>
+                    <p class="app-text-subtle mt-3 text-xs leading-5">
+                        Usadas somente quando a Booking.com não informa a distância do aeroporto.
+                    </p>
+                    <div class="app-divider mt-5 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:flex-wrap">
+                        <button
+                            id="btnRestaurarCoordenadasAeroporto"
+                            type="button"
+                            class="app-button app-button-tertiary"
+                            onclick="restaurarCoordenadasAeroportoPadrao()"
+                        >
+                            Restaurar padrão
+                        </button>
+                        <button
+                            id="btnSalvarCoordenadasAeroporto"
+                            type="button"
+                            class="app-button app-button-primary sm:ml-auto"
+                            onclick="salvarCoordenadasAeroporto()"
+                        >
+                            Salvar
+                        </button>
+                    </div>
+                    <p id="statusCoordenadasAeroporto" class="app-text-subtle mt-3 text-sm" role="status" aria-live="polite"></p>
+                </article>
+
+                <article class="configuration-card">
+                    <div class="configuration-card-header">
+                        <h3>Arquivo CSV do Wix</h3>
+                        <p>Preserve IDs e outras colunas existentes no arquivo original.</p>
+                    </div>
+                    <label for="csvWixInput" class="app-label">CSV completo exportado do Wix</label>
+                    <input
+                        id="csvWixInput"
+                        type="file"
+                        accept=".csv,text/csv"
+                        onchange="carregarCsvWix(this.files[0])"
+                        class="app-file-input"
+                    >
+                    <p id="csvWixStatus" class="app-text-subtle mt-3 text-sm" role="status" aria-live="polite">
+                        Nenhum CSV carregado.
+                    </p>
+                    <label class="app-divider app-text-secondary mt-5 flex cursor-pointer items-start gap-3 border-t pt-4 text-sm">
+                        <input
+                            id="mostrarCsvOutrasAbasInput"
+                            type="checkbox"
+                            checked
+                            onchange="atualizarVisibilidadeCsvGlobal()"
+                            class="app-checkbox mt-0.5 h-4 w-4 rounded"
+                        >
+                        <span>
+                            Mostrar o CSV carregado nas outras abas
+                            <span class="app-text-subtle mt-1 block text-xs leading-5">
+                                Exibe apenas nome, quantidade de hotéis e colunas.
+                            </span>
+                        </span>
+                    </label>
+                </article>
+
+                <article id="painelColunasCsv" class="configuration-card lg:col-span-2">
+                    <div class="configuration-card-header">
+                        <h3>Nomes das colunas do CSV</h3>
+                        <p>Personalize os nomes antes de adicionar hotéis.</p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <label class="app-label">Regime alimentar
+                            <input id="colunaRegimeCsv" value="Regime de Alimentação" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Nota numérica
+                            <input id="colunaNotaCsv" value="Nota de Avaliação" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Tipo de hotel
+                            <input id="colunaTipoCsv" value="tipo_hotel" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Bairro
+                            <input id="colunaBairrosCsv" value="bairros" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Beira-mar
+                            <input id="colunaBeiraMarCsv" value="Beira mar" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Endereço
+                            <input id="colunaEnderecoCsv" value="Endereço da Rua" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Plus Code
+                            <input id="colunaPlusCodeCsv" value="Plus Code" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Distância numérica
+                            <input id="colunaDistanciaNumeroCsv" value="Distância Aeroporto N" class="app-input mt-2 font-normal">
+                        </label>
+                        <label class="app-label">Distância com unidade
+                            <input id="colunaDistanciaCsv" value="Distância Aeroporto" class="app-input mt-2 font-normal">
+                        </label>
+                    </div>
+                    <p class="app-text-subtle mt-4 text-xs leading-5">
+                        <code>ID</code> e <code>Nome_Hotel</code> são reservados para a integração com o Wix.
+                    </p>
+                </article>
+
+                <article id="painelModoDev" class="configuration-card lg:col-span-2">
+                    <div class="configuration-card-header">
+                        <h3>Modo Desenvolvedor</h3>
+                        <p>Recursos extras para depuração durante o desenvolvimento.</p>
+                    </div>
+                    <label class="app-text-secondary flex cursor-pointer items-start gap-3 text-sm">
+                        <input
+                            id="checkboxModoDev"
+                            type="checkbox"
+                            onchange="window.garimpuModoDev?.alternar(this.checked)"
+                            class="app-checkbox mt-0.5 h-4 w-4 rounded"
+                        >
+                        <span>
+                            Ativar recursos para Devs
+                            <span class="app-text-subtle mt-1 block text-xs leading-5">
+                                Exibe a aba Terminal, que ganha um botão para reiniciar a página e aplicar alterações de código.
+                            </span>
+                        </span>
+                    </label>
+                </article>
+            </div>
+        </section>
+
+        <!-- Loja de temas e fontes -->
+        <section id="painelLoja" class="mx-auto max-w-5xl" data-tab-panel="loja" hidden aria-labelledby="tituloLoja">
+            <div class="mb-6">
+                <p class="section-kicker">Personalização</p>
+                <h2 id="tituloLoja" class="section-title">Loja de Temas e Fontes</h2>
+                <p class="section-description">
+                    Escolha entre temas animados, estáticos e especiais, além do estilo de fonte utilizado na interface do GarimpU-Nexo.
+                </p>
+            </div>
+
+            <div class="configuration-card">
+                    <div class="palette-filter" role="group" aria-label="Filtrar temas por tipo">
+                        <button
+                            type="button"
+                            id="btnFiltroPaletaAnimada"
+                            class="palette-filter-option"
+                            aria-pressed="false"
+                            onclick="window.garimpuTema?.definirFiltroPaletas('animada')"
+                        >
+                            Animados
+                        </button>
+                        <button
+                            type="button"
+                            id="btnFiltroPaletaEstatica"
+                            class="palette-filter-option"
+                            aria-pressed="false"
+                            onclick="window.garimpuTema?.definirFiltroPaletas('estatica')"
+                        >
+                            Estáticos
+                        </button>
+                        <button
+                            type="button"
+                            id="btnFiltroPaletaEspecial"
+                            class="palette-filter-option"
+                            aria-pressed="false"
+                            onclick="window.garimpuTema?.definirFiltroPaletas('especial')"
+                        >
+                            Especiais
+                        </button>
+                    </div>
+
+                    <fieldset>
+                        <legend class="sr-only">Paleta de cores da aplicação</legend>
+                        <div class="palette-grid">
+                            <label class="palette-option" data-palette-value="dourado" data-palette-categoria="estatica" hidden>
+                                <input
+                                    id="paletaDourado"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="dourado"
+                                    aria-describedby="descricaoPaletaDourado"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Garimpo Dourado</h4>
+                                        <p id="descricaoPaletaDourado">A identidade clássica em tons terrosos e dourados.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="ametista" data-palette-categoria="estatica" hidden>
+                                <input
+                                    id="paletaAmetista"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="ametista"
+                                    aria-describedby="descricaoPaletaAmetista"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Ametista</h4>
+                                        <p id="descricaoPaletaAmetista">Roxo profundo com detalhes luminosos.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="artico" data-palette-categoria="animada" hidden>
+                                <input
+                                    id="paletaArtico"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="artico"
+                                    aria-describedby="descricaoPaletaArtico"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Ártico <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaArtico">Azul-petróleo e ciano para uma interface fria.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="esmeralda" data-palette-categoria="estatica" hidden>
+                                <input
+                                    id="paletaEsmeralda"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="esmeralda"
+                                    aria-describedby="descricaoPaletaEsmeralda"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Esmeralda Profunda</h4>
+                                        <p id="descricaoPaletaEsmeralda">Verde-esmeralda com detalhes em turquesa.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="galaxia" data-palette-categoria="animada" hidden>
+                                <input
+                                    id="paletaGalaxia"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="galaxia"
+                                    aria-describedby="descricaoPaletaGalaxia"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Galáxia <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaGalaxia">Índigo espacial com magenta, violeta e detalhes em ciano.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="sakura" data-palette-categoria="animada" hidden>
+                                <input
+                                    id="paletaSakura"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="sakura"
+                                    aria-describedby="descricaoPaletaSakura"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Sakura Noturna <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaSakura">Rosa sakura e coral sobre tons profundos de vinho e ameixa.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="titanio" data-palette-categoria="animada" hidden>
+                                <input
+                                    id="paletaTitanio"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="titanio"
+                                    aria-describedby="descricaoPaletaTitanio"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Titânio Lunar <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaTitanio">Cinza metálico e prata sob um céu lunar, com reflexo de luz varrendo a superfície e detritos cruzando o espaço.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="vulcanico" data-palette-categoria="animada" hidden>
+                                <input
+                                    id="paletaVulcanico"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="vulcanico"
+                                    aria-describedby="descricaoPaletaVulcanico"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Vulcânico <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaVulcanico">Obsidiana e lava incandescente para uma interface intensa e enérgica.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="boreal" data-palette-categoria="estatica" hidden>
+                                <input
+                                    id="paletaBoreal"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="boreal"
+                                    aria-describedby="descricaoPaletaBoreal"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Boreal</h4>
+                                        <p id="descricaoPaletaBoreal">Aurora verde e violeta sobre um azul-noite profundo.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="singularidade" data-palette-categoria="animada" hidden>
+                                <input
+                                    id="paletaSingularidade"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="singularidade"
+                                    aria-describedby="descricaoPaletaSingularidade"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Buraco Negro <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaSingularidade">Horizonte de eventos em preto absoluto, com um anel de acreção dourado em órbita lenta.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="aurora" data-palette-categoria="animada" hidden>
+                                <input
+                                    id="paletaAurora"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="aurora"
+                                    aria-describedby="descricaoPaletaAurora"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Aurora Polar <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaAurora">Noite ártica no polo norte: céu quase negro sob cortinas de aurora verde e neve à deriva.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="tempestade" data-palette-categoria="animada" hidden>
+                                <input
+                                    id="paletaTempestade"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="tempestade"
+                                    aria-describedby="descricaoPaletaTempestade"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Tempestade <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaTempestade">Céu de aço sob uma tempestade elétrica, com raios que rasgam a noite e chuva torrencial.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="dimensao" data-palette-categoria="animada" hidden>
+                                <input
+                                    id="paletaDimensao"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="dimensao"
+                                    aria-describedby="descricaoPaletaDimensao"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Dimensão <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaDimensao">Uma fenda entre realidades pulsando em magenta e ciano, sugando fragmentos ao seu redor.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="pulsar" data-palette-categoria="animada" hidden>
+                                <input
+                                    id="paletaPulsar"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="pulsar"
+                                    aria-describedby="descricaoPaletaPulsar"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Pulsar <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaPulsar">Uma estrela de nêutrons girando no escuro, varrendo o céu com feixes de luz ciano em ritmo constante.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="supernova" data-palette-categoria="animada" hidden>
+                                <input
+                                    id="paletaSupernova"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="supernova"
+                                    aria-describedby="descricaoPaletaSupernova"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Supernova <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaSupernova">O instante da explosão estelar: onda de choque, destroços incandescentes e uma nebulosa em expansão.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="noir" data-palette-categoria="animada" hidden>
+                                <input
+                                    id="paletaNoir"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="noir"
+                                    aria-describedby="descricaoPaletaNoir"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Noir <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaNoir">Preto e branco de cinema clássico: chuva na janela, luz de veneziana e neblina rasteira sob contraste absoluto.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="oceano" data-palette-categoria="animada" hidden>
+                                <input
+                                    id="paletaOceano"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="oceano"
+                                    aria-describedby="descricaoPaletaOceano"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Oceano <span class="palette-animated-badge">Animado</span></h4>
+                                        <p id="descricaoPaletaOceano">Azul-petróleo profundo com turquesa vívido: raios de luz, bolhas subindo e plâncton à deriva, como um recife visto de longe.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="cyberpunk" data-palette-categoria="especial" data-palette-especial hidden>
+                                <input
+                                    id="paletaCyberpunk"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="cyberpunk"
+                                    aria-describedby="descricaoPaletaCyberpunk"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Cyberpunk Nexo <span class="palette-animated-badge">Animado</span><span class="palette-special-badge">Especial</span></h4>
+                                        <p id="descricaoPaletaCyberpunk">Skyline neon sob chuva ácida: prédios com janelas piscando, carros voadores, drones piscando alerta, reflexo no chão molhado e tipografia própria (Orbitron/Share Tech Mono).</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="tempo" data-palette-categoria="especial" data-palette-especial hidden>
+                                <input
+                                    id="paletaTempo"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="tempo"
+                                    aria-describedby="descricaoPaletaTempo"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Tempo Nexo <span class="palette-animated-badge">Animado</span><span class="palette-special-badge">Especial</span></h4>
+                                        <p id="descricaoPaletaTempo">Um relógio de bronze funcional com engrenagens, pêndulo, ampulheta, pulso a cada minuto real, distorções temporais ocasionais e tipografia gravada (Cinzel).</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="virus" data-palette-categoria="especial" data-palette-especial hidden>
+                                <input
+                                    id="paletaVirus"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="virus"
+                                    aria-describedby="descricaoPaletaVirus"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Vírus Nexo <span class="palette-animated-badge">Animado</span><span class="palette-special-badge">Especial</span></h4>
+                                        <p id="descricaoPaletaVirus">Terminal clandestino em verde tóxico e vermelho de alerta, com chuva de código, rede contaminada, organismos digitais, pulsos de infecção e tipografia hacker própria.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+
+                            <label class="palette-option" data-palette-value="multiverso" data-palette-categoria="especial" data-palette-especial hidden>
+                                <input
+                                    id="paletaMultiverso"
+                                    class="palette-radio"
+                                    type="radio"
+                                    name="paletaAplicacao"
+                                    value="multiverso"
+                                    aria-describedby="descricaoPaletaMultiverso"
+                                    onchange="selecionarPaleta(this.value)"
+                                >
+                                <span class="palette-option-header">
+                                    <span>
+                                        <h4>Multiverso Nexo <span class="palette-animated-badge">Animado</span><span class="palette-special-badge">Especial</span></h4>
+                                        <p id="descricaoPaletaMultiverso">Realidades paralelas em violeta, ciano e coral, com portais orbitais, universos-bolha, fendas dimensionais, constelações e ecos de interfaces alternativas.</p>
+                                    </span>
+                                    <span class="palette-current">Paleta atual</span>
+                                </span>
+                                <span class="palette-swatches" aria-hidden="true">
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                    <span class="palette-swatch"></span>
+                                </span>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <div class="special-fps-panel app-divider mt-6 border-t pt-6">
+                        <div class="special-fps-heading">
+                            <div>
+                                <h4 class="app-text text-sm font-semibold">Desempenho dos temas especiais</h4>
+                                <p id="descricaoFpsTemasEspeciais" class="app-text-subtle mt-1 text-xs leading-5">
+                                    Regule a fluidez de Cyberpunk, Tempo, Vírus e Multiverso. Valores menores consomem menos CPU e GPU.
+                                </p>
+                            </div>
+                            <div class="special-fps-readout" aria-live="polite">
+                                <output id="valorFpsTemasEspeciais" for="fpsTemasEspeciais">15 FPS</output>
+                                <span id="nivelFpsTemasEspeciais">Equilibrado</span>
                             </div>
                         </div>
-                        <svg class="h-4 w-4 text-slate-400 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </summary>
-
-                    <div class="border-t border-slate-700/70 px-4 pb-4 pt-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <label class="text-xs text-slate-400">Regime alimentar
-                                <input id="colunaRegimeCsv" value="Regime de Alimentação" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Nota numérica
-                                <input id="colunaNotaCsv" value="Nota de Avaliação" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Tipo de hotel
-                                <input id="colunaTipoCsv" value="tipo_hotel" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Bairro
-                                <input id="colunaBairrosCsv" value="bairros" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Beira-mar
-                                <input id="colunaBeiraMarCsv" value="Beira mar" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Endereço
-                                <input id="colunaEnderecoCsv" value="Endereço da Rua" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Plus Code
-                                <input id="colunaPlusCodeCsv" value="Plus Code" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400">Distância numérica
-                                <input id="colunaDistanciaNumeroCsv" value="Distância Aeroporto N" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
-                            <label class="text-xs text-slate-400 sm:col-span-2">Distância com unidade
-                                <input id="colunaDistanciaCsv" value="Distância Aeroporto" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none">
-                            </label>
+                        <input
+                            id="fpsTemasEspeciais"
+                            class="special-fps-range"
+                            type="range"
+                            min="5"
+                            max="30"
+                            step="1"
+                            value="15"
+                            aria-describedby="descricaoFpsTemasEspeciais escalaFpsTemasEspeciais"
+                            oninput="definirFpsTemasEspeciais(this.value)"
+                        >
+                        <div id="escalaFpsTemasEspeciais" class="special-fps-scale" aria-hidden="true">
+                            <span>5 · Econômico</span>
+                            <span>15 · Equilibrado</span>
+                            <span>24 · Suave</span>
+                            <span>30 · Alto</span>
                         </div>
-                        <p class="mt-3 text-xs text-slate-500">Os campos <code>ID</code> e <code>Nome_Hotel</code> permanecem fixos para preservar a integração com o Wix.</p>
                     </div>
-                </details>
 
-                <div class="mt-6 pt-6 border-t border-slate-700/50 text-center">
+                    <div class="app-divider mt-6 border-t pt-6">
+                        <h4 class="app-text text-sm font-semibold">Tipografia</h4>
+                        <p class="app-text-subtle mt-1 text-xs leading-5">
+                            Escolha o estilo de fonte utilizado nos textos, títulos e dados técnicos.
+                        </p>
 
-                <div class="mt-6 pt-6 border-t border-slate-700/50 text-center">
-                    <label class="mx-auto mb-4 flex max-w-xl cursor-pointer items-start gap-3 rounded-xl border border-purple-500/30 bg-slate-900/60 p-4 text-left">
+                        <fieldset class="mt-4">
+                            <legend class="sr-only">Tipografia da aplicação</legend>
+                            <div class="font-grid">
+                                <label class="font-option" data-font-value="classico">
+                                    <input
+                                        id="fonteClassico"
+                                        class="font-radio"
+                                        type="radio"
+                                        name="fonteAplicacao"
+                                        value="classico"
+                                        aria-describedby="descricaoFonteClassico"
+                                        onchange="selecionarFonte(this.value)"
+                                    >
+                                    <span class="font-option-header">
+                                        <span>
+                                            <h4>Clássico GarimpU</h4>
+                                            <p id="descricaoFonteClassico">A tipografia original do GarimpU-Nexo, equilibrando clareza e elegância.</p>
+                                        </span>
+                                        <span class="font-current">Fonte atual</span>
+                                    </span>
+                                    <span class="font-preview">
+                                        <span class="font-preview-name">GarimpU-Nexo</span>
+                                        <span class="font-preview-tagline">Pesquisa, organização e dados de hotéis</span>
+                                        <span class="font-preview-id">ID: 82f4c9a1</span>
+                                    </span>
+                                </label>
+
+                                <label class="font-option" data-font-value="moderno">
+                                    <input
+                                        id="fonteModerno"
+                                        class="font-radio"
+                                        type="radio"
+                                        name="fonteAplicacao"
+                                        value="moderno"
+                                        aria-describedby="descricaoFonteModerno"
+                                        onchange="selecionarFonte(this.value)"
+                                    >
+                                    <span class="font-option-header">
+                                        <span>
+                                            <h4>Moderno Nexo</h4>
+                                            <p id="descricaoFonteModerno">Visual limpo e contemporâneo, com formas suaves e leitura confortável.</p>
+                                        </span>
+                                        <span class="font-current">Fonte atual</span>
+                                    </span>
+                                    <span class="font-preview">
+                                        <span class="font-preview-name">GarimpU-Nexo</span>
+                                        <span class="font-preview-tagline">Pesquisa, organização e dados de hotéis</span>
+                                        <span class="font-preview-id">ID: 82f4c9a1</span>
+                                    </span>
+                                </label>
+
+                                <label class="font-option" data-font-value="tecnologico">
+                                    <input
+                                        id="fonteTecnologico"
+                                        class="font-radio"
+                                        type="radio"
+                                        name="fonteAplicacao"
+                                        value="tecnologico"
+                                        aria-describedby="descricaoFonteTecnologico"
+                                        onchange="selecionarFonte(this.value)"
+                                    >
+                                    <span class="font-option-header">
+                                        <span>
+                                            <h4>Tecnológico</h4>
+                                            <p id="descricaoFonteTecnologico">Geometria moderna para uma aparência tecnológica e objetiva.</p>
+                                        </span>
+                                        <span class="font-current">Fonte atual</span>
+                                    </span>
+                                    <span class="font-preview">
+                                        <span class="font-preview-name">GarimpU-Nexo</span>
+                                        <span class="font-preview-tagline">Pesquisa, organização e dados de hotéis</span>
+                                        <span class="font-preview-id">ID: 82f4c9a1</span>
+                                    </span>
+                                </label>
+
+                                <label class="font-option" data-font-value="editorial">
+                                    <input
+                                        id="fonteEditorial"
+                                        class="font-radio"
+                                        type="radio"
+                                        name="fonteAplicacao"
+                                        value="editorial"
+                                        aria-describedby="descricaoFonteEditorial"
+                                        onchange="selecionarFonte(this.value)"
+                                    >
+                                    <span class="font-option-header">
+                                        <span>
+                                            <h4>Editorial Premium</h4>
+                                            <p id="descricaoFonteEditorial">Contraste editorial para títulos elegantes e textos altamente legíveis.</p>
+                                        </span>
+                                        <span class="font-current">Fonte atual</span>
+                                    </span>
+                                    <span class="font-preview">
+                                        <span class="font-preview-name">GarimpU-Nexo</span>
+                                        <span class="font-preview-tagline">Pesquisa, organização e dados de hotéis</span>
+                                        <span class="font-preview-id">ID: 82f4c9a1</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </fieldset>
+                    </div>
+
+                    <div class="mt-6 flex flex-wrap gap-3 app-divider border-t pt-5">
+                        <button
+                            id="btnRestaurarPaleta"
+                            type="button"
+                            class="app-button app-button-tertiary"
+                            onclick="restaurarPaletaPadrao()"
+                        >
+                            Restaurar paleta padrão
+                        </button>
+                        <button
+                            id="btnRestaurarFonte"
+                            type="button"
+                            class="app-button app-button-tertiary"
+                            onclick="restaurarFontePadrao()"
+                        >
+                            Restaurar fonte padrão
+                        </button>
+                        <button
+                            id="btnRestaurarAparencia"
+                            type="button"
+                            class="app-button app-button-tertiary"
+                            onclick="restaurarAparenciaPadrao()"
+                        >
+                            Restaurar toda a aparência
+                        </button>
+                    </div>
+            </div>
+        </section>
+
+        <!-- Organização com IA -->
+        <section class="app-card ia-section" aria-labelledby="tituloOrganizacaoIA" data-tab-panel="ia" hidden>
+            <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div class="max-w-3xl">
+                    <p class="section-kicker app-status-ai">Processamento local</p>
+                    <h2 id="tituloOrganizacaoIA" class="section-title">Organização de imagens com IA</h2>
+                    <p class="section-description">
+                        Executa Florence, CLIP e YOLO para classificar, descrever e organizar as imagens já baixadas.
+                    </p>
+                    <p class="app-status-warning mt-2 text-sm">
+                        O processamento pode levar vários minutos ou horas, dependendo do volume.
+                    </p>
+                </div>
+                <div class="flex w-full flex-col gap-3 lg:w-auto">
+                    <label class="app-surface-deep flex cursor-pointer items-start gap-3 rounded-xl border p-3">
                         <input
                             id="reorganizarImagensOrganizadas"
-                            class="mt-0.5 h-4 w-4 cursor-pointer accent-purple-500"
+                            class="app-checkbox mt-0.5 h-4 w-4 rounded"
                             type="checkbox"
                         >
                         <span>
-                            <span class="block text-sm font-medium text-slate-200">Reorganizar imagens antigas</span>
-                            <span class="mt-1 block text-xs leading-5 text-slate-400">
+                            <span class="app-text block text-sm font-medium">Reorganizar imagens antigas</span>
+                            <span class="app-text-subtle mt-1 block text-xs leading-5">
                                 Inclui fotos já categorizadas que ainda não foram renomeadas pelo Florence.
                             </span>
                         </span>
                     </label>
-                    <button id="btnOrganizarTudo" onclick="organizarLoteIA()"
-                        class="bg-purple-600 hover:bg-purple-500 px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-purple-900/30 transition-all flex items-center justify-center gap-2 mx-auto text-sm border border-purple-500/50">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                        Organizar Todos os Hotéis com IA
+                    <button
+                        id="btnOrganizarTudo"
+                        type="button"
+                        onclick="organizarLoteIA()"
+                        class="app-button app-button-ai w-full lg:w-auto"
+                    >
+                        <span class="button-spinner" aria-hidden="true"></span>
+                        <span>Iniciar organização</span>
                     </button>
-                    <p class="text-xs text-slate-400 mt-2">Use após baixar os hotéis que deseja organizar.</p>
-                </div>
-
-                <label class="flex items-center gap-3 mt-4 text-sm text-slate-300 cursor-pointer w-max">
-                    <input id="baixarImagensInput" type="checkbox" checked
-                        class="w-4 h-4 accent-emerald-500 cursor-pointer">
-                    Baixar imagens automaticamente
-                </label>
-                <div class="mt-4">
-                    <label class="text-sm text-slate-300 block mb-2">CSV completo exportado do Wix</label>
-                    <input id="csvWixInput" type="file" accept=".csv,text/csv" onchange="carregarCsvWix(this.files[0])"
-                        class="block w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-indigo-500 cursor-pointer">
-                    <p id="csvWixStatus" class="text-xs text-slate-500 mt-2">Opcional: carregue para preservar todas as colunas na atualização.</p>
+                    <button
+                        id="btnBaixarLogFlorence"
+                        type="button"
+                        onclick="baixarLogFlorence()"
+                        class="app-button app-button-tertiary w-full lg:w-auto"
+                    >
+                        Baixar log Florence
+                    </button>
+                    <p id="statusLogFlorence" class="hidden text-xs" role="status" aria-live="polite"></p>
+                    <p class="app-text-subtle text-xs">
+                        Ao concluir a organização, o log será baixado automaticamente.
+                    </p>
                 </div>
             </div>
 
-            <div id="loader" class="hidden text-center py-12 animate-pulse">
-                <div class="inline-block w-12 h-12 border-4 border-t-blue-500 border-slate-700 rounded-full animate-spin mb-4"></div>
-                <p id="loaderTexto" class="text-lg text-slate-300 font-medium">Extraindo dados e baixando toda a galeria em HD...</p>
-                <p class="text-sm text-slate-500 mt-2">Aviso: Esse processo pode levar de 1 a 3 minutos dependendo da quantidade de fotos do hotel.</p>
+            <div class="app-divider app-surface-deep mt-6 rounded-xl border p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <p class="app-status-ai text-xs font-medium uppercase tracking-wider">
+                            Estimativa baseada nos logs
+                        </p>
+                        <p id="estimativaHistoricaFlorence" class="app-text mt-2 text-lg font-semibold" aria-live="polite">
+                            Calculando...
+                        </p>
+                        <p id="detalhesEstimativaFlorence" class="app-text-subtle mt-1 text-xs leading-5">
+                            Analisando imagens pendentes e histórico local.
+                        </p>
+                    </div>
+                    <button
+                        id="btnAtualizarEstimativaFlorence"
+                        type="button"
+                        onclick="carregarEstimativaFlorence()"
+                        class="app-button app-button-tertiary w-full sm:w-auto"
+                    >
+                        <span class="button-spinner" aria-hidden="true"></span>
+                        <span>Recalcular</span>
+                    </button>
+                </div>
             </div>
 
-            <section id="painelOrganizacaoIA" class="hidden py-12">
-                <div id="statusCardIA" class="max-w-2xl mx-auto text-left bg-slate-800 border border-slate-600 rounded-2xl p-6 shadow-xl">
-                    <div class="flex items-center gap-3 mb-5">
-                        <div id="statusSpinnerIA" class="w-8 h-8 shrink-0 border-4 border-t-slate-500 border-slate-700 rounded-full"></div>
+            <div id="painelOrganizacaoIA" class="mt-6">
+                <div id="statusCardIA" class="ia-card" data-state="ocioso">
+                    <div class="app-divider flex items-start gap-3 border-b pb-5">
+                        <div id="statusSpinnerIA" class="ia-spinner mt-0.5 shrink-0" aria-hidden="true"></div>
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p id="statusTituloIA" class="font-medium">Status da organização</p>
+                                <span id="statusEtapaIA" class="status-badge">Ocioso</span>
+                            </div>
+                            <p id="statusMensagemIA" class="mt-1 text-sm leading-6" aria-live="polite">
+                                Aguardando início...
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
                         <div>
-                            <p id="statusTituloIA" class="text-xl text-slate-400 font-bold">Organização de imagens</p>
-                            <p id="statusMensagemIA" class="text-sm text-slate-400">Aguardando início...</p>
+                            <div class="mb-2 flex items-center justify-between gap-4 text-sm">
+                                <span class="app-text-muted">Progresso geral</span>
+                                <span id="statusProgressoGeralIA" class="app-text-secondary">0 de 0 imagens</span>
+                            </div>
+                            <div class="progress-track">
+                                <div id="statusBarraGeralIA" class="progress-fill ia-progress" style="width: 0%"></div>
+                            </div>
+                            <p class="app-text-subtle mt-2 text-right text-xs">
+                                <span id="statusProgressoGeralContagemIA">0</span>%
+                            </p>
                         </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                        <p><span class="text-slate-400">Etapa:</span> <span id="statusEtapaIA">Ocioso</span></p>
-                        <p><span id="statusRotuloTempoIA" class="text-slate-400">Tempo decorrido:</span> <span id="statusTempoDecorridoIA" class="font-mono">00:00:00</span></p>
-                        <p><span class="text-slate-400">Média por imagem:</span> <span id="statusTempoMedioIA" class="font-mono">Calculando estimativa...</span></p>
-                        <p><span class="text-slate-400">Tempo restante estimado:</span> <span id="statusTempoRestanteIA" class="font-mono">Calculando estimativa...</span></p>
-                        <p><span class="text-slate-400">Conclusão prevista:</span> <span id="statusPrevisaoTerminoIA" class="font-mono">Calculando estimativa...</span></p>
-                        <p><span class="text-slate-400">Progresso geral:</span> <span id="statusProgressoGeralIA">0 de 0 imagens</span></p>
-                        <p><span class="text-slate-400">Pendentes:</span> <span id="statusImagensPendentesIA">0 imagens</span></p>
-                    </div>
-
-                    <div class="mt-5">
-                        <div class="flex justify-between gap-3 text-xs text-slate-400 mb-1">
-                            <span>Progresso geral</span>
-                            <span><span id="statusProgressoGeralContagemIA">0</span>%</span>
-                        </div>
-                        <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden">
-                            <div id="statusBarraGeralIA" class="bg-slate-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
-                        </div>
-                    </div>
-
-                    <div class="mt-5">
-                        <div class="flex justify-between gap-3 text-xs text-slate-400 mb-1">
-                            <span>Progresso do hotel</span>
-                            <span><span id="statusImagemAtualIA">0</span> de <span id="statusTotalImagensIA">0</span></span>
-                        </div>
-                        <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden">
-                            <div id="statusBarraHotelIA" class="bg-slate-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
-                        </div>
-                    </div>
-
-                    <div class="mt-5 space-y-2 text-sm">
-                        <p><span class="text-slate-400">Hotel atual:</span> <span id="statusHotelIA">—</span></p>
-                        <p><span class="text-slate-400">Pasta:</span> <span id="statusPastaIA" class="break-all">—</span></p>
-                        <p><span class="text-slate-400">Imagem atual:</span> <span id="statusImagemIA">—</span></p>
-                        <p><span class="text-slate-400">Categoria:</span> <span id="statusCategoriaIA">—</span></p>
-                        <p><span class="text-slate-400">Nome final:</span> <span id="statusNomeFinalIA">—</span></p>
-                    </div>
-
-                    <div class="mt-5 pt-4 border-t border-slate-700">
-                        <p class="text-sm font-semibold text-slate-300 mb-2">Últimas mensagens</p>
-                        <p id="historicoStatusIA" class="text-xs text-slate-400 whitespace-pre-line">Nenhuma mensagem recebida.</p>
-                    </div>
-
-                    <p class="text-xs text-slate-500 mt-4">O tempo restante é uma estimativa baseada nas últimas imagens e pode variar.</p>
-                </div>
-            </section>
-
-            <div id="resultadoContainer" class="hidden space-y-8 animate-fade-in">
-                
-                <div class="bg-slate-800 p-8 rounded-3xl shadow-xl border border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                    <div class="space-y-4">
                         <div>
-                            <h2 id="resNome" class="text-3xl font-bold text-white"></h2>
-                            <p id="resEndereco" class="text-slate-400 flex items-center gap-2 text-sm md:text-base mt-1"></p>
-                        </div>
-                        
-                        <div class="flex flex-wrap gap-2">
-                            <span class="bg-slate-900 border border-indigo-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 shadow-inner text-slate-300">
-                                <span class="text-indigo-400 font-semibold">ID Wix</span>
-                                <input id="resIdWix" type="text" placeholder="Cole o ID aqui"
-                                    oninput="dadosAtuais.idWix = this.value.trim()"
-                                    class="bg-slate-900 text-slate-200 outline-none min-w-[220px] placeholder:text-slate-600">
-                            </span>
-
-                            <span class="bg-slate-900 border border-purple-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 shadow-inner text-slate-300">
-                                <span class="text-purple-400 font-semibold">Tipo</span>
-                                <select id="resTipoHotel" onchange="dadosAtuais.tipoHotel = this.value"
-                                    class="bg-slate-900 text-slate-300 outline-none cursor-pointer">
-                                    <option>Hotel</option>
-                                    <option>Pousada</option>
-                                    <option>Resort</option>
-                                </select>
-                            </span>
-
-                            <span class="bg-slate-900 border border-teal-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 shadow-inner text-slate-300">
-                                <span class="text-teal-400 font-semibold">Bairro</span>
-                                <input id="resBairro" type="text" placeholder="Bairro"
-                                    oninput="dadosAtuais.bairro = this.value.trim()"
-                                    class="bg-slate-900 text-slate-200 outline-none min-w-[180px] placeholder:text-slate-600">
-                            </span>
-
-                            <span class="bg-slate-900 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 shadow-inner text-slate-300">
-                                <span class="text-cyan-400 font-semibold">Beira-mar</span>
-                                <select id="resBeiraMar" onchange="dadosAtuais.beiraMar = this.value"
-                                    class="bg-slate-900 text-slate-300 outline-none cursor-pointer">
-                                    <option>Sim</option>
-                                    <option>Não</option>
-                                </select>
-                            </span>
-
-                            <span class="bg-slate-900 border border-sky-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 w-max shadow-inner text-slate-300">
-                                <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                <span id="resAeroporto"></span>
-                            </span>
-
-                            <span class="bg-slate-900 border border-orange-500/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 w-max shadow-inner text-slate-300">
-                                <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"></path></svg>
-                                <select id="resRegime" onchange="dadosAtuais.regime = this.value"
-                                    class="bg-slate-900 text-slate-300 outline-none cursor-pointer">
-                                    <option>Não informado</option>
-                                    <option>Café da manhã incluído</option>
-                                    <option>Café da manhã disponível</option>
-                                    <option>Meia pensão</option>
-                                    <option>Pensão completa</option>
-                                    <option>All Inclusive</option>
-                                    <option>Sem regime alimentar incluso na diária</option>
-                                </select>
-                            </span>
-                            
-                            <span id="tagPlusCodeBase" class="bg-slate-900 border px-3 py-1.5 rounded-lg text-sm font-mono flex items-center gap-2 w-max shadow-inner">
-                                <svg id="tagIcon" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
-                                <span id="resPlusCode"></span>
-                            </span>
+                            <div class="mb-2 flex items-center justify-between gap-4 text-sm">
+                                <span class="app-text-muted">Progresso do hotel</span>
+                                <span class="app-text-secondary">
+                                    <span id="statusImagemAtualIA">0</span> de
+                                    <span id="statusTotalImagensIA">0</span>
+                                </span>
+                            </div>
+                            <div class="progress-track">
+                                <div id="statusBarraHotelIA" class="progress-fill ia-progress" style="width: 0%"></div>
+                            </div>
+                            <p class="app-text-subtle mt-2 text-right text-xs">
+                                <span id="statusImagensPendentesIA">0 imagens</span> pendentes
+                            </p>
                         </div>
                     </div>
 
-                    <div class="bg-gradient-to-br from-emerald-500 to-teal-600 px-6 py-4 rounded-2xl text-center shadow-lg min-w-[120px]">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-emerald-100 block opacity-75">Avaliação</span>
-                        <span id="resNota" class="text-4xl font-black text-white block mt-1"></span>
+                    <dl class="mt-6 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div class="info-item">
+                            <dt>Hotel atual</dt>
+                            <dd id="statusHotelIA">—</dd>
+                        </div>
+                        <div class="info-item">
+                            <dt>Imagem atual</dt>
+                            <dd id="statusImagemIA">—</dd>
+                        </div>
+                        <div class="info-item">
+                            <dt>Categoria</dt>
+                            <dd id="statusCategoriaIA">—</dd>
+                        </div>
+                        <div class="info-item sm:col-span-2">
+                            <dt>Pasta</dt>
+                            <dd id="statusPastaIA" class="break-all">—</dd>
+                        </div>
+                        <div class="info-item">
+                            <dt>Nome final</dt>
+                            <dd id="statusNomeFinalIA" class="break-all">—</dd>
+                        </div>
+                    </dl>
+
+                    <dl class="app-divider mt-6 grid grid-cols-2 gap-x-6 gap-y-4 border-t pt-5 lg:grid-cols-4">
+                        <div class="metric-item">
+                            <dt id="statusRotuloTempoIA">Tempo decorrido</dt>
+                            <dd id="statusTempoDecorridoIA">00:00:00</dd>
+                        </div>
+                        <div class="metric-item">
+                            <dt>Média por imagem</dt>
+                            <dd id="statusTempoMedioIA">Calculando...</dd>
+                        </div>
+                        <div class="metric-item">
+                            <dt>Tempo restante</dt>
+                            <dd id="statusTempoRestanteIA">Calculando...</dd>
+                        </div>
+                        <div class="metric-item">
+                            <dt>Previsão</dt>
+                            <dd id="statusPrevisaoTerminoIA">Calculando...</dd>
+                        </div>
+                    </dl>
+
+                    <div class="app-divider mt-6 border-t pt-5">
+                        <h3 class="app-text-secondary text-sm font-medium">Últimas mensagens</h3>
+                        <p id="historicoStatusIA" class="app-text-muted mt-3 whitespace-pre-line text-sm leading-6">
+                            Nenhuma mensagem recebida.
+                        </p>
                     </div>
                 </div>
+            </div>
+        </section>
 
+        <!-- Biblioteca local -->
+        <section class="app-card" aria-labelledby="tituloBibliotecaFotos" data-tab-panel="fotos" hidden>
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-                        <h3 class="text-xl font-bold text-slate-300 flex items-center gap-2">
-                            <span>Galeria Completa em Alta Resolução</span>
-                            <span id="badgeContador" class="bg-slate-700 text-xs px-2.5 py-1 rounded-full text-slate-300"></span>
-                        </h3>
-                        
-                        <div class="flex flex-wrap gap-3">
-                            <button id="btnAdicionarCSV" onclick="adicionarAoCsv()" class="hidden bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-blue-900/20 transition-all flex items-center gap-2">
-                                + Adicionar ao CSV
-                            </button>
+                    <p class="section-kicker">Arquivos locais</p>
+                    <h2 id="tituloBibliotecaFotos" class="section-title">Fotos salvas por hotel</h2>
+                    <p class="section-description">
+                        Consulte as imagens existentes na pasta configurada, incluindo as categorias criadas pela IA.
+                    </p>
+                </div>
+                <button
+                    id="btnAtualizarBiblioteca"
+                    type="button"
+                    onclick="carregarBibliotecaFotos()"
+                    class="app-button app-button-secondary w-full sm:w-auto"
+                >
+                    <span class="button-spinner" aria-hidden="true"></span>
+                    <span>Atualizar lista</span>
+                </button>
+            </div>
+            <div class="app-divider mt-5 flex flex-col gap-4 border-t pt-5 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <p id="statusBibliotecaFotos" class="app-text-muted text-sm" role="status" aria-live="polite">
+                        Carregando fotos salvas...
+                    </p>
+                    <span id="resumoBibliotecaFotos" class="app-text-subtle mt-1 block text-xs font-medium"></span>
+                </div>
+                <div class="flex w-full flex-col gap-3 sm:w-72">
+                    <label>
+                        <span class="app-label">Visualização</span>
+                        <select id="filtroHotelBiblioteca" class="app-input" onchange="filtrarBibliotecaFotos(this.value)">
+                            <option value="__todas_fotos__">Todas as fotos</option>
+                            <option value="__todos_hoteis__">Todos os hotéis</option>
+                        </select>
+                    </label>
+                    <button
+                        id="btnExcluirPastaHotel"
+                        type="button"
+                        class="app-button app-button-danger hidden"
+                        onclick="excluirPastaHotelSelecionada()"
+                    >
+                        Excluir pasta do hotel
+                    </button>
+                </div>
+            </div>
+            <p id="bibliotecaFotosVazia" class="empty-state mt-5 hidden">
+                Nenhuma foto foi encontrada na pasta configurada.
+            </p>
+            <div id="bibliotecaFotosGrid" class="photo-catalog mt-5"></div>
+            <nav id="paginacaoBibliotecaFotos" class="pagination-controls mt-5 hidden" aria-label="Páginas da biblioteca de fotos">
+                <button id="btnPaginaAnteriorBiblioteca" type="button" class="app-button app-button-tertiary" onclick="mudarPaginaBiblioteca(-1)">
+                    Anterior
+                </button>
+                <span id="paginaAtualBiblioteca" class="pagination-status" aria-live="polite">Página 1 de 1</span>
+                <button id="btnProximaPaginaBiblioteca" type="button" class="app-button app-button-tertiary" onclick="mudarPaginaBiblioteca(1)">
+                    Próxima
+                </button>
+            </nav>
+        </section>
 
-                            <button id="btnBaixarCSV" onclick="baixarDadosCSV()" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-indigo-900/20 transition-all flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                Exportar Dados (.CSV)
-                            </button>
+        <!-- Terminal -->
+        <section class="app-card" aria-labelledby="tituloTerminal" data-tab-panel="terminal" hidden>
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <p class="section-kicker">Atividade em tempo real</p>
+                    <h2 id="tituloTerminal" class="section-title">Terminal</h2>
+                    <p class="section-description">
+                        Acompanha o que o scraper está fazendo agora: qual fonte está tentando (Booking ou Expedia), se conseguiu e eventuais erros.
+                    </p>
+                </div>
+                <div class="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center">
+                    <span id="terminalStatusConexao" class="terminal-connection-status self-start sm:self-center" data-estado="conectando">
+                        <span class="status-pulse" aria-hidden="true"></span>
+                        <span id="terminalStatusConexaoTexto">Conectando...</span>
+                    </span>
+                    <button
+                        id="btnLimparTerminal"
+                        type="button"
+                        onclick="limparTerminal()"
+                        class="app-button app-button-tertiary w-full sm:w-auto"
+                    >
+                        Limpar
+                    </button>
+                    <button
+                        id="btnReiniciarPagina"
+                        type="button"
+                        onclick="window.location.reload()"
+                        class="app-button app-button-secondary w-full sm:w-auto"
+                    >
+                        Reiniciar página
+                    </button>
+                </div>
+            </div>
+            <div
+                id="terminalLog"
+                class="terminal-log app-divider mt-5 border-t pt-4"
+                role="log"
+                aria-live="polite"
+                aria-label="Log de atividade do scraper"
+            >
+                <p class="terminal-log-empty">Nenhuma mensagem ainda.</p>
+            </div>
+        </section>
 
-                            <span id="contadorCsv" class="hidden bg-slate-700 text-slate-200 px-3 py-2.5 rounded-xl text-sm">0 hotéis adicionados</span>
-
-                            <button id="btnBaixarTodas" onclick="baixarGaleriaComoZip()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                Transferir Todas as Fotos (.ZIP)
-                            </button>
+        <!-- Resultado -->
+        <section id="resultadoContainer" class="hidden space-y-6" aria-labelledby="tituloResultado" data-tab-panel="pesquisa">
+            <div class="app-card">
+                <div class="app-divider flex flex-col gap-5 border-b pb-6 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                        <div class="app-status-success mb-2 inline-flex items-center gap-2 text-xs font-medium">
+                            <span class="app-status-dot-success h-1.5 w-1.5 rounded-full"></span>
+                            Achado confirmado
                         </div>
+                        <h2 id="resNome" class="break-words text-2xl font-semibold tracking-tight text-white sm:text-3xl"></h2>
+                        <p id="resEndereco" class="app-text-muted mt-2 break-words text-sm leading-6"></p>
                     </div>
-
-                    <div id="galeriaGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+                    <div class="app-divider app-surface-deep min-w-28 rounded-xl border px-5 py-4 text-center">
+                        <span class="app-text-subtle block text-xs font-medium uppercase tracking-wider">Avaliação</span>
+                        <span id="resNota" class="app-text mt-1 block text-3xl font-semibold"></span>
+                    </div>
                 </div>
 
+                <h3 id="tituloResultado" class="app-text mt-6 text-base font-medium">Ficha do achado</h3>
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <label class="result-field">
+                        <span>ID do Wix</span>
+                        <input
+                            id="resIdWix"
+                            type="text"
+                            placeholder="Cole o ID ou deixe vazio"
+                            oninput="dadosAtuais.idWix = this.value.trim()"
+                        >
+                    </label>
+                    <label class="result-field">
+                        <span>Tipo do hotel</span>
+                        <select id="resTipoHotel" onchange="dadosAtuais.tipoHotel = this.value">
+                            <option>Hotel</option>
+                            <option>Pousada</option>
+                            <option>Resort</option>
+                        </select>
+                    </label>
+                    <label class="result-field">
+                        <span>Bairro</span>
+                        <input
+                            id="resBairro"
+                            type="text"
+                            placeholder="Bairro"
+                            oninput="dadosAtuais.bairro = this.value.trim()"
+                        >
+                    </label>
+                    <label class="result-field">
+                        <span>Beira-mar</span>
+                        <select id="resBeiraMar" onchange="dadosAtuais.beiraMar = this.value">
+                            <option>Sim</option>
+                            <option>Não</option>
+                        </select>
+                    </label>
+                    <div class="result-field">
+                        <span>Aeroporto</span>
+                        <p id="resAeroporto">—</p>
+                    </div>
+                    <label class="result-field">
+                        <span>Regime alimentar</span>
+                        <select id="resRegime" onchange="dadosAtuais.regime = this.value">
+                            <option>Não informado</option>
+                            <option>Café da manhã incluído</option>
+                            <option>Café da manhã disponível</option>
+                            <option>Meia pensão</option>
+                            <option>Pensão completa</option>
+                            <option>All Inclusive</option>
+                            <option>Sem regime alimentar incluso na diária</option>
+                        </select>
+                    </label>
+                    <div id="tagPlusCodeBase" class="result-field">
+                        <span class="flex items-center gap-2">
+                            <svg id="tagIcon" class="app-text-subtle h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Plus Code
+                        </span>
+                        <p id="resPlusCode" class="break-all font-mono">—</p>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <script src="/js/interface.js"></script>
+            <!-- Ações -->
+            <div class="app-card">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h3 class="app-text text-base font-medium">Ações</h3>
+                        <p class="app-text-muted mt-1 text-sm">Adicione o hotel, exporte os dados ou baixe as imagens.</p>
+                    </div>
+                    <span id="contadorCsv" class="app-surface-soft app-text-secondary hidden rounded-full px-3 py-1.5 text-xs font-medium">
+                        0 hotéis adicionados
+                    </span>
+                </div>
+                <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <button
+                        id="btnAdicionarCSV"
+                        type="button"
+                        onclick="adicionarAoCsv()"
+                        class="app-button app-button-primary hidden"
+                    >
+                        Adicionar ao CSV
+                    </button>
+                    <button
+                        id="btnBaixarCSV"
+                        type="button"
+                        onclick="baixarDadosCSV()"
+                        class="app-button app-button-secondary hidden"
+                    >
+                        Exportar CSV
+                    </button>
+                    <button
+                        id="btnBaixarTodas"
+                        type="button"
+                        onclick="baixarGaleriaComoZip()"
+                        class="app-button app-button-tertiary hidden"
+                    >
+                        <span class="button-spinner" aria-hidden="true"></span>
+                        <span>Baixar fotos em ZIP</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Galeria -->
+            <div class="app-card">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <h3 class="app-text text-base font-medium">Galeria de imagens</h3>
+                        <p class="app-text-muted mt-1 text-sm">Imagens encontradas para o hotel consultado.</p>
+                    </div>
+                    <span id="badgeContador" class="app-text-subtle text-sm"></span>
+                </div>
+                <p id="galeriaVazia" class="empty-state mt-6 hidden">
+                    Nenhuma imagem foi encontrada para esta consulta.
+                </p>
+                <div id="galeriaGrid" class="photo-catalog mt-6"></div>
+                <nav id="paginacaoGaleriaResultado" class="pagination-controls mt-5 hidden" aria-label="Páginas das fotos do hotel pesquisado">
+                    <button id="btnPaginaAnteriorResultado" type="button" class="app-button app-button-tertiary" onclick="mudarPaginaGaleriaResultado(-1)">
+                        Anterior
+                    </button>
+                    <span id="paginaAtualGaleriaResultado" class="pagination-status" aria-live="polite">Página 1 de 1</span>
+                    <button id="btnProximaPaginaResultado" type="button" class="app-button app-button-tertiary" onclick="mudarPaginaGaleriaResultado(1)">
+                        Próxima
+                    </button>
+                </nav>
+            </div>
+        </section>
+    </main>
+    </div>
+
+    <script src="/js/tema.js"></script>
+    <script src="/js/tema-vfx.js"></script>
+    <script src="/js/modo-dev.js"></script>
+    <script src="/js/navegacao.js"></script>
+    <script src="/js/configuracoes.js"></script>
+    <script src="/js/interface.js"></script>
     <script src="/js/organizacao.js?v=20260810-reorganizar"></script>
-        <script src="/js/busca.js"></script>
-    </body>
-    </html>
+    <script src="/js/galeria.js"></script>
+    <script src="/js/busca.js"></script>
+    <script src="/js/terminal.js"></script>
+</body>
+</html>

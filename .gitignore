@@ -1,3 +1,17 @@
 node_modules
 venv/
 config/local.js
+img/*
+!img/.gitkeep
+__pycache__/
+*.py[cod]
+logs/florence/*.csv
+!logs/florence/*.example.csv
+!logs/florence/.gitkeep
+build/
+dist/
+public/vendor/
+resources/chromium/
+resources/huggingface/
+build-electron.log
+build-electron.exitcode
