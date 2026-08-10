@@ -137,6 +137,21 @@ class TestArquivos(unittest.TestCase):
                 [hotel],
             )
 
+    def test_reconhece_erro_de_digitacao_da_categoria_entretenimento(self):
+        with tempfile.TemporaryDirectory() as diretorio:
+            hotel = Path(diretorio) / "Jericoacoara" / "Hotel"
+            categoria = hotel / "entreterimento"
+            categoria.mkdir(parents=True)
+            imagem = categoria / "foto antiga.jpg"
+            imagem.touch()
+
+            encontrados = listar_imagens_categorizadas(
+                hotel,
+                ["entretenimento"],
+            )
+
+            self.assertEqual(encontrados, {imagem: "entretenimento"})
+
     def test_encontra_hoteis_com_imagens_soltas_dentro_de_pastas_maes(self):
         with tempfile.TemporaryDirectory() as diretorio:
             raiz = Path(diretorio)

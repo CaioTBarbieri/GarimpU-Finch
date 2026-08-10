@@ -268,6 +268,11 @@ async function organizarLoteIA() {
         if (!response.ok) {
             throw new Error(dados.erro || 'Falha ao organizar em lote');
         }
+        if (reorganizar && dados.reorganizar !== true) {
+            throw new Error(
+                'O servidor não ativou o modo Reorganizar. Reinicie o aplicativo e tente novamente.'
+            );
+        }
 
         await consultarStatusOrganizacao();
         intervaloStatusOrganizacao = setInterval(() => {

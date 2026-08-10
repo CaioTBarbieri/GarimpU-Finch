@@ -10,7 +10,9 @@ const {
 const router = express.Router();
 
 router.post("/api/organizar-tudo", (req, res) => {
-  const reorganizar = req.body?.reorganizar === true;
+  const reorganizar =
+    req.body?.reorganizar === true ||
+    req.body?.reorganizar === "true";
   if (estaExecutando() || !iniciarOrganizacao({ reorganizar })) {
     return res.status(409).json({
       erro: "Já existe uma organização de imagens em andamento.",
@@ -19,6 +21,7 @@ router.post("/api/organizar-tudo", (req, res) => {
 
   return res.status(202).json({
     sucesso: true,
+    reorganizar,
     mensagem: "Organização iniciada.",
   });
 });

@@ -6,6 +6,11 @@ from pathlib import Path
 from .config import CATEGORIAS, EXTENSOES
 
 
+ALIASES_CATEGORIAS = {
+    "entreterimento": "entretenimento",
+}
+
+
 def listar_imagens_soltas(pasta):
     """Lista imagens diretamente na pasta, sem percorrer subpastas."""
     pasta = Path(pasta)
@@ -30,6 +35,13 @@ def listar_imagens_categorizadas(pasta_hotel, categorias):
         _normalizar_nome_categoria(categoria): categoria
         for categoria in categorias
     }
+    categorias_normalizadas.update(
+        {
+            alias: categoria
+            for alias, categoria in ALIASES_CATEGORIAS.items()
+            if categoria in categorias
+        }
+    )
     imagens = {}
     for subpasta in Path(pasta_hotel).iterdir():
         if not subpasta.is_dir():
@@ -63,6 +75,7 @@ def listar_hoteis(pasta_raiz, categorias_organizadas=None):
         _normalizar_nome_categoria(categoria)
         for categoria in CATEGORIAS
     }
+    nomes_categorias.update(ALIASES_CATEGORIAS)
 
     def possui_imagens(pasta):
         return bool(listar_imagens_soltas(pasta)) or bool(
