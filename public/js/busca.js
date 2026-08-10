@@ -242,10 +242,59 @@
                 const baixarImagens = document.getElementById(
                     'baixarImagensLoteInput'
                 ).checked;
+                document.getElementById('painelFiltroDownloadLote')
+                    .classList.toggle('hidden', !baixarImagens);
                 document.getElementById('textoBtnPesquisarLote').textContent =
                     baixarImagens
                         ? 'Baixar imagens dos hotéis da lista'
                         : 'Pesquisar lista e adicionar ao CSV';
+                atualizarCamposFiltroDownloadLote();
+            }
+
+            function atualizarCamposFiltroDownloadLote() {
+                const modo = document.getElementById('modoFiltroDownloadLote').value;
+                const usaRaio = modo === 'raio' || modo === 'ambos';
+                const usaCidade = modo === 'cidade' || modo === 'ambos';
+                document.getElementById('campoRaioDownloadLote')
+                    .classList.toggle('hidden', !usaRaio);
+                document.getElementById('campoCidadeDownloadLote')
+                    .classList.toggle('hidden', !usaCidade);
+
+                const descricoes = {
+                    nenhum: 'Sem filtro: todos os hotéis encontrados terão as imagens baixadas.',
+                    raio: 'Usa as coordenadas de referência das Configurações como centro do raio.',
+                    cidade: 'Confere a cidade informada no endereço encontrado antes de baixar.',
+                    ambos: 'Baixa somente quando o hotel está dentro do raio e na cidade informada.'
+                };
+                document.getElementById('ajudaFiltroDownloadLote').textContent =
+                    descricoes[modo] || descricoes.nenhum;
+            }
+
+            function obterFiltroDownloadLote(baixarImagens) {
+                if (!baixarImagens) return { modo: 'nenhum' };
+
+                const modo = document.getElementById('modoFiltroDownloadLote').value;
+                const filtro = { modo };
+                if (modo === 'raio' || modo === 'ambos') {
+                    filtro.raioKm = Number(
+                        document.getElementById('raioDownloadLote').value
+                    );
+                    if (!Number.isFinite(filtro.raioKm) ||
+                        filtro.raioKm <= 0 || filtro.raioKm > 20000) {
+                        throw new Error(
+                            'Informe um raio válido, maior que 0 e de até 20.000 km.'
+                        );
+                    }
+                }
+                if (modo === 'cidade' || modo === 'ambos') {
+                    filtro.cidade = document.getElementById(
+                        'cidadeDownloadLote'
+                    ).value.trim();
+                    if (filtro.cidade.length < 2) {
+                        throw new Error('Informe a cidade usada no filtro de download.');
+                    }
+                }
+                return filtro;
             }
 
             function obterUfDoEndereco(endereco) {
@@ -556,6 +605,13 @@
                 const baixarImagens = document.getElementById(
                     'baixarImagensLoteInput'
                 ).checked;
+                let filtroDownload;
+                try {
+                    filtroDownload = obterFiltroDownloadLote(baixarImagens);
+                } catch (erro) {
+                    alert(erro.message);
+                    return;
+                }
 
                 if (hoteis.length === 0) {
                     alert('Adicione pelo menos um hotel ou link na lista.');
@@ -601,6 +657,9 @@
                     'csvWixInput',
                     'listaHoteisInput',
                     'baixarImagensLoteInput',
+                    'modoFiltroDownloadLote',
+                    'raioDownloadLote',
+                    'cidadeDownloadLote',
                     'latitudeReferenciaInput',
                     'longitudeReferenciaInput',
                     'colunaRegimeCsv',
@@ -633,6 +692,7 @@
 
                 let adicionados = 0;
                 let baixados = 0;
+                let filtradosDownload = 0;
                 let ignorados = 0;
                 let erros = 0;
                 const hoteisComErro = [];
@@ -678,7 +738,8 @@
                                         nome: entrada.consulta,
                                         baixarImagens,
                                         latitudeReferencia,
-                                        longitudeReferencia
+                                        longitudeReferencia,
+                                        filtroDownload
                                     })
                                 });
                             } catch (erroRequisicao) {
@@ -712,13 +773,23 @@
 
                             if (baixarImagens) {
                                 if (entrada.idWix) dadosAtuais.idWix = entrada.idWix;
-                                baixados += 1;
-                                linhaResultado.className = dados.localizacaoForaDaArea
-                                    ? 'app-status-warning'
-                                    : 'app-status-success';
-                                linhaResultado.textContent =
-                                    '✓ ' + rotuloId(entrada.idWix) + dados.nome +
-                                    ': imagens baixadas' + fonteTexto + avisoLocalizacao;
+                                if (dados.baixouLocal) {
+                                    baixados += 1;
+                                    linhaResultado.className = dados.localizacaoForaDaArea
+                                        ? 'app-status-warning'
+                                        : 'app-status-success';
+                                    linhaResultado.textContent =
+                                        '✓ ' + rotuloId(entrada.idWix) + dados.nome +
+                                        ': imagens baixadas' + fonteTexto + avisoLocalizacao;
+                                } else {
+                                    filtradosDownload += 1;
+                                    linhaResultado.className = 'app-status-warning';
+                                    linhaResultado.textContent =
+                                        '↷ ' + rotuloId(entrada.idWix) + dados.nome +
+                                        ': download ignorado • ' +
+                                        (dados.filtroDownload?.motivo ||
+                                            'não passou pelo filtro') + fonteTexto;
+                                }
                             } else {
                                 if (entrada.idWix) {
                                     dadosAtuais.idWix = entrada.idWix;
@@ -805,6 +876,7 @@
 
                     textoStatus.textContent = baixarImagens
                         ? 'Concluído: ' + baixados + ' hotéis com imagens baixadas, ' +
+                            filtradosDownload + ' ignorados pelo filtro, ' +
                             erros + ' com erro.'
                         : 'Concluído: ' + adicionados + ' adicionados, ' +
                             ignorados + ' ignorados, ' + erros + ' com erro.';

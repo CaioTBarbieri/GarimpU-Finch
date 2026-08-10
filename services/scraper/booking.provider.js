@@ -21,6 +21,7 @@ const {
   ErroArmazenamento,
   ErroProcessamento,
 } = require("./scraper-errors");
+const { avaliarFiltroDownload } = require("../filtro-download.service");
 
 const olc = new OpenLocationCode();
 const FONTE = "Booking";
@@ -214,6 +215,7 @@ async function executarPesquisaBooking(page, opcoes) {
     longitudeReferencia,
     baixarImagens,
     pastaImagensBase,
+    filtroDownload,
   } = opcoes;
 
   const linkBookingDireto = ehLink ? normalizarLinkBooking(entrada) : null;
@@ -552,8 +554,16 @@ async function executarPesquisaBooking(page, opcoes) {
 
     let caminhosImagensLocais = [];
     let altTexts = {};
+    const avaliacaoFiltroDownload = avaliarFiltroDownload({
+      filtro: filtroDownload,
+      endereco: enderecoFinal,
+      coordenadas,
+      latitudeReferencia,
+      longitudeReferencia,
+    });
+    const deveBaixarImagens = baixarImagens && avaliacaoFiltroDownload.aprovado;
 
-    if (baixarImagens) {
+    if (deveBaixarImagens) {
       caminhosImagensLocais = await baixarImagensParaPasta({
         page,
         imagensUrls: imagensArray,
@@ -566,6 +576,9 @@ async function executarPesquisaBooking(page, opcoes) {
       altTexts = resultadoLeitura.altTexts;
     } else {
       caminhosImagensLocais = imagensArray;
+      if (baixarImagens && !avaliacaoFiltroDownload.aprovado) {
+        console.log(`[-] Download ignorado pelo filtro: ${avaliacaoFiltroDownload.motivo}.`);
+      }
     }
 
     return {
@@ -582,7 +595,8 @@ async function executarPesquisaBooking(page, opcoes) {
       aeroporto: aeroportoFinal,
       imagens: caminhosImagensLocais,
       altTexts,
-      baixouLocal: baixarImagens,
+      baixouLocal: deveBaixarImagens,
+      filtroDownload: baixarImagens ? avaliacaoFiltroDownload : undefined,
       fonte: FONTE,
       urlFonte: dadosPesquisa.link,
     };

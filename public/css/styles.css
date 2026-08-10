@@ -1555,6 +1555,29 @@ details[open] > summary .details-chevron {
     gap: 0.5rem;
 }
 
+.batch-download-filter {
+    background:
+        linear-gradient(135deg, rgb(var(--primary-rgb) / 6%), transparent 55%),
+        var(--surface-deep);
+}
+
+.batch-filter-input-suffix {
+    position: relative;
+    display: block;
+}
+
+.batch-filter-input-suffix .app-input { padding-right: 3.2rem; }
+
+.batch-filter-input-suffix > span {
+    position: absolute;
+    top: 50%;
+    right: 0.85rem;
+    color: var(--text-subtle);
+    font-size: 0.75rem;
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
 .batch-location-summary span {
     border: 1px solid var(--border);
     border-radius: 999px;

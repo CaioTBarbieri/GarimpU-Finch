@@ -20,6 +20,7 @@ const {
   validarUrlPermitida,
 } = require("./scraper/scraper-utils");
 const { ErroEntrada, ehErroQueAcionaFallback } = require("./scraper/scraper-errors");
+const { normalizarFiltroDownload } = require("./filtro-download.service");
 
 puppeteer.use(StealthPlugin());
 
@@ -133,6 +134,7 @@ function criarCoordenadorScraper({
     baixarImagens = true,
     latitudeReferencia = latitudePadrao,
     longitudeReferencia = longitudePadrao,
+    filtroDownload = { modo: "nenhum" },
   ) {
     const entrada =
       typeof nomeHotel === "string"
@@ -145,6 +147,7 @@ function criarCoordenadorScraper({
 
     latitudeReferencia = Number(latitudeReferencia);
     longitudeReferencia = Number(longitudeReferencia);
+    filtroDownload = normalizarFiltroDownload(filtroDownload);
 
     if (
       !Number.isFinite(latitudeReferencia) ||
@@ -205,6 +208,7 @@ function criarCoordenadorScraper({
         longitudeReferencia,
         baixarImagens,
         pastaImagensBase,
+        filtroDownload,
       };
 
       let resultado;

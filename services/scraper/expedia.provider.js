@@ -21,6 +21,7 @@ const {
   ErroArmazenamento,
   ErroProcessamento,
 } = require("./scraper-errors");
+const { avaliarFiltroDownload } = require("../filtro-download.service");
 
 const olc = new OpenLocationCode();
 const FONTE = "Expedia";
@@ -623,6 +624,7 @@ async function executarPesquisaExpedia(page, opcoes) {
     longitudeReferencia,
     baixarImagens,
     pastaImagensBase,
+    filtroDownload,
   } = opcoes;
 
   await ativarBloqueioDeMidia(page);
@@ -683,8 +685,16 @@ async function executarPesquisaExpedia(page, opcoes) {
 
     let caminhosImagensLocais = [];
     let altTexts = {};
+    const avaliacaoFiltroDownload = avaliarFiltroDownload({
+      filtro: filtroDownload,
+      endereco: dados.enderecoFinal,
+      coordenadas: dados.coordenadas,
+      latitudeReferencia,
+      longitudeReferencia,
+    });
+    const deveBaixarImagens = baixarImagens && avaliacaoFiltroDownload.aprovado;
 
-    if (baixarImagens) {
+    if (deveBaixarImagens) {
       await ativarBloqueioDeMidia(page);
       caminhosImagensLocais = await baixarImagensParaPasta({
         page,
@@ -698,6 +708,9 @@ async function executarPesquisaExpedia(page, opcoes) {
       altTexts = resultadoLeitura.altTexts;
     } else {
       caminhosImagensLocais = dados.imagens;
+      if (baixarImagens && !avaliacaoFiltroDownload.aprovado) {
+        console.log(`[-] Download ignorado pelo filtro: ${avaliacaoFiltroDownload.motivo}.`);
+      }
     }
 
     return {
@@ -714,7 +727,8 @@ async function executarPesquisaExpedia(page, opcoes) {
       aeroporto: dados.aeroporto,
       imagens: caminhosImagensLocais,
       altTexts,
-      baixouLocal: baixarImagens,
+      baixouLocal: deveBaixarImagens,
+      filtroDownload: baixarImagens ? avaliacaoFiltroDownload : undefined,
       fonte: FONTE,
       urlFonte: urlHotel,
     };
