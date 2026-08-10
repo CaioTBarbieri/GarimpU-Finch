@@ -192,3 +192,41 @@ test("repassa a opção de reorganizar ao processo Python", async () => {
   assert.equal(argumentosSpawn.at(-1), "--reorganizar");
   processo.emit("close", 0);
 });
+
+test("repassa a pasta mãe selecionada ao processo Python", async () => {
+  const processo = criarProcessoFalso();
+  let argumentosSpawn;
+  const pastaSelecionada = path.resolve("img", "Jericoacoara");
+  const service = criarOrganizadorPythonService({
+    criarProcesso(_comando, argumentos) {
+      argumentosSpawn = argumentos;
+      return processo;
+    },
+    localizarPython: async () => ({
+      comando: "python",
+      argumentosIniciais: [],
+      versao: "3.12.10",
+    }),
+    estado: {
+      reiniciarEstado() {},
+      atualizarDadosPython() {},
+      finalizarConcluido() {},
+      finalizarErro() {},
+    },
+    sistemaArquivos: { existsSync: () => true },
+    logger: { log() {}, warn() {}, error() {} },
+  });
+
+  service.iniciarOrganizacao({
+    reorganizar: true,
+    pastaImagens: pastaSelecionada,
+  });
+  await proximaIteracao();
+
+  assert.equal(
+    argumentosSpawn[argumentosSpawn.indexOf("--pasta") + 1],
+    pastaSelecionada,
+  );
+  assert.equal(argumentosSpawn.at(-1), "--reorganizar");
+  processo.emit("close", 0);
+});

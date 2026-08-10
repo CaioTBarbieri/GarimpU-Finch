@@ -15,6 +15,10 @@ const {
 const {
   obterEstado,
 } = require("../state/status-organizacao");
+const {
+  listarPastasMaeFlorence,
+  resolverPastaMaeFlorence,
+} = require("../services/pastas-florence.service");
 
 const router = express.Router();
 
@@ -22,7 +26,20 @@ router.post("/api/organizar-tudo", (req, res) => {
   const reorganizar =
     req.body?.reorganizar === true ||
     req.body?.reorganizar === "true";
-  if (estaExecutando() || !iniciarOrganizacao({ reorganizar })) {
+  let pastaSelecionada = PASTA_FLORENCE;
+  let pastaMae = "";
+  if (reorganizar && req.body?.pastaMae) {
+    try {
+      pastaMae = String(req.body.pastaMae).trim();
+      pastaSelecionada = resolverPastaMaeFlorence(PASTA_FLORENCE, pastaMae);
+    } catch (erro) {
+      return res.status(400).json({ erro: erro.message });
+    }
+  }
+  if (
+    estaExecutando() ||
+    !iniciarOrganizacao({ reorganizar, pastaImagens: pastaSelecionada })
+  ) {
     return res.status(409).json({
       erro: "Já existe uma organização de imagens em andamento.",
     });
@@ -31,8 +48,17 @@ router.post("/api/organizar-tudo", (req, res) => {
   return res.status(202).json({
     sucesso: true,
     reorganizar,
+    pastaMae: pastaMae || null,
     mensagem: "Organização iniciada.",
   });
+});
+
+router.get("/api/pastas-mae-florence", (_req, res) => {
+  try {
+    res.json({ pastasMae: listarPastasMaeFlorence(PASTA_FLORENCE) });
+  } catch (erro) {
+    res.status(500).json({ erro: "Não foi possível listar as pastas-mãe." });
+  }
 });
 
 router.get("/api/status-organizacao", (req, res) => {
@@ -42,17 +68,22 @@ router.get("/api/status-organizacao", (req, res) => {
 router.get("/api/estimativa-florence", (req, res) => {
   try {
     const reorganizar = req.query?.reorganizar === "true";
+    const pastaSelecionada = reorganizar && req.query?.pastaMae
+      ? resolverPastaMaeFlorence(PASTA_FLORENCE, req.query.pastaMae)
+      : PASTA_FLORENCE;
     res.json(
       calcularEstimativaFlorence({
-        pastaImagens: PASTA_FLORENCE,
+        pastaImagens: pastaSelecionada,
         pastaLogs: PASTA_LOGS_FLORENCE,
         reorganizar,
       }),
     );
   } catch (erro) {
     console.error("Erro ao calcular estimativa Florence:", erro);
-    res.status(500).json({
-      erro: "Não foi possível calcular a estimativa do Florence.",
+    res.status(erro instanceof TypeError ? 400 : 500).json({
+      erro: erro instanceof TypeError
+        ? erro.message
+        : "Não foi possível calcular a estimativa do Florence.",
     });
   }
 });

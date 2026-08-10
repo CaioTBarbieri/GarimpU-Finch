@@ -126,7 +126,10 @@ function criarOrganizadorPythonService({
     });
   }
 
-  async function prepararEIniciarProcesso({ reorganizar = false } = {}) {
+  async function prepararEIniciarProcesso({
+    reorganizar = false,
+    pastaImagens = PASTA_FLORENCE,
+  } = {}) {
     try {
       const scriptPython = encontrarScriptPython();
       const python = await localizarPython();
@@ -142,13 +145,13 @@ function criarOrganizadorPythonService({
       );
 
       const argumentos = python.executavelEmpacotado
-        ? ["--pasta", PASTA_FLORENCE]
+        ? ["--pasta", pastaImagens]
         : [
             ...python.argumentosIniciais,
             "-u",
             scriptPython,
             "--pasta",
-            PASTA_FLORENCE,
+            pastaImagens,
           ];
       if (reorganizar) argumentos.push("--reorganizar");
       const diretorioExecucao = python.executavelEmpacotado
@@ -183,7 +186,10 @@ function criarOrganizadorPythonService({
     }
   }
 
-  function iniciarOrganizacao({ reorganizar = false } = {}) {
+  function iniciarOrganizacao({
+    reorganizar = false,
+    pastaImagens = PASTA_FLORENCE,
+  } = {}) {
     if (estaExecutando()) return false;
 
     iniciando = true;
@@ -191,9 +197,9 @@ function criarOrganizadorPythonService({
     estado.reiniciarEstado(inicioOrganizacao);
     logger.log(
       `\n[${new Date(inicioOrganizacao).toLocaleString("pt-BR")}] ` +
-        "[+] Iniciando IA de Lote para TODOS os hotéis...",
+        `[+] Iniciando IA de Lote em ${pastaImagens}...`,
     );
-    void prepararEIniciarProcesso({ reorganizar });
+    void prepararEIniciarProcesso({ reorganizar, pastaImagens });
     return true;
   }
 

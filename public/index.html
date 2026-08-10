@@ -1453,7 +1453,7 @@
                             id="reorganizarImagensOrganizadas"
                             class="app-checkbox mt-0.5 h-4 w-4 rounded"
                             type="checkbox"
-                            onchange="carregarEstimativaFlorence()"
+                            onchange="atualizarFiltroPastaMaeOrganizacao()"
                         >
                         <span>
                             <span class="app-text block text-sm font-medium">Reorganizar imagens antigas</span>
@@ -1461,6 +1461,13 @@
                                 Inclui fotos já categorizadas que ainda não foram renomeadas pelo Florence.
                             </span>
                         </span>
+                    </label>
+                    <label id="campoPastaMaeOrganizacao" class="app-surface-deep hidden rounded-xl border p-3">
+                        <span class="app-label">Pasta-mãe para reorganizar</span>
+                        <select id="pastaMaeOrganizacao" class="app-input" onchange="carregarEstimativaFlorence()">
+                            <option value="">Todas as pastas-mãe</option>
+                        </select>
+                        <span id="statusPastasMaeOrganizacao" class="app-text-subtle mt-1 block text-xs" aria-live="polite"></span>
                     </label>
                     <button
                         id="btnOrganizarTudo"
@@ -1914,7 +1921,7 @@
     <script src="/js/navegacao.js"></script>
     <script src="/js/configuracoes.js"></script>
     <script src="/js/interface.js"></script>
-    <script src="/js/organizacao.js?v=20260810-estimativa-recursiva"></script>
+    <script src="/js/organizacao.js?v=20260810-filtro-pasta-mae"></script>
     <script src="/js/galeria.js?v=20260810-filtro-pasta-mae"></script>
     <script src="/js/busca.js?v=20260810-pesquisa-uf-cidade"></script>
     <script src="/js/terminal.js?v=20260810-pesquisa-terminal"></script>
