@@ -276,17 +276,35 @@
             }
 
             function redefinirCidadesFiltroLote(texto) {
-                const seletor = document.getElementById('cidadeDownloadLote');
-                const opcao = document.createElement('option');
-                opcao.value = '';
-                opcao.textContent = texto;
-                seletor.replaceChildren(opcao);
-                seletor.disabled = true;
+                const campo = document.getElementById('cidadeDownloadLote');
+                campo.value = '';
+                campo.placeholder = texto;
+                campo.disabled = true;
+                document.getElementById('listaCidadesDownloadLote').replaceChildren();
+            }
+
+            function normalizarTextoPesquisaLocalizacao(valor) {
+                return String(valor || '')
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .trim()
+                    .toLocaleUpperCase('pt-BR');
+            }
+
+            function resolverUfPesquisa(valor) {
+                const procurado = normalizarTextoPesquisaLocalizacao(valor);
+                return Array.from(
+                    document.querySelectorAll('#listaEstadosDownloadLote option')
+                ).find((opcao) =>
+                    normalizarTextoPesquisaLocalizacao(opcao.value) === procurado ||
+                    normalizarTextoPesquisaLocalizacao(opcao.textContent) === procurado
+                )?.value || '';
             }
 
             async function atualizarEstadoFiltroDownloadLote() {
                 const modo = document.getElementById('modoFiltroDownloadLote').value;
-                const uf = document.getElementById('estadoDownloadLote').value;
+                const campoEstado = document.getElementById('estadoDownloadLote');
+                const uf = resolverUfPesquisa(campoEstado.value);
                 const status = document.getElementById('statusCidadesFiltroDownloadLote');
                 const idRequisicao = ++requisicaoCidadesFiltroLote;
 
@@ -296,10 +314,15 @@
                     return;
                 }
                 if (!uf) {
-                    redefinirCidadesFiltroLote('Selecione primeiro a UF');
+                    redefinirCidadesFiltroLote(
+                        campoEstado.value.trim()
+                            ? 'Escolha uma UF válida'
+                            : 'Selecione primeiro a UF'
+                    );
                     status.textContent = '';
                     return;
                 }
+                campoEstado.value = uf;
 
                 redefinirCidadesFiltroLote('Carregando municípios...');
                 status.textContent = 'Consultando lista oficial do IBGE...';
@@ -322,18 +345,16 @@
                     }
                     if (idRequisicao !== requisicaoCidadesFiltroLote) return;
 
-                    const seletor = document.getElementById('cidadeDownloadLote');
-                    const placeholder = document.createElement('option');
-                    placeholder.value = '';
-                    placeholder.textContent = 'Selecione a cidade';
-                    seletor.replaceChildren(placeholder);
+                    const lista = document.getElementById('listaCidadesDownloadLote');
+                    lista.replaceChildren();
                     municipios.forEach((municipio) => {
                         const opcao = document.createElement('option');
                         opcao.value = municipio;
-                        opcao.textContent = municipio;
-                        seletor.appendChild(opcao);
+                        lista.appendChild(opcao);
                     });
-                    seletor.disabled = false;
+                    const campoCidade = document.getElementById('cidadeDownloadLote');
+                    campoCidade.placeholder = 'Digite para pesquisar';
+                    campoCidade.disabled = false;
                     status.textContent = municipios.length + ' municípios de ' + uf;
                 } catch (erro) {
                     if (idRequisicao !== requisicaoCidadesFiltroLote) return;
@@ -358,21 +379,31 @@
                         );
                     }
                 }
+                if (modo === 'estado' || modo === 'ambos') {
+                    filtro.estado = resolverUfPesquisa(
+                        document.getElementById('estadoDownloadLote').value
+                    );
+                    if (!filtro.estado) {
+                        throw new Error('Selecione um estado válido na lista.');
+                    }
+                    document.getElementById('estadoDownloadLote').value = filtro.estado;
+                }
                 if (modo === 'ambos') {
-                    filtro.cidade = document.getElementById(
+                    const cidadeDigitada = document.getElementById(
                         'cidadeDownloadLote'
                     ).value.trim();
-                    if (filtro.cidade.length < 2) {
-                        throw new Error('Informe a cidade usada no filtro de download.');
+                    const uf = filtro.estado;
+                    const cidadeOficial = (cacheCidadesFiltroLote.get(uf) || [])
+                        .find((cidade) => cidade.localeCompare(
+                            cidadeDigitada,
+                            'pt-BR',
+                            { sensitivity: 'base' }
+                        ) === 0);
+                    if (!cidadeOficial) {
+                        throw new Error('Selecione uma cidade válida da UF informada.');
                     }
-                }
-                if (modo === 'estado' || modo === 'ambos') {
-                    filtro.estado = document.getElementById(
-                        'estadoDownloadLote'
-                    ).value;
-                    if (!filtro.estado) {
-                        throw new Error('Selecione o estado usado no filtro de download.');
-                    }
+                    filtro.cidade = cidadeOficial;
+                    document.getElementById('cidadeDownloadLote').value = cidadeOficial;
                 }
                 return filtro;
             }
