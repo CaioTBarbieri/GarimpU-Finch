@@ -1618,7 +1618,7 @@
 
         <!-- Terminal -->
         <section class="app-card" aria-labelledby="tituloTerminal" data-tab-panel="terminal" hidden>
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
                 <div>
                     <p class="section-kicker">Atividade em tempo real</p>
                     <h2 id="tituloTerminal" class="section-title">Terminal</h2>
@@ -1626,37 +1626,58 @@
                         Acompanha o que o scraper está fazendo agora: qual fonte está tentando (Booking ou Expedia), se conseguiu e eventuais erros.
                     </p>
                 </div>
-                <div class="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center">
-                    <span id="terminalStatusConexao" class="terminal-connection-status self-start sm:self-center" data-estado="conectando">
-                        <span class="status-pulse" aria-hidden="true"></span>
-                        <span id="terminalStatusConexaoTexto">Conectando...</span>
-                    </span>
-                    <button
-                        id="btnLimparTerminal"
-                        type="button"
-                        onclick="limparTerminal()"
-                        class="app-button app-button-tertiary w-full sm:w-auto"
-                    >
-                        Limpar
-                    </button>
-                    <button
-                        id="btnReiniciarPagina"
-                        type="button"
-                        onclick="window.location.reload()"
-                        class="app-button app-button-secondary w-full sm:w-auto"
-                    >
-                        Reiniciar página
-                    </button>
-                </div>
             </div>
-            <div
-                id="terminalLog"
-                class="terminal-log app-divider mt-5 border-t pt-4"
-                role="log"
-                aria-live="polite"
-                aria-label="Log de atividade do scraper"
-            >
-                <p class="terminal-log-empty">Nenhuma mensagem ainda.</p>
+
+            <div class="terminal-window mt-5">
+                <div class="terminal-toolbar">
+                    <div class="terminal-window-title">
+                        <span class="terminal-window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span>garimpu / atividade</span>
+                        <span id="terminalContagemLinhas" class="terminal-line-count">0 linhas</span>
+                    </div>
+                    <div class="terminal-toolbar-actions">
+                        <span id="terminalStatusConexao" class="terminal-connection-status" data-estado="conectando">
+                            <span class="status-pulse" aria-hidden="true"></span>
+                            <span id="terminalStatusConexaoTexto">Conectando...</span>
+                        </span>
+                        <button
+                            id="btnPesquisarTerminal"
+                            type="button"
+                            class="terminal-action-button"
+                            aria-controls="terminalBusca"
+                            aria-expanded="false"
+                            onclick="alternarPesquisaTerminal()"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.15a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+                            Pesquisar
+                        </button>
+                        <button id="btnLimparTerminal" type="button" onclick="limparTerminal()" class="terminal-action-button">
+                            Limpar
+                        </button>
+                        <button id="btnReiniciarPagina" type="button" onclick="window.location.reload()" class="terminal-action-button terminal-action-primary">
+                            Reiniciar página
+                        </button>
+                    </div>
+                </div>
+
+                <div id="terminalBusca" class="terminal-search" hidden>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.15a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+                    <label class="sr-only" for="terminalBuscaInput">Pesquisar no terminal</label>
+                    <input id="terminalBuscaInput" type="search" placeholder="Filtrar mensagens, horários ou níveis..." autocomplete="off">
+                    <span id="terminalBuscaResumo" class="terminal-search-summary" aria-live="polite"></span>
+                    <button type="button" class="terminal-search-close" onclick="fecharPesquisaTerminal()" aria-label="Fechar pesquisa">&times;</button>
+                </div>
+
+                <div
+                    id="terminalLog"
+                    class="terminal-log"
+                    role="log"
+                    aria-live="polite"
+                    aria-label="Log de atividade do scraper"
+                >
+                    <p class="terminal-log-empty">Aguardando novas atividades...</p>
+                    <p id="terminalBuscaVazia" class="terminal-search-empty" hidden>Nenhuma linha corresponde à pesquisa.</p>
+                </div>
             </div>
         </section>
 
@@ -1817,6 +1838,6 @@
     <script src="/js/organizacao.js?v=20260810-estimativa-recursiva"></script>
     <script src="/js/galeria.js?v=20260810-pastas-maes"></script>
     <script src="/js/busca.js"></script>
-    <script src="/js/terminal.js"></script>
+    <script src="/js/terminal.js?v=20260810-pesquisa-terminal"></script>
 </body>
 </html>
