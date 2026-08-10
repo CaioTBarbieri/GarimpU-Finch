@@ -1,5 +1,6 @@
 const express = require("express");
 const { normalizarFiltroDownload } = require("../services/filtro-download.service");
+const { listarMunicipiosPorUf } = require("../services/localidades.service");
 
 function criarBuscarRouter({
   rasparDadosHotel,
@@ -7,6 +8,16 @@ function criarBuscarRouter({
   longitudePadrao,
 }) {
   const router = express.Router();
+
+  router.get("/api/localidades/estados/:uf/municipios", async (req, res) => {
+    try {
+      const municipios = await listarMunicipiosPorUf(req.params.uf);
+      res.json({ uf: String(req.params.uf).toUpperCase(), municipios });
+    } catch (erro) {
+      const status = erro instanceof TypeError ? 400 : 502;
+      res.status(status).json({ erro: erro.message });
+    }
+  });
 
   router.post("/api/buscar", async (req, res) => {
     req.setTimeout(900000);

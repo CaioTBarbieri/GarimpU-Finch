@@ -196,6 +196,7 @@ function avaliarFiltroDownload({
 
 module.exports = {
   MODOS_FILTRO_DOWNLOAD,
+  ESTADOS_BRASILEIROS,
   normalizarTextoLocalizacao,
   enderecoCorrespondeCidade,
   extrairUfEndereco,

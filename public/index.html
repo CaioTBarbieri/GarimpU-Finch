@@ -311,7 +311,7 @@
                         </label>
                         <label id="campoEstadoDownloadLote" class="hidden">
                             <span class="app-label">Estado obrigatório</span>
-                            <select id="estadoDownloadLote" class="app-input">
+                            <select id="estadoDownloadLote" class="app-input" onchange="atualizarEstadoFiltroDownloadLote()">
                                 <option value="">Selecione a UF</option>
                                 <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option>
                                 <option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option>
@@ -333,7 +333,10 @@
                         </label>
                         <label id="campoCidadeDownloadLote" class="hidden">
                             <span class="app-label">Cidade obrigatória</span>
-                            <input id="cidadeDownloadLote" type="text" class="app-input" placeholder="Ex.: Jericoacoara" autocomplete="address-level2">
+                            <select id="cidadeDownloadLote" class="app-input" disabled>
+                                <option value="">Selecione primeiro a UF</option>
+                            </select>
+                            <span id="statusCidadesFiltroDownloadLote" class="app-text-subtle mt-1 block text-xs" aria-live="polite"></span>
                         </label>
                     </div>
                     <p id="ajudaFiltroDownloadLote" class="app-text-subtle mt-3 text-xs leading-5">
@@ -1908,7 +1911,7 @@
     <script src="/js/interface.js"></script>
     <script src="/js/organizacao.js?v=20260810-estimativa-recursiva"></script>
     <script src="/js/galeria.js?v=20260810-pesquisa-biblioteca"></script>
-    <script src="/js/busca.js?v=20260810-filtro-localizacao-completo"></script>
+    <script src="/js/busca.js?v=20260810-cidades-por-uf"></script>
     <script src="/js/terminal.js?v=20260810-pesquisa-terminal"></script>
 </body>
 </html>

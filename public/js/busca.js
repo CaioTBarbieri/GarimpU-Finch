@@ -2,6 +2,8 @@
             const idsPorLinhaLote = new Map();
             let textoProblemasLote = '';
             let rotuloProblemasLote = '';
+            let requisicaoCidadesFiltroLote = 0;
+            const cacheCidadesFiltroLote = new Map();
 
             function aguardarMs(ms) {
                 return new Promise(resolve => setTimeout(resolve, ms));
@@ -270,6 +272,74 @@
                 };
                 document.getElementById('ajudaFiltroDownloadLote').textContent =
                     descricoes[modo] || descricoes.nenhum;
+                atualizarEstadoFiltroDownloadLote();
+            }
+
+            function redefinirCidadesFiltroLote(texto) {
+                const seletor = document.getElementById('cidadeDownloadLote');
+                const opcao = document.createElement('option');
+                opcao.value = '';
+                opcao.textContent = texto;
+                seletor.replaceChildren(opcao);
+                seletor.disabled = true;
+            }
+
+            async function atualizarEstadoFiltroDownloadLote() {
+                const modo = document.getElementById('modoFiltroDownloadLote').value;
+                const uf = document.getElementById('estadoDownloadLote').value;
+                const status = document.getElementById('statusCidadesFiltroDownloadLote');
+                const idRequisicao = ++requisicaoCidadesFiltroLote;
+
+                if (modo !== 'ambos') {
+                    redefinirCidadesFiltroLote('Disponível no filtro combinado');
+                    status.textContent = '';
+                    return;
+                }
+                if (!uf) {
+                    redefinirCidadesFiltroLote('Selecione primeiro a UF');
+                    status.textContent = '';
+                    return;
+                }
+
+                redefinirCidadesFiltroLote('Carregando municípios...');
+                status.textContent = 'Consultando lista oficial do IBGE...';
+
+                try {
+                    let municipios = cacheCidadesFiltroLote.get(uf);
+                    if (!municipios) {
+                        const resposta = await fetch(
+                            '/api/localidades/estados/' + encodeURIComponent(uf) +
+                            '/municipios'
+                        );
+                        const dados = await resposta.json();
+                        if (!resposta.ok) {
+                            throw new Error(dados.erro || 'Falha ao carregar municípios.');
+                        }
+                        municipios = Array.isArray(dados.municipios)
+                            ? dados.municipios
+                            : [];
+                        cacheCidadesFiltroLote.set(uf, municipios);
+                    }
+                    if (idRequisicao !== requisicaoCidadesFiltroLote) return;
+
+                    const seletor = document.getElementById('cidadeDownloadLote');
+                    const placeholder = document.createElement('option');
+                    placeholder.value = '';
+                    placeholder.textContent = 'Selecione a cidade';
+                    seletor.replaceChildren(placeholder);
+                    municipios.forEach((municipio) => {
+                        const opcao = document.createElement('option');
+                        opcao.value = municipio;
+                        opcao.textContent = municipio;
+                        seletor.appendChild(opcao);
+                    });
+                    seletor.disabled = false;
+                    status.textContent = municipios.length + ' municípios de ' + uf;
+                } catch (erro) {
+                    if (idRequisicao !== requisicaoCidadesFiltroLote) return;
+                    redefinirCidadesFiltroLote('Não foi possível carregar');
+                    status.textContent = erro.message + ' Selecione a UF novamente para tentar.';
+                }
             }
 
             function obterFiltroDownloadLote(baixarImagens) {
@@ -910,6 +980,7 @@
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     btnBuscar.classList.remove('opacity-50', 'cursor-not-allowed');
                     camposBloqueados.forEach(campo => { campo.disabled = false; });
+                    atualizarCamposFiltroDownloadLote();
                 }
             }
 
