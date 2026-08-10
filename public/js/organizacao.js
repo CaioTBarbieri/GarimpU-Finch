@@ -15,6 +15,18 @@ function formatarDuracao(totalSegundos) {
 
 let downloadAutomaticoLogFlorencePendente = false;
 
+async function lerRespostaJsonOrganizacao(response, url) {
+    const texto = await response.text();
+    try {
+        return JSON.parse(texto);
+    } catch (_) {
+        throw new Error(
+            'A API de organização respondeu conteúdo inválido em ' + url +
+            '. Feche outras instâncias do aplicativo e reinicie o servidor.'
+        );
+    }
+}
+
 function definirTextoStatus(id, valor, valorPadrao = '—') {
     document.getElementById(id).textContent =
         valor == null || valor === '' ? valorPadrao : String(valor);
@@ -54,7 +66,10 @@ async function carregarEstimativaFlorence() {
 
     try {
         const response = await fetch('/api/estimativa-florence');
-        const dados = await response.json();
+        const dados = await lerRespostaJsonOrganizacao(
+            response,
+            '/api/estimativa-florence'
+        );
         if (!response.ok) {
             throw new Error(
                 dados.erro || 'Não foi possível calcular a estimativa.'
@@ -250,7 +265,10 @@ async function consultarStatusOrganizacao() {
     if (!response.ok) {
         throw new Error('Não foi possível consultar o progresso.');
     }
-    const status = await response.json();
+    const status = await lerRespostaJsonOrganizacao(
+        response,
+        '/api/status-organizacao'
+    );
     atualizarPainelOrganizacao(status);
 
     if (status.estado === 'concluido' || status.estado === 'erro') {
@@ -311,7 +329,10 @@ async function organizarLoteIA() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ reorganizar }),
         });
-        const dados = await response.json();
+        const dados = await lerRespostaJsonOrganizacao(
+            response,
+            '/api/organizar-tudo'
+        );
         if (!response.ok) {
             throw new Error(dados.erro || 'Falha ao organizar em lote');
         }

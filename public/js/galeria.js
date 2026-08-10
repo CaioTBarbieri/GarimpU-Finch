@@ -376,11 +376,23 @@ async function chamarAcaoGaleria(url, method, body) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
     });
-    const dados = await response.json();
+    const dados = await lerRespostaJsonGaleria(response, url);
     if (!response.ok) {
         throw new Error(dados.erro || 'Não foi possível concluir a ação.');
     }
     return dados;
+}
+
+async function lerRespostaJsonGaleria(response, url) {
+    const texto = await response.text();
+    try {
+        return JSON.parse(texto);
+    } catch (_) {
+        throw new Error(
+            'A API da galeria respondeu conteúdo inválido em ' + url +
+            '. Feche outras instâncias do aplicativo e reinicie o servidor.'
+        );
+    }
 }
 
 async function renomearFotoBiblioteca(foto) {
@@ -475,7 +487,10 @@ async function carregarBibliotecaFotos({ silencioso = false } = {}) {
 
     try {
         const response = await fetch('/api/galeria-hoteis');
-        const dados = await response.json();
+        const dados = await lerRespostaJsonGaleria(
+            response,
+            '/api/galeria-hoteis'
+        );
         if (!response.ok) {
             throw new Error(dados.erro || 'Falha ao carregar a biblioteca.');
         }

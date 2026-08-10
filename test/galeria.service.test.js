@@ -48,6 +48,43 @@ test("lista fotos por hotel, incluindo subpastas e sem arquivos auxiliares", (t)
   );
 });
 
+test("encontra hotéis dentro de pastas mães sem agrupá-los pela cidade", (t) => {
+  const pastaBase = fs.mkdtempSync(path.join(os.tmpdir(), "galeria-cidades-"));
+  t.after(() => fs.rmSync(pastaBase, { recursive: true, force: true }));
+
+  criarArquivo(
+    path.join(
+      pastaBase,
+      "Jericoacoara",
+      "Hotel_Duna",
+      "acomodacoes",
+      "quarto.jpg",
+    ),
+  );
+  criarArquivo(
+    path.join(
+      pastaBase,
+      "Itacaré",
+      "Hotel_Praia",
+      "gastronomia",
+      "cafe.jpg",
+    ),
+  );
+
+  const resultado = listarGaleriaHoteis(pastaBase);
+
+  assert.equal(resultado.totalHoteis, 2);
+  assert.equal(resultado.totalImagens, 2);
+  assert.deepEqual(
+    resultado.hoteis.map((hotel) => hotel.nome).sort(),
+    ["Hotel Duna", "Hotel Praia"],
+  );
+  assert.deepEqual(
+    resultado.hoteis.map((hotel) => hotel.pasta).sort(),
+    ["Itacaré/Hotel_Praia", "Jericoacoara/Hotel_Duna"],
+  );
+});
+
 test("agrupa imagens soltas e aceita as extensões do organizador", (t) => {
   const pastaBase = fs.mkdtempSync(path.join(os.tmpdir(), "galeria-soltas-"));
   t.after(() => fs.rmSync(pastaBase, { recursive: true, force: true }));
@@ -102,6 +139,19 @@ test("exclui a pasta do hotel e todo o conteúdo", (t) => {
   excluirPastaHotel(pastaBase, "Hotel");
 
   assert.equal(fs.existsSync(pastaHotel), false);
+});
+
+test("exclui hotel dentro de pasta mãe sem excluir a cidade", (t) => {
+  const pastaBase = fs.mkdtempSync(path.join(os.tmpdir(), "galeria-mae-"));
+  t.after(() => fs.rmSync(pastaBase, { recursive: true, force: true }));
+  const cidade = path.join(pastaBase, "Jericoacoara");
+  const pastaHotel = path.join(cidade, "Hotel_Duna");
+  criarArquivo(path.join(pastaHotel, "acomodacoes", "foto.jpg"));
+
+  excluirPastaHotel(pastaBase, "Jericoacoara/Hotel_Duna");
+
+  assert.equal(fs.existsSync(pastaHotel), false);
+  assert.equal(fs.existsSync(cidade), true);
 });
 
 test("rejeita caminhos fora da pasta configurada", (t) => {

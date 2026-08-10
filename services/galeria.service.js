@@ -10,12 +10,32 @@ const EXTENSOES_IMAGEM = new Set([
   ".tiff",
   ".tif",
 ]);
+const PASTAS_CATEGORIAS = new Set([
+  "entretenimento",
+  "entreterimento",
+  "gastronomia",
+  "acomodacoes",
+  "criancas",
+  "_com_humanos",
+  "_revisar",
+]);
 
 function compararNomes(a, b) {
   return a.localeCompare(b, "pt-BR", {
     numeric: true,
     sensitivity: "base",
   });
+}
+
+function normalizarNomePasta(nome) {
+  return String(nome)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function ehPastaCategoria(nome) {
+  return PASTAS_CATEGORIAS.has(normalizarNomePasta(nome));
 }
 
 function criarUrlImagem(pastaBase, caminhoAbsoluto) {
@@ -143,13 +163,17 @@ function excluirFoto(pastaBase, caminhoRelativo) {
 }
 
 function excluirPastaHotel(pastaBase, nomePasta) {
+  const partesPasta =
+    typeof nomePasta === "string"
+      ? nomePasta.replace(/\\/g, "/").split("/")
+      : [];
   if (
     typeof nomePasta !== "string" ||
     nomePasta.trim() === "" ||
-    nomePasta.includes("/") ||
-    nomePasta.includes("\\") ||
-    nomePasta === "." ||
-    nomePasta === ".."
+    path.isAbsolute(nomePasta) ||
+    partesPasta.some(
+      (parte) => parte === "" || parte === "." || parte === "..",
+    )
   ) {
     throw new Error("Pasta de hotel inválida.");
   }
@@ -201,11 +225,44 @@ function listarImagensRecursivo(pastaBase, diretorio, categorias = []) {
   return imagens;
 }
 
-function criarGrupoHotel(pastaBase, nomePasta, nomeExibicao, diretorio) {
-  const imagens = listarImagensRecursivo(pastaBase, diretorio);
+function listarImagensHotel(pastaBase, diretorio) {
+  const entradas = fs
+    .readdirSync(diretorio, { withFileTypes: true })
+    .sort((a, b) => compararNomes(a.name, b.name));
+  const imagens = [];
+
+  for (const entrada of entradas) {
+    const caminhoAbsoluto = path.join(diretorio, entrada.name);
+    if (entrada.isDirectory() && ehPastaCategoria(entrada.name)) {
+      imagens.push(
+        ...listarImagensRecursivo(
+          pastaBase,
+          caminhoAbsoluto,
+          [entrada.name],
+        ),
+      );
+    } else if (
+      entrada.isFile() &&
+      EXTENSOES_IMAGEM.has(path.extname(entrada.name).toLowerCase())
+    ) {
+      imagens.push({
+        nome: entrada.name,
+        categoria: "Sem categoria",
+        caminho: criarCaminhoRelativo(pastaBase, caminhoAbsoluto),
+        url: criarUrlImagem(pastaBase, caminhoAbsoluto),
+      });
+    }
+  }
+
+  return imagens;
+}
+
+function criarGrupoHotel(pastaBase, diretorio) {
+  const imagens = listarImagensHotel(pastaBase, diretorio);
+  const nomePasta = criarCaminhoRelativo(pastaBase, diretorio);
 
   return {
-    nome: nomeExibicao,
+    nome: path.basename(diretorio).replace(/_/g, " "),
     pasta: nomePasta,
     totalImagens: imagens.length,
     imagemCapa: imagens[0]?.url || null,
@@ -245,17 +302,27 @@ function listarGaleriaHoteis(pastaBase) {
     });
   }
 
-  for (const entrada of entradas) {
-    if (!entrada.isDirectory()) continue;
-
-    const grupo = criarGrupoHotel(
-      pastaBase,
-      entrada.name,
-      entrada.name.replace(/_/g, " "),
-      path.join(pastaBase, entrada.name),
-    );
-
+  function encontrarHoteis(diretorio) {
+    const grupo = criarGrupoHotel(pastaBase, diretorio);
     if (grupo.totalImagens > 0) hoteis.push(grupo);
+
+    const subpastas = fs
+      .readdirSync(diretorio, { withFileTypes: true })
+      .filter(
+        (entrada) =>
+          entrada.isDirectory() && !ehPastaCategoria(entrada.name),
+      )
+      .sort((a, b) => compararNomes(a.name, b.name));
+
+    for (const subpasta of subpastas) {
+      encontrarHoteis(path.join(diretorio, subpasta.name));
+    }
+  }
+
+  for (const entrada of entradas) {
+    if (entrada.isDirectory() && !ehPastaCategoria(entrada.name)) {
+      encontrarHoteis(path.join(pastaBase, entrada.name));
+    }
   }
 
   return {
