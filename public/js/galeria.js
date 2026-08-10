@@ -13,7 +13,23 @@ let estadoBibliotecaFotos = {
     fotos: [],
     pagina: 1,
     filtroHotel: FILTRO_TODAS_FOTOS,
+    pesquisa: '',
 };
+
+function normalizarPesquisaBiblioteca(valor) {
+    return String(valor || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('pt-BR')
+        .trim();
+}
+
+function correspondePesquisaBiblioteca(item, campos) {
+    if (!estadoBibliotecaFotos.pesquisa) return true;
+    return normalizarPesquisaBiblioteca(
+        campos.map((campo) => item[campo]).filter(Boolean).join(' ')
+    ).includes(estadoBibliotecaFotos.pesquisa);
+}
 
 function obterNomeArquivoFoto(url, indice = 0) {
     try {
@@ -199,14 +215,33 @@ function preencherFiltroHoteis(hoteis) {
 }
 
 function obterFotosBibliotecaFiltradas() {
+    let fotos;
     if (estadoBibliotecaFotos.filtroHotel === FILTRO_TODAS_FOTOS) {
-        return estadoBibliotecaFotos.fotos;
+        fotos = estadoBibliotecaFotos.fotos;
+    } else if (estadoBibliotecaFotos.filtroHotel === FILTRO_TODOS_HOTEIS) {
+        return [];
+    } else {
+        fotos = estadoBibliotecaFotos.fotos.filter(
+            (foto) => foto.chaveHotel === estadoBibliotecaFotos.filtroHotel
+        );
     }
-    if (estadoBibliotecaFotos.filtroHotel === FILTRO_TODOS_HOTEIS) return [];
 
-    return estadoBibliotecaFotos.fotos.filter(
-        (foto) => foto.chaveHotel === estadoBibliotecaFotos.filtroHotel
+    return fotos.filter((foto) =>
+        correspondePesquisaBiblioteca(
+            foto,
+            ['hotel', 'nome', 'categoria', 'caminho', 'chaveHotel']
+        )
     );
+}
+
+function obterPastasBibliotecaFiltradas() {
+    return estadoBibliotecaFotos.hoteis.filter((hotel) => {
+        if (!hotel.pasta) return false;
+        if (correspondePesquisaBiblioteca(hotel, ['nome', 'pasta'])) return true;
+        return Array.isArray(hotel.imagens) && hotel.imagens.some((foto) =>
+            correspondePesquisaBiblioteca(foto, ['nome', 'categoria', 'caminho'])
+        );
+    });
 }
 
 function criarCardPastaHotel(hotel) {
@@ -260,9 +295,7 @@ function renderizarPaginaBibliotecaFotos() {
     const vazio = document.getElementById('bibliotecaFotosVazia');
     const exibindoPastas =
         estadoBibliotecaFotos.filtroHotel === FILTRO_TODOS_HOTEIS;
-    const pastas = exibindoPastas
-        ? estadoBibliotecaFotos.hoteis.filter((hotel) => hotel.pasta)
-        : [];
+    const pastas = exibindoPastas ? obterPastasBibliotecaFiltradas() : [];
     const fotos = obterFotosBibliotecaFiltradas();
     const itens = exibindoPastas ? pastas : fotos;
     const totalPaginas = Math.max(
@@ -299,10 +332,19 @@ function renderizarPaginaBibliotecaFotos() {
         });
     }
 
-    vazio.textContent = exibindoPastas
-        ? 'Nenhuma pasta de hotel foi encontrada.'
-        : 'Nenhuma foto foi encontrada na pasta configurada.';
+    vazio.textContent = estadoBibliotecaFotos.pesquisa
+        ? 'Nenhum resultado encontrado para esta pesquisa.'
+        : exibindoPastas
+            ? 'Nenhuma pasta de hotel foi encontrada.'
+            : 'Nenhuma foto foi encontrada na pasta configurada.';
     vazio.classList.toggle('hidden', itens.length > 0);
+
+    const resultadoPesquisa = document.getElementById('resultadoPesquisaBiblioteca');
+    if (resultadoPesquisa) {
+        resultadoPesquisa.textContent = estadoBibliotecaFotos.pesquisa
+            ? itens.length + (itens.length === 1 ? ' resultado' : ' resultados')
+            : '';
+    }
     atualizarControlesPaginacao({
         containerId: 'paginacaoBibliotecaFotos',
         textoId: 'paginaAtualBiblioteca',
@@ -381,6 +423,25 @@ async function chamarAcaoGaleria(url, method, body) {
         throw new Error(dados.erro || 'Não foi possível concluir a ação.');
     }
     return dados;
+}
+
+function pesquisarBibliotecaFotos(valor) {
+    estadoBibliotecaFotos.pesquisa = normalizarPesquisaBiblioteca(valor);
+    estadoBibliotecaFotos.pagina = 1;
+    document.getElementById('btnLimparPesquisaBiblioteca')?.classList.toggle(
+        'hidden',
+        !estadoBibliotecaFotos.pesquisa
+    );
+    renderizarPaginaBibliotecaFotos();
+}
+
+function limparPesquisaBibliotecaFotos() {
+    const campo = document.getElementById('pesquisaBibliotecaFotos');
+    if (campo) {
+        campo.value = '';
+        campo.focus();
+    }
+    pesquisarBibliotecaFotos('');
 }
 
 async function lerRespostaJsonGaleria(response, url) {

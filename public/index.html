@@ -1576,14 +1576,35 @@
                     <span>Atualizar lista</span>
                 </button>
             </div>
-            <div class="app-divider mt-5 flex flex-col gap-4 border-t pt-5 sm:flex-row sm:items-end sm:justify-between">
+            <div class="app-divider mt-5 flex flex-col gap-4 border-t pt-5 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <p id="statusBibliotecaFotos" class="app-text-muted text-sm" role="status" aria-live="polite">
                         Carregando fotos salvas...
                     </p>
                     <span id="resumoBibliotecaFotos" class="app-text-subtle mt-1 block text-xs font-medium"></span>
                 </div>
-                <div class="flex w-full flex-col gap-3 sm:w-72">
+                <div class="grid w-full gap-3 sm:grid-cols-[minmax(16rem,1fr)_18rem] lg:max-w-3xl">
+                    <label>
+                        <span class="app-label">Pesquisar nas imagens salvas</span>
+                        <span class="library-search-control">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.15a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+                            <input
+                                id="pesquisaBibliotecaFotos"
+                                type="search"
+                                placeholder="Hotel, arquivo ou categoria..."
+                                autocomplete="off"
+                                oninput="pesquisarBibliotecaFotos(this.value)"
+                            >
+                            <button
+                                id="btnLimparPesquisaBiblioteca"
+                                type="button"
+                                class="library-search-clear hidden"
+                                onclick="limparPesquisaBibliotecaFotos()"
+                                aria-label="Limpar pesquisa"
+                            >&times;</button>
+                        </span>
+                        <span id="resultadoPesquisaBiblioteca" class="app-text-subtle mt-1 block min-h-4 text-xs" aria-live="polite"></span>
+                    </label>
                     <label>
                         <span class="app-label">Visualização</span>
                         <select id="filtroHotelBiblioteca" class="app-input" onchange="filtrarBibliotecaFotos(this.value)">
@@ -1836,7 +1857,7 @@
     <script src="/js/configuracoes.js"></script>
     <script src="/js/interface.js"></script>
     <script src="/js/organizacao.js?v=20260810-estimativa-recursiva"></script>
-    <script src="/js/galeria.js?v=20260810-pastas-maes"></script>
+    <script src="/js/galeria.js?v=20260810-pesquisa-biblioteca"></script>
     <script src="/js/busca.js"></script>
     <script src="/js/terminal.js?v=20260810-pesquisa-terminal"></script>
 </body>
