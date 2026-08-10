@@ -1635,7 +1635,7 @@
                     </p>
                     <span id="resumoBibliotecaFotos" class="app-text-subtle mt-1 block text-xs font-medium"></span>
                 </div>
-                <div class="grid w-full gap-3 sm:grid-cols-[minmax(16rem,1fr)_18rem] lg:max-w-3xl">
+                <div class="grid w-full gap-3 sm:grid-cols-2 xl:max-w-5xl xl:grid-cols-[minmax(16rem,1fr)_16rem_18rem]">
                     <label>
                         <span class="app-label">Pesquisar nas imagens salvas</span>
                         <span class="library-search-control">
@@ -1656,6 +1656,12 @@
                             >&times;</button>
                         </span>
                         <span id="resultadoPesquisaBiblioteca" class="app-text-subtle mt-1 block min-h-4 text-xs" aria-live="polite"></span>
+                    </label>
+                    <label>
+                        <span class="app-label">Pasta-mãe</span>
+                        <select id="filtroPastaMaeBiblioteca" class="app-input" onchange="filtrarPastaMaeBiblioteca(this.value)">
+                            <option value="__todas_pastas_mae__">Todas as pastas-mãe</option>
+                        </select>
                     </label>
                     <label>
                         <span class="app-label">Visualização</span>
@@ -1909,7 +1915,7 @@
     <script src="/js/configuracoes.js"></script>
     <script src="/js/interface.js"></script>
     <script src="/js/organizacao.js?v=20260810-estimativa-recursiva"></script>
-    <script src="/js/galeria.js?v=20260810-pesquisa-biblioteca"></script>
+    <script src="/js/galeria.js?v=20260810-filtro-pasta-mae"></script>
     <script src="/js/busca.js?v=20260810-pesquisa-uf-cidade"></script>
     <script src="/js/terminal.js?v=20260810-pesquisa-terminal"></script>
 </body>

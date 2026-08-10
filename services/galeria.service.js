@@ -260,10 +260,12 @@ function listarImagensHotel(pastaBase, diretorio) {
 function criarGrupoHotel(pastaBase, diretorio) {
   const imagens = listarImagensHotel(pastaBase, diretorio);
   const nomePasta = criarCaminhoRelativo(pastaBase, diretorio);
+  const partesPasta = nomePasta.split("/").filter(Boolean);
 
   return {
     nome: path.basename(diretorio).replace(/_/g, " "),
     pasta: nomePasta,
+    pastaMae: partesPasta.length > 1 ? partesPasta[0] : null,
     totalImagens: imagens.length,
     imagemCapa: imagens[0]?.url || null,
     imagens,
@@ -296,6 +298,7 @@ function listarGaleriaHoteis(pastaBase) {
     hoteis.push({
       nome: "Imagens soltas",
       pasta: null,
+      pastaMae: null,
       totalImagens: imagensSoltas.length,
       imagemCapa: imagensSoltas[0].url,
       imagens: imagensSoltas,

@@ -83,6 +83,26 @@ test("encontra hotéis dentro de pastas mães sem agrupá-los pela cidade", (t) 
     resultado.hoteis.map((hotel) => hotel.pasta).sort(),
     ["Itacaré/Hotel_Praia", "Jericoacoara/Hotel_Duna"],
   );
+  assert.deepEqual(
+    resultado.hoteis.map((hotel) => hotel.pastaMae).sort(),
+    ["Itacaré", "Jericoacoara"],
+  );
+});
+
+test("distingue hotéis sem pasta mãe dos hotéis aninhados", (t) => {
+  const pastaBase = fs.mkdtempSync(path.join(os.tmpdir(), "galeria-filtro-mae-"));
+  t.after(() => fs.rmSync(pastaBase, { recursive: true, force: true }));
+
+  criarArquivo(path.join(pastaBase, "Hotel_Raiz", "foto.jpg"));
+  criarArquivo(path.join(pastaBase, "Bahia", "Hotel_Costa", "foto.jpg"));
+
+  const resultado = listarGaleriaHoteis(pastaBase);
+  const porNome = Object.fromEntries(
+    resultado.hoteis.map((hotel) => [hotel.nome, hotel]),
+  );
+
+  assert.equal(porNome["Hotel Raiz"].pastaMae, null);
+  assert.equal(porNome["Hotel Costa"].pastaMae, "Bahia");
 });
 
 test("agrupa imagens soltas e aceita as extensões do organizador", (t) => {

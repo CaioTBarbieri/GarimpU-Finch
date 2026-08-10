@@ -2,6 +2,8 @@ const FOTOS_POR_PAGINA_RESULTADO = 12;
 const FOTOS_POR_PAGINA_BIBLIOTECA = 16;
 const FILTRO_TODAS_FOTOS = '__todas_fotos__';
 const FILTRO_TODOS_HOTEIS = '__todos_hoteis__';
+const FILTRO_TODAS_PASTAS_MAE = '__todas_pastas_mae__';
+const FILTRO_SEM_PASTA_MAE = '__sem_pasta_mae__';
 
 let estadoGaleriaResultado = {
     fotos: [],
@@ -13,6 +15,7 @@ let estadoBibliotecaFotos = {
     fotos: [],
     pagina: 1,
     filtroHotel: FILTRO_TODAS_FOTOS,
+    filtroPastaMae: FILTRO_TODAS_PASTAS_MAE,
     pesquisa: '',
 };
 
@@ -191,6 +194,46 @@ function obterChaveHotel(hotel) {
     return hotel.pasta || '__imagens_soltas__';
 }
 
+function obterChavePastaMae(hotel) {
+    return hotel.pastaMae || FILTRO_SEM_PASTA_MAE;
+}
+
+function hotelPertencePastaMaeSelecionada(hotel) {
+    return estadoBibliotecaFotos.filtroPastaMae === FILTRO_TODAS_PASTAS_MAE ||
+        obterChavePastaMae(hotel) === estadoBibliotecaFotos.filtroPastaMae;
+}
+
+function preencherFiltroPastasMae(hoteis) {
+    const seletor = document.getElementById('filtroPastaMaeBiblioteca');
+    const pastasMae = Array.from(new Set(
+        hoteis.map((hotel) => hotel.pastaMae).filter(Boolean)
+    )).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+
+    seletor.replaceChildren();
+    const todas = document.createElement('option');
+    todas.value = FILTRO_TODAS_PASTAS_MAE;
+    todas.textContent = 'Todas as pastas-mãe';
+    seletor.appendChild(todas);
+
+    pastasMae.forEach((pastaMae) => {
+        const quantidade = hoteis.filter(
+            (hotel) => hotel.pastaMae === pastaMae
+        ).length;
+        const opcao = document.createElement('option');
+        opcao.value = pastaMae;
+        opcao.textContent = pastaMae + ' (' + quantidade + ')';
+        seletor.appendChild(opcao);
+    });
+
+    if (hoteis.some((hotel) => !hotel.pastaMae)) {
+        const semPastaMae = document.createElement('option');
+        semPastaMae.value = FILTRO_SEM_PASTA_MAE;
+        semPastaMae.textContent = 'Sem pasta-mãe';
+        seletor.appendChild(semPastaMae);
+    }
+    seletor.value = estadoBibliotecaFotos.filtroPastaMae;
+}
+
 function preencherFiltroHoteis(hoteis) {
     const seletor = document.getElementById('filtroHotelBiblioteca');
     seletor.replaceChildren();
@@ -205,7 +248,7 @@ function preencherFiltroHoteis(hoteis) {
     todosHoteis.textContent = 'Todos os hotéis';
     seletor.appendChild(todosHoteis);
 
-    hoteis.forEach((hotel) => {
+    hoteis.filter(hotelPertencePastaMaeSelecionada).forEach((hotel) => {
         const opcao = document.createElement('option');
         opcao.value = obterChaveHotel(hotel);
         opcao.textContent = hotel.nome + ' (' + hotel.totalImagens + ')';
@@ -215,13 +258,15 @@ function preencherFiltroHoteis(hoteis) {
 }
 
 function obterFotosBibliotecaFiltradas() {
-    let fotos;
-    if (estadoBibliotecaFotos.filtroHotel === FILTRO_TODAS_FOTOS) {
-        fotos = estadoBibliotecaFotos.fotos;
-    } else if (estadoBibliotecaFotos.filtroHotel === FILTRO_TODOS_HOTEIS) {
+    let fotos = estadoBibliotecaFotos.fotos.filter((foto) =>
+        estadoBibliotecaFotos.filtroPastaMae === FILTRO_TODAS_PASTAS_MAE ||
+        foto.chavePastaMae === estadoBibliotecaFotos.filtroPastaMae
+    );
+    if (estadoBibliotecaFotos.filtroHotel === FILTRO_TODOS_HOTEIS) {
         return [];
-    } else {
-        fotos = estadoBibliotecaFotos.fotos.filter(
+    }
+    if (estadoBibliotecaFotos.filtroHotel !== FILTRO_TODAS_FOTOS) {
+        fotos = fotos.filter(
             (foto) => foto.chaveHotel === estadoBibliotecaFotos.filtroHotel
         );
     }
@@ -237,6 +282,7 @@ function obterFotosBibliotecaFiltradas() {
 function obterPastasBibliotecaFiltradas() {
     return estadoBibliotecaFotos.hoteis.filter((hotel) => {
         if (!hotel.pasta) return false;
+        if (!hotelPertencePastaMaeSelecionada(hotel)) return false;
         if (correspondePesquisaBiblioteca(hotel, ['nome', 'pasta'])) return true;
         return Array.isArray(hotel.imagens) && hotel.imagens.some((foto) =>
             correspondePesquisaBiblioteca(foto, ['nome', 'categoria', 'caminho'])
@@ -359,14 +405,30 @@ function renderizarPaginaBibliotecaFotos() {
 function renderizarBibliotecaFotos(dados, { preservarFiltro = false } = {}) {
     const hoteis = Array.isArray(dados.hoteis) ? dados.hoteis : [];
     const filtroAnterior = estadoBibliotecaFotos.filtroHotel;
+    const filtroPastaMaeAnterior = estadoBibliotecaFotos.filtroPastaMae;
     const filtrosFixos = [FILTRO_TODAS_FOTOS, FILTRO_TODOS_HOTEIS];
     estadoBibliotecaFotos.hoteis = hoteis;
+    const chavesPastasMae = new Set(hoteis.map(obterChavePastaMae));
+    estadoBibliotecaFotos.filtroPastaMae =
+        preservarFiltro && (
+            filtroPastaMaeAnterior === FILTRO_TODAS_PASTAS_MAE ||
+            chavesPastasMae.has(filtroPastaMaeAnterior)
+        )
+            ? filtroPastaMaeAnterior
+            : FILTRO_TODAS_PASTAS_MAE;
     estadoBibliotecaFotos.filtroHotel =
         preservarFiltro &&
         (
             filtrosFixos.includes(filtroAnterior) ||
             hoteis.some(
-                (hotel) => obterChaveHotel(hotel) === filtroAnterior
+                (hotel) =>
+                    obterChaveHotel(hotel) === filtroAnterior &&
+                    (
+                        estadoBibliotecaFotos.filtroPastaMae ===
+                            FILTRO_TODAS_PASTAS_MAE ||
+                        obterChavePastaMae(hotel) ===
+                            estadoBibliotecaFotos.filtroPastaMae
+                    )
             )
         )
             ? filtroAnterior
@@ -377,9 +439,12 @@ function renderizarBibliotecaFotos(dados, { preservarFiltro = false } = {}) {
             ...foto,
             hotel: hotel.nome,
             chaveHotel: obterChaveHotel(hotel),
+            pastaMae: hotel.pastaMae || '',
+            chavePastaMae: obterChavePastaMae(hotel),
         }))
     );
 
+    preencherFiltroPastasMae(hoteis);
     preencherFiltroHoteis(hoteis);
     renderizarPaginaBibliotecaFotos();
     document.getElementById('resumoBibliotecaFotos').textContent =
@@ -391,6 +456,20 @@ function renderizarBibliotecaFotos(dados, { preservarFiltro = false } = {}) {
 function filtrarBibliotecaFotos(chaveHotel) {
     estadoBibliotecaFotos.filtroHotel = chaveHotel;
     estadoBibliotecaFotos.pagina = 1;
+    atualizarBotaoExcluirPasta();
+    renderizarPaginaBibliotecaFotos();
+}
+
+function filtrarPastaMaeBiblioteca(chavePastaMae) {
+    estadoBibliotecaFotos.filtroPastaMae = chavePastaMae;
+    const hotelSelecionado = estadoBibliotecaFotos.hoteis.find(
+        (hotel) => obterChaveHotel(hotel) === estadoBibliotecaFotos.filtroHotel
+    );
+    if (hotelSelecionado && !hotelPertencePastaMaeSelecionada(hotelSelecionado)) {
+        estadoBibliotecaFotos.filtroHotel = FILTRO_TODAS_FOTOS;
+    }
+    estadoBibliotecaFotos.pagina = 1;
+    preencherFiltroHoteis(estadoBibliotecaFotos.hoteis);
     atualizarBotaoExcluirPasta();
     renderizarPaginaBibliotecaFotos();
 }
