@@ -56,7 +56,7 @@
     <link rel="stylesheet" href="/vendor/tailwind.css">
     <script src="/vendor/jszip.min.js"></script>
     <script src="/vendor/papaparse.min.js"></script>
-    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/styles.css?v=20260810-organizacao-ui">
 </head>
 <body class="min-h-screen overflow-x-hidden antialiased">
     <canvas id="temaVfxCanvas" class="tema-vfx-canvas" aria-hidden="true"></canvas>
@@ -1436,86 +1436,100 @@
 
         <!-- Organização com IA -->
         <section class="app-card ia-section" aria-labelledby="tituloOrganizacaoIA" data-tab-panel="ia" hidden>
-            <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div class="max-w-3xl">
-                    <p class="section-kicker app-status-ai">Processamento local</p>
-                    <h2 id="tituloOrganizacaoIA" class="section-title">Organização de imagens com IA</h2>
-                    <p class="section-description">
-                        Executa Florence, CLIP e YOLO para classificar, descrever e organizar as imagens já baixadas.
-                    </p>
-                    <p class="app-status-warning mt-2 text-sm">
-                        O processamento pode levar vários minutos ou horas, dependendo do volume.
-                    </p>
+            <div class="ia-workspace-header">
+                <div class="ia-workspace-intro">
+                    <div class="ia-orbit-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M12 3.25a8.75 8.75 0 1 0 8.75 8.75"/><path d="M12 7a5 5 0 1 0 5 5"/><path d="m16.5 2 .75 2.25L19.5 5l-2.25.75L16.5 8l-.75-2.25L13.5 5l2.25-.75L16.5 2Z"/></svg>
+                    </div>
+                    <div>
+                        <div class="ia-heading-row">
+                            <p class="section-kicker app-status-ai">Processamento local</p>
+                            <span class="ia-local-badge">Seus arquivos não saem do computador</span>
+                        </div>
+                        <h2 id="tituloOrganizacaoIA" class="section-title">Organização inteligente</h2>
+                        <p class="section-description ia-description">
+                            Florence, CLIP e YOLO analisam, classificam e renomeiam as imagens de cada hotel automaticamente.
+                        </p>
+                    </div>
                 </div>
-                <div class="flex w-full flex-col gap-3 lg:w-auto">
-                    <label class="app-surface-deep flex cursor-pointer items-start gap-3 rounded-xl border p-3">
+
+                <div class="ia-control-panel">
+                    <div class="ia-control-heading">
+                        <div>
+                            <span class="ia-step-label">Configuração</span>
+                            <h3>Escolha o que processar</h3>
+                        </div>
+                        <span class="ia-step-number" aria-hidden="true">01</span>
+                    </div>
+                    <label class="ia-mode-toggle">
                         <input
                             id="reorganizarImagensOrganizadas"
-                            class="app-checkbox mt-0.5 h-4 w-4 rounded"
+                            class="app-checkbox h-4 w-4 rounded"
                             type="checkbox"
                             onchange="atualizarFiltroPastaMaeOrganizacao()"
                         >
-                        <span>
-                            <span class="app-text block text-sm font-medium">Reorganizar imagens antigas</span>
-                            <span class="app-text-subtle mt-1 block text-xs leading-5">
-                                Inclui fotos já categorizadas que ainda não foram renomeadas pelo Florence.
-                            </span>
+                        <span class="ia-mode-copy">
+                            <span class="app-text text-sm font-medium">Reorganizar imagens antigas</span>
+                            <span class="app-text-subtle text-xs leading-5">Inclui fotos já categorizadas e aplica os novos nomes.</span>
                         </span>
                     </label>
-                    <label id="campoPastaMaeOrganizacao" class="app-surface-deep hidden rounded-xl border p-3">
+                    <label id="campoPastaMaeOrganizacao" class="ia-folder-filter hidden">
                         <span class="app-label">Pasta-mãe para reorganizar</span>
                         <select id="pastaMaeOrganizacao" class="app-input" onchange="carregarEstimativaFlorence()">
                             <option value="">Todas as pastas-mãe</option>
                         </select>
                         <span id="statusPastasMaeOrganizacao" class="app-text-subtle mt-1 block text-xs" aria-live="polite"></span>
                     </label>
-                    <button
-                        id="btnOrganizarTudo"
-                        type="button"
-                        onclick="organizarLoteIA()"
-                        class="app-button app-button-ai w-full lg:w-auto"
-                    >
-                        <span class="button-spinner" aria-hidden="true"></span>
-                        <span>Iniciar organização</span>
-                    </button>
-                    <button
-                        id="btnBaixarLogFlorence"
-                        type="button"
-                        onclick="baixarLogFlorence()"
-                        class="app-button app-button-tertiary w-full lg:w-auto"
-                    >
-                        Baixar log Florence
-                    </button>
+                    <div class="ia-action-grid">
+                        <button
+                            id="btnOrganizarTudo"
+                            type="button"
+                            onclick="organizarLoteIA()"
+                            class="app-button app-button-ai"
+                        >
+                            <span class="button-spinner" aria-hidden="true"></span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 7 8 5-8 5V7Z"/><path d="m18.5 3 .5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5.5-1.5Z"/></svg>
+                            <span>Iniciar organização</span>
+                        </button>
+                        <button
+                            id="btnBaixarLogFlorence"
+                            type="button"
+                            onclick="baixarLogFlorence()"
+                            class="app-button app-button-tertiary"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7V3Z"/><path d="M14 3v5h5M10 13h5m-5 4h5"/></svg>
+                            <span>Baixar log</span>
+                        </button>
+                    </div>
                     <p id="statusLogFlorence" class="hidden text-xs" role="status" aria-live="polite"></p>
-                    <p class="app-text-subtle text-xs">
-                        Ao concluir a organização, o log será baixado automaticamente.
+                    <p class="ia-control-note">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l2.5 1.5"/><circle cx="12" cy="12" r="9"/></svg>
+                        O tempo varia conforme o volume. O log será baixado ao concluir.
                     </p>
                 </div>
             </div>
 
-            <div class="app-divider app-surface-deep mt-6 rounded-xl border p-4">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <p class="app-status-ai text-xs font-medium uppercase tracking-wider">
-                            Estimativa baseada nos logs
-                        </p>
-                        <p id="estimativaHistoricaFlorence" class="app-text mt-2 text-lg font-semibold" aria-live="polite">
-                            Calculando...
-                        </p>
-                        <p id="detalhesEstimativaFlorence" class="app-text-subtle mt-1 text-xs leading-5">
-                            Analisando imagens pendentes e histórico local.
-                        </p>
-                    </div>
-                    <button
-                        id="btnAtualizarEstimativaFlorence"
-                        type="button"
-                        onclick="carregarEstimativaFlorence()"
-                        class="app-button app-button-tertiary w-full sm:w-auto"
-                    >
-                        <span class="button-spinner" aria-hidden="true"></span>
-                        <span>Recalcular</span>
-                    </button>
+            <div class="ia-estimate-card">
+                <div class="ia-estimate-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>
                 </div>
+                <div class="ia-estimate-content">
+                    <p class="ia-step-label">Previsão desta execução</p>
+                    <p id="estimativaHistoricaFlorence" class="app-text" aria-live="polite">Calculando...</p>
+                    <p id="detalhesEstimativaFlorence" class="app-text-subtle">Analisando imagens pendentes e histórico local.</p>
+                </div>
+                <button
+                    id="btnAtualizarEstimativaFlorence"
+                    type="button"
+                    onclick="carregarEstimativaFlorence()"
+                    class="ia-refresh-button"
+                    title="Recalcular estimativa"
+                    aria-label="Recalcular estimativa"
+                >
+                    <span class="button-spinner" aria-hidden="true"></span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.35 5.65"/><path d="M20 5v6h-6"/></svg>
+                    <span>Recalcular</span>
+                </button>
             </div>
 
             <div id="painelOrganizacaoIA" class="mt-6">
@@ -1534,7 +1548,7 @@
                     </div>
 
                     <div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                        <div>
+                        <div class="ia-progress-panel">
                             <div class="mb-2 flex items-center justify-between gap-4 text-sm">
                                 <span class="app-text-muted">Progresso geral</span>
                                 <span id="statusProgressoGeralIA" class="app-text-secondary">0 de 0 imagens</span>
@@ -1546,7 +1560,7 @@
                                 <span id="statusProgressoGeralContagemIA">0</span>%
                             </p>
                         </div>
-                        <div>
+                        <div class="ia-progress-panel">
                             <div class="mb-2 flex items-center justify-between gap-4 text-sm">
                                 <span class="app-text-muted">Progresso do hotel</span>
                                 <span class="app-text-secondary">
@@ -1563,7 +1577,7 @@
                         </div>
                     </div>
 
-                    <dl class="mt-6 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <dl class="ia-details-grid mt-6 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
                         <div class="info-item">
                             <dt>Hotel atual</dt>
                             <dd id="statusHotelIA">—</dd>
@@ -1586,7 +1600,7 @@
                         </div>
                     </dl>
 
-                    <dl class="app-divider mt-6 grid grid-cols-2 gap-x-6 gap-y-4 border-t pt-5 lg:grid-cols-4">
+                    <dl class="ia-metrics-grid app-divider mt-6 grid grid-cols-2 gap-x-6 gap-y-4 border-t pt-5 lg:grid-cols-4">
                         <div class="metric-item">
                             <dt id="statusRotuloTempoIA">Tempo decorrido</dt>
                             <dd id="statusTempoDecorridoIA">00:00:00</dd>
@@ -1605,7 +1619,7 @@
                         </div>
                     </dl>
 
-                    <div class="app-divider mt-6 border-t pt-5">
+                    <div class="ia-history app-divider mt-6 border-t pt-5">
                         <h3 class="app-text-secondary text-sm font-medium">Últimas mensagens</h3>
                         <p id="historicoStatusIA" class="app-text-muted mt-3 whitespace-pre-line text-sm leading-6">
                             Nenhuma mensagem recebida.

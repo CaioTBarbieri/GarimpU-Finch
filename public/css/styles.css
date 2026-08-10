@@ -1631,6 +1631,247 @@ details[open] > summary .details-chevron {
 
 .ia-section {
     border-color: rgb(var(--ai-rgb) / 36%);
+    overflow: hidden;
+    position: relative;
+}
+
+.ia-section::before {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--ai), var(--primary), transparent);
+    content: "";
+    opacity: 0.75;
+}
+
+.ia-workspace-header {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.ia-workspace-intro {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding-top: 0.25rem;
+}
+
+.ia-orbit-mark {
+    display: grid;
+    width: 3.25rem;
+    height: 3.25rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid rgb(var(--ai-rgb) / 35%);
+    border-radius: 1rem;
+    background: linear-gradient(145deg, rgb(var(--ai-rgb) / 17%), rgb(var(--primary-rgb) / 8%));
+    color: var(--ai);
+    box-shadow: 0 10px 30px rgb(var(--ai-rgb) / 9%);
+}
+
+.ia-orbit-mark svg,
+.ia-action-grid svg,
+.ia-control-note svg,
+.ia-estimate-icon svg,
+.ia-refresh-button svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.ia-orbit-mark svg {
+    width: 1.75rem;
+    height: 1.75rem;
+}
+
+.ia-heading-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem 0.8rem;
+}
+
+.ia-local-badge {
+    border: 1px solid rgb(var(--success-rgb) / 25%);
+    border-radius: 999px;
+    background: rgb(var(--success-rgb) / 8%);
+    color: var(--success);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 0.35rem 0.55rem;
+}
+
+.ia-description {
+    max-width: 42rem;
+}
+
+.ia-control-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    border: 1px solid rgb(var(--ai-rgb) / 24%);
+    border-radius: 1rem;
+    background: linear-gradient(145deg, rgb(var(--surface-deep-rgb) / 82%), rgb(var(--ai-rgb) / 5%));
+    padding: 1rem;
+}
+
+.ia-control-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.15rem;
+}
+
+.ia-control-heading h3 {
+    margin-top: 0.2rem;
+    color: var(--text);
+    font-size: 0.9375rem;
+    font-weight: 650;
+}
+
+.ia-step-label {
+    color: var(--ai);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.ia-step-number {
+    color: rgb(var(--ai-rgb) / 42%);
+    font-size: 1.5rem;
+    font-weight: 750;
+    line-height: 1;
+}
+
+.ia-mode-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: rgb(var(--surface-rgb) / 68%);
+    cursor: pointer;
+    padding: 0.8rem;
+    transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.ia-mode-toggle:hover {
+    border-color: rgb(var(--ai-rgb) / 42%);
+    background: rgb(var(--ai-rgb) / 7%);
+}
+
+.ia-mode-toggle .app-checkbox {
+    margin-top: 0.2rem;
+    flex: 0 0 auto;
+}
+
+.ia-mode-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.ia-folder-filter {
+    border-left: 2px solid rgb(var(--ai-rgb) / 55%);
+    padding: 0.25rem 0 0.25rem 0.8rem;
+}
+
+.ia-folder-filter .app-input {
+    margin-top: 0.35rem;
+}
+
+.ia-action-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.6rem;
+}
+
+.ia-action-grid .app-button {
+    min-height: 2.8rem;
+}
+
+.ia-control-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    color: var(--text-subtle);
+    font-size: 0.6875rem;
+    line-height: 1.1rem;
+}
+
+.ia-control-note svg {
+    width: 0.95rem;
+    height: 0.95rem;
+    flex: 0 0 auto;
+    margin-top: 0.05rem;
+}
+
+.ia-estimate-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.9rem;
+    margin-top: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 0.875rem;
+    background: rgb(var(--surface-deep-rgb) / 58%);
+    padding: 0.9rem 1rem;
+}
+
+.ia-estimate-icon {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    place-items: center;
+    border-radius: 0.75rem;
+    background: rgb(var(--ai-rgb) / 11%);
+    color: var(--ai);
+}
+
+.ia-estimate-content {
+    min-width: 0;
+}
+
+#estimativaHistoricaFlorence {
+    margin-top: 0.15rem;
+    font-size: 1.05rem;
+    font-weight: 650;
+}
+
+#detalhesEstimativaFlorence {
+    margin-top: 0.15rem;
+    font-size: 0.75rem;
+    line-height: 1.2rem;
+}
+
+.ia-refresh-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 2.3rem;
+    border: 1px solid var(--border);
+    border-radius: 0.65rem;
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.5rem 0.7rem;
+    transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.ia-refresh-button:hover:not(:disabled) {
+    border-color: rgb(var(--ai-rgb) / 40%);
+    background: rgb(var(--ai-rgb) / 8%);
+    color: var(--ai);
 }
 
 .ia-card {
@@ -1639,6 +1880,59 @@ details[open] > summary .details-chevron {
     border-radius: 0.875rem;
     background: rgb(var(--surface-deep-rgb) / 58%);
     padding: 1.25rem;
+}
+
+.ia-progress-panel {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: rgb(var(--surface-rgb) / 44%);
+    padding: 0.85rem;
+}
+
+.ia-details-grid .info-item,
+.ia-metrics-grid .metric-item {
+    border-left: 2px solid rgb(var(--ai-rgb) / 20%);
+    padding-left: 0.75rem;
+}
+
+.ia-history {
+    border-radius: 0 0 0.75rem 0.75rem;
+}
+
+@media (min-width: 1024px) {
+    .ia-workspace-header {
+        grid-template-columns: minmax(0, 1fr) minmax(21rem, 25rem);
+        align-items: start;
+    }
+}
+
+@media (max-width: 639px) {
+    .ia-workspace-intro {
+        gap: 0.75rem;
+    }
+
+    .ia-orbit-mark {
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 0.8rem;
+    }
+
+    .ia-local-badge {
+        display: none;
+    }
+
+    .ia-action-grid,
+    .ia-estimate-card {
+        grid-template-columns: 1fr;
+    }
+
+    .ia-estimate-icon {
+        display: none;
+    }
+
+    .ia-refresh-button {
+        width: 100%;
+    }
 }
 
 .ia-card[data-state="processando"] {
