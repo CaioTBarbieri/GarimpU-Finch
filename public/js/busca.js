@@ -337,10 +337,15 @@
             }
 
             function atualizarCamposFiltroDownloadLote() {
-                const modo = document.getElementById('modoFiltroDownloadLote').value;
-                const usaRaio = modo === 'ambos';
-                const usaCidade = modo === 'ambos';
-                const usaEstado = modo === 'estado' || modo === 'ambos';
+                const usaRaio = document.getElementById(
+                    'usarRaioDownloadLote'
+                ).checked;
+                const usaCidade = document.getElementById(
+                    'usarCidadeDownloadLote'
+                ).checked;
+                const usaEstado = document.getElementById(
+                    'usarEstadoDownloadLote'
+                ).checked;
                 document.getElementById('campoRaioDownloadLote')
                     .classList.toggle('hidden', !usaRaio);
                 document.getElementById('campoCidadeDownloadLote')
@@ -348,13 +353,18 @@
                 document.getElementById('campoEstadoDownloadLote')
                     .classList.toggle('hidden', !usaEstado);
 
-                const descricoes = {
-                    nenhum: 'Sem filtro: todos os hotéis encontrados terão as imagens baixadas.',
-                    estado: 'Confere a UF no endereço encontrado antes de baixar.',
-                    ambos: 'Exige cidade e estado corretos, além da proximidade das coordenadas configuradas.'
-                };
+                const criterios = [];
+                if (usaEstado) criterios.push('Estado');
+                if (usaCidade) criterios.push('Cidade');
+                if (usaRaio) criterios.push('Raio');
                 document.getElementById('ajudaFiltroDownloadLote').textContent =
-                    descricoes[modo] || descricoes.nenhum;
+                    criterios.length === 0
+                        ? 'Superfiltro desligado: todos os hotéis encontrados terão as imagens baixadas.'
+                        : 'O hotel precisa atender ' +
+                            (criterios.length === 1
+                                ? 'ao critério ' + criterios[0]
+                                : 'aos critérios ' + criterios.join(' + ')) +
+                            ' para ter as imagens salvas.';
                 atualizarEstadoFiltroDownloadLote();
             }
 
@@ -385,15 +395,32 @@
             }
 
             async function atualizarEstadoFiltroDownloadLote() {
-                const modo = document.getElementById('modoFiltroDownloadLote').value;
+                const usaEstado = document.getElementById(
+                    'usarEstadoDownloadLote'
+                ).checked;
+                const usaCidade = document.getElementById(
+                    'usarCidadeDownloadLote'
+                ).checked;
                 const campoEstado = document.getElementById('estadoDownloadLote');
                 const uf = resolverUfPesquisa(campoEstado.value);
                 const status = document.getElementById('statusCidadesFiltroDownloadLote');
                 const idRequisicao = ++requisicaoCidadesFiltroLote;
 
-                if (modo !== 'ambos') {
-                    redefinirCidadesFiltroLote('Disponível no filtro combinado');
+                if (!usaCidade) {
+                    redefinirCidadesFiltroLote('Ative o critério Cidade');
                     status.textContent = '';
+                    return;
+                }
+                if (!usaEstado) {
+                    const campoCidade = document.getElementById(
+                        'cidadeDownloadLote'
+                    );
+                    document.getElementById(
+                        'listaCidadesDownloadLote'
+                    ).replaceChildren();
+                    campoCidade.disabled = false;
+                    campoCidade.placeholder = 'Digite a cidade';
+                    status.textContent = 'Cidade livre; ative Estado para usar a lista oficial do IBGE.';
                     return;
                 }
                 if (!uf) {
@@ -449,9 +476,25 @@
             function obterFiltroDownloadLote(baixarImagens) {
                 if (!baixarImagens) return { modo: 'nenhum' };
 
-                const modo = document.getElementById('modoFiltroDownloadLote').value;
-                const filtro = { modo };
-                if (modo === 'ambos') {
+                const usarRaio = document.getElementById(
+                    'usarRaioDownloadLote'
+                ).checked;
+                const usarCidade = document.getElementById(
+                    'usarCidadeDownloadLote'
+                ).checked;
+                const usarEstado = document.getElementById(
+                    'usarEstadoDownloadLote'
+                ).checked;
+                if (!usarRaio && !usarCidade && !usarEstado) {
+                    return { modo: 'nenhum' };
+                }
+                const filtro = {
+                    modo: 'superfiltro',
+                    usarRaio,
+                    usarCidade,
+                    usarEstado
+                };
+                if (usarRaio) {
                     filtro.raioKm = Number(
                         document.getElementById('raioDownloadLote').value
                     );
@@ -462,7 +505,7 @@
                         );
                     }
                 }
-                if (modo === 'estado' || modo === 'ambos') {
+                if (usarEstado) {
                     filtro.estado = resolverUfPesquisa(
                         document.getElementById('estadoDownloadLote').value
                     );
@@ -471,22 +514,33 @@
                     }
                     document.getElementById('estadoDownloadLote').value = filtro.estado;
                 }
-                if (modo === 'ambos') {
+                if (usarCidade) {
                     const cidadeDigitada = document.getElementById(
                         'cidadeDownloadLote'
                     ).value.trim();
-                    const uf = filtro.estado;
-                    const cidadeOficial = (cacheCidadesFiltroLote.get(uf) || [])
-                        .find((cidade) => cidade.localeCompare(
+                    if (cidadeDigitada.length < 2) {
+                        throw new Error('Digite uma cidade válida.');
+                    }
+                    if (usarEstado) {
+                        const cidadeOficial = (
+                            cacheCidadesFiltroLote.get(filtro.estado) || []
+                        ).find((cidade) => cidade.localeCompare(
                             cidadeDigitada,
                             'pt-BR',
                             { sensitivity: 'base' }
                         ) === 0);
-                    if (!cidadeOficial) {
-                        throw new Error('Selecione uma cidade válida da UF informada.');
+                        if (!cidadeOficial) {
+                            throw new Error(
+                                'Selecione uma cidade válida da UF informada.'
+                            );
+                        }
+                        filtro.cidade = cidadeOficial;
+                        document.getElementById(
+                            'cidadeDownloadLote'
+                        ).value = cidadeOficial;
+                    } else {
+                        filtro.cidade = cidadeDigitada;
                     }
-                    filtro.cidade = cidadeOficial;
-                    document.getElementById('cidadeDownloadLote').value = cidadeOficial;
                 }
                 return filtro;
             }
@@ -853,7 +907,9 @@
                     'csvWixInput',
                     'listaHoteisInput',
                     'baixarImagensLoteInput',
-                    'modoFiltroDownloadLote',
+                    'usarEstadoDownloadLote',
+                    'usarCidadeDownloadLote',
+                    'usarRaioDownloadLote',
                     'raioDownloadLote',
                     'cidadeDownloadLote',
                     'estadoDownloadLote',

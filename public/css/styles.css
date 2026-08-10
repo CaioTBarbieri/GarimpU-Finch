@@ -1561,6 +1561,56 @@ details[open] > summary .details-chevron {
         var(--surface-deep);
 }
 
+.superfilter-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 1px solid rgb(var(--ai-rgb) / 24%);
+    border-radius: 0.75rem;
+    background: rgb(var(--ai-rgb) / 5%);
+    padding: 0.8rem;
+}
+
+.superfilter-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.45rem;
+}
+
+.superfilter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.45rem 0.65rem;
+    transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.superfilter-toggle:has(input:checked) {
+    border-color: rgb(var(--ai-rgb) / 45%);
+    background: rgb(var(--ai-rgb) / 11%);
+    color: var(--ai);
+}
+
+@media (max-width: 639px) {
+    .superfilter-panel {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .superfilter-toggles {
+        justify-content: flex-start;
+    }
+}
+
 .batch-filter-input-suffix {
     position: relative;
     display: block;

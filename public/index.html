@@ -293,12 +293,12 @@
                 <div id="painelFiltroDownloadLote" class="batch-download-filter app-divider app-surface-deep mt-3 hidden rounded-xl border p-4">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                         <div>
-                            <p class="app-text-secondary text-sm font-medium">Destino e precisão do download</p>
+                            <p class="app-text-secondary text-sm font-medium">Destino e Superfiltro de localização</p>
                             <p class="app-text-subtle mt-1 text-xs leading-5">
                                 O hotel é identificado primeiro; as fotos só são salvas quando ele atende ao filtro.
                             </p>
                         </div>
-                        <span class="app-status-ai shrink-0 text-xs font-medium">Filtro antes de salvar</span>
+                        <span class="app-status-ai shrink-0 text-xs font-medium">Combine como quiser</span>
                     </div>
                     <div class="batch-parent-folder mt-4">
                         <label for="destinoPastaMaeDownloadLote" class="app-label">Pasta-mãe de destino</label>
@@ -320,15 +320,27 @@
                             Selecione uma pasta existente, crie uma nova ou salve na pasta principal.
                         </span>
                     </div>
-                    <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <label>
-                            <span class="app-label">Filtrar por</span>
-                            <select id="modoFiltroDownloadLote" class="app-input" onchange="atualizarCamposFiltroDownloadLote()">
-                                <option value="nenhum">Sem filtro</option>
-                                <option value="estado">Estado</option>
-                                <option value="ambos">Cidade + estado + raio</option>
-                            </select>
-                        </label>
+                    <div class="superfilter-panel mt-4">
+                        <div>
+                            <p class="app-label">Superfiltro de localização</p>
+                            <p class="app-text-subtle mt-1 text-xs">Ative apenas os critérios que deseja exigir.</p>
+                        </div>
+                        <div class="superfilter-toggles">
+                            <label class="superfilter-toggle">
+                                <input id="usarEstadoDownloadLote" type="checkbox" class="app-checkbox h-4 w-4 rounded" onchange="atualizarCamposFiltroDownloadLote()">
+                                <span>Estado</span>
+                            </label>
+                            <label class="superfilter-toggle">
+                                <input id="usarCidadeDownloadLote" type="checkbox" class="app-checkbox h-4 w-4 rounded" onchange="atualizarCamposFiltroDownloadLote()">
+                                <span>Cidade</span>
+                            </label>
+                            <label class="superfilter-toggle">
+                                <input id="usarRaioDownloadLote" type="checkbox" class="app-checkbox h-4 w-4 rounded" onchange="atualizarCamposFiltroDownloadLote()">
+                                <span>Raio</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         <label id="campoEstadoDownloadLote" class="hidden">
                             <span class="app-label">Pesquisar UF</span>
                             <input id="estadoDownloadLote" type="text" list="listaEstadosDownloadLote" class="app-input" placeholder="Digite a UF ou o estado" autocomplete="off" oninput="atualizarEstadoFiltroDownloadLote()">
@@ -344,18 +356,18 @@
                                 <option value="SP">São Paulo</option><option value="SE">Sergipe</option><option value="TO">Tocantins</option>
                             </datalist>
                         </label>
+                        <label id="campoCidadeDownloadLote" class="hidden">
+                            <span class="app-label">Pesquisar cidade</span>
+                            <input id="cidadeDownloadLote" type="text" list="listaCidadesDownloadLote" class="app-input" placeholder="Selecione primeiro a UF" autocomplete="off" disabled>
+                            <datalist id="listaCidadesDownloadLote"></datalist>
+                            <span id="statusCidadesFiltroDownloadLote" class="app-text-subtle mt-1 block text-xs" aria-live="polite"></span>
+                        </label>
                         <label id="campoRaioDownloadLote" class="hidden">
                             <span class="app-label">Raio máximo</span>
                             <span class="batch-filter-input-suffix">
                                 <input id="raioDownloadLote" type="number" min="0.1" max="20000" step="0.1" value="50" class="app-input" inputmode="decimal">
                                 <span>km</span>
                             </span>
-                        </label>
-                        <label id="campoCidadeDownloadLote" class="hidden">
-                            <span class="app-label">Pesquisar cidade</span>
-                            <input id="cidadeDownloadLote" type="text" list="listaCidadesDownloadLote" class="app-input" placeholder="Selecione primeiro a UF" autocomplete="off" disabled>
-                            <datalist id="listaCidadesDownloadLote"></datalist>
-                            <span id="statusCidadesFiltroDownloadLote" class="app-text-subtle mt-1 block text-xs" aria-live="polite"></span>
                         </label>
                     </div>
                     <p id="ajudaFiltroDownloadLote" class="app-text-subtle mt-3 text-xs leading-5">
@@ -1961,7 +1973,7 @@
     <script src="/js/interface.js"></script>
     <script src="/js/organizacao.js?v=20260810-multiplas-pastas-mae"></script>
     <script src="/js/galeria.js?v=20260810-filtro-pasta-mae"></script>
-    <script src="/js/busca.js?v=20260810-selecionar-pasta-mae"></script>
+    <script src="/js/busca.js?v=20260810-superfiltro-localizacao"></script>
     <script src="/js/terminal.js?v=20260810-pesquisa-terminal"></script>
 </body>
 </html>

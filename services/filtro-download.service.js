@@ -1,6 +1,11 @@
 const { calcularDistanciaCarroKm } = require("./scraper/scraper-utils");
 
-const MODOS_FILTRO_DOWNLOAD = new Set(["nenhum", "estado", "ambos"]);
+const MODOS_FILTRO_DOWNLOAD = new Set([
+  "nenhum",
+  "superfiltro",
+  "estado",
+  "ambos",
+]);
 const ESTADOS_BRASILEIROS = {
   AC: "acre",
   AL: "alagoas",
@@ -46,9 +51,13 @@ function normalizarFiltroDownload(filtro = {}) {
     throw new TypeError("Selecione um filtro de download válido.");
   }
 
-  const exigeRaio = modo === "ambos";
-  const exigeCidade = modo === "ambos";
-  const exigeEstado = modo === "estado" || modo === "ambos";
+  const habilitado = (valor) => valor === true || valor === "true";
+  const exigeRaio = modo === "ambos" ||
+    (modo === "superfiltro" && habilitado(filtro.usarRaio));
+  const exigeCidade = modo === "ambos" ||
+    (modo === "superfiltro" && habilitado(filtro.usarCidade));
+  const exigeEstado = modo === "estado" || modo === "ambos" ||
+    (modo === "superfiltro" && habilitado(filtro.usarEstado));
   const raioKm = exigeRaio ? Number(filtro.raioKm) : null;
   const cidade = exigeCidade ? String(filtro.cidade || "").trim() : "";
   const estado = exigeEstado ? String(filtro.estado || "").trim().toUpperCase() : "";
@@ -63,7 +72,15 @@ function normalizarFiltroDownload(filtro = {}) {
     throw new TypeError("Selecione um estado válido para o filtro de download.");
   }
 
-  return { modo, raioKm, cidade, estado };
+  return {
+    modo: exigeRaio || exigeCidade || exigeEstado ? "superfiltro" : "nenhum",
+    usarRaio: exigeRaio,
+    usarCidade: exigeCidade,
+    usarEstado: exigeEstado,
+    raioKm,
+    cidade,
+    estado,
+  };
 }
 
 function extrairCoordenadas(coordenadas) {
@@ -136,9 +153,9 @@ function avaliarFiltroDownload({
     };
   }
 
-  const exigeRaio = configuracao.modo === "ambos";
-  const exigeCidade = configuracao.modo === "ambos";
-  const exigeEstado = configuracao.modo === "estado" || configuracao.modo === "ambos";
+  const exigeRaio = configuracao.usarRaio;
+  const exigeCidade = configuracao.usarCidade;
+  const exigeEstado = configuracao.usarEstado;
   const pontoHotel = extrairCoordenadas(coordenadas);
   const referenciaValida =
     Number.isFinite(Number(latitudeReferencia)) &&
