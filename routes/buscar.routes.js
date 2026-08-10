@@ -1,11 +1,14 @@
 const express = require("express");
+const { PASTA_IMAGENS } = require("../config");
 const { normalizarFiltroDownload } = require("../services/filtro-download.service");
 const { listarMunicipiosPorUf } = require("../services/localidades.service");
+const { resolverPastaMaeDownload } = require("../services/pasta-download.service");
 
 function criarBuscarRouter({
   rasparDadosHotel,
   latitudePadrao,
   longitudePadrao,
+  pastaImagensBase = PASTA_IMAGENS,
 }) {
   const router = express.Router();
 
@@ -29,6 +32,7 @@ function criarBuscarRouter({
       latitudeReferencia,
       longitudeReferencia,
       filtroDownload,
+      pastaMaeDownload,
     } = req.body;
 
     const nomeNormalizado =
@@ -41,6 +45,15 @@ function criarBuscarRouter({
     }
 
     const deveBaixar = baixarImagens !== undefined ? baixarImagens : true;
+    let destinoDownload;
+    try {
+      destinoDownload = resolverPastaMaeDownload(
+        pastaImagensBase,
+        deveBaixar ? pastaMaeDownload : "",
+      );
+    } catch (erro) {
+      return res.status(400).json({ erro: erro.message });
+    }
     let filtroDownloadFinal;
     try {
       filtroDownloadFinal = normalizarFiltroDownload(filtroDownload);
@@ -84,10 +97,14 @@ function criarBuscarRouter({
       latitudeFinal,
       longitudeFinal,
       filtroDownloadFinal,
+      destinoDownload.caminho,
     );
 
     if (resultado.sucesso) {
-      res.json(resultado);
+      res.json({
+        ...resultado,
+        pastaMaeDownload: destinoDownload.nome || null,
+      });
     } else {
       res.status(500).json({ erro: resultado.erro });
     }

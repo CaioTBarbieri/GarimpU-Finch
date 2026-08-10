@@ -48,6 +48,7 @@ function criarAplicacao() {
       rasparDadosHotel,
       latitudePadrao: LATITUDE_PADRAO,
       longitudePadrao: LONGITUDE_PADRAO,
+      pastaImagensBase: PASTA_IMAGENS,
     }),
   );
 

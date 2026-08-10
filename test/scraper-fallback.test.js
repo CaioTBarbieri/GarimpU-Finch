@@ -71,6 +71,32 @@ test("rasparDadosHotel: usa Booking com sucesso e não chama Expedia", async () 
   assert.equal(chamouExpedia, false);
 });
 
+test("rasparDadosHotel: repassa a pasta mãe como destino sem alterar a raiz pública", async () => {
+  let opcoesRecebidas;
+  const { coordenador } = criarCoordenadorDeTeste({
+    buscarNaBooking: async (_page, opcoes) => {
+      opcoesRecebidas = opcoes;
+      return RESULTADO_BOOKING_OK;
+    },
+    buscarNaExpedia: async () => RESULTADO_BOOKING_OK,
+  });
+
+  await coordenador.rasparDadosHotel(
+    "Hotel Exemplo",
+    true,
+    -14.815,
+    -39.0333,
+    { modo: "nenhum" },
+    "/tmp/nao-usado/Itacaré",
+  );
+
+  assert.equal(opcoesRecebidas.pastaImagensBase, "/tmp/nao-usado");
+  assert.equal(
+    opcoesRecebidas.pastaImagensDestino,
+    "/tmp/nao-usado/Itacaré",
+  );
+});
+
 // 16. Booking falhando e Expedia funcionando aciona o fallback
 test("rasparDadosHotel: Booking falha e Expedia assume com sucesso", async () => {
   const chamadas = [];

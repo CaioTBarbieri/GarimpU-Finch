@@ -253,6 +253,27 @@
                 atualizarCamposFiltroDownloadLote();
             }
 
+            function obterPastaMaeDownloadLote(baixarImagens) {
+                if (!baixarImagens) return '';
+                const nome = document.getElementById(
+                    'pastaMaeDownloadLote'
+                ).value.replace(/\s+/g, ' ').trim();
+                if (!nome) return '';
+                if (
+                    nome.length > 100 ||
+                    nome === '.' ||
+                    nome === '..' ||
+                    nome.endsWith('.') ||
+                    /[<>:"/\\|?*\u0000-\u001f]/.test(nome) ||
+                    /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i.test(nome)
+                ) {
+                    throw new Error(
+                        'Digite um nome válido para a pasta-mãe, sem barras ou caracteres especiais.'
+                    );
+                }
+                return nome;
+            }
+
             function atualizarCamposFiltroDownloadLote() {
                 const modo = document.getElementById('modoFiltroDownloadLote').value;
                 const usaRaio = modo === 'ambos';
@@ -717,8 +738,10 @@
                     'baixarImagensLoteInput'
                 ).checked;
                 let filtroDownload;
+                let pastaMaeDownload;
                 try {
                     filtroDownload = obterFiltroDownloadLote(baixarImagens);
+                    pastaMaeDownload = obterPastaMaeDownloadLote(baixarImagens);
                 } catch (erro) {
                     alert(erro.message);
                     return;
@@ -772,6 +795,7 @@
                     'raioDownloadLote',
                     'cidadeDownloadLote',
                     'estadoDownloadLote',
+                    'pastaMaeDownloadLote',
                     'latitudeReferenciaInput',
                     'longitudeReferenciaInput',
                     'colunaRegimeCsv',
@@ -851,7 +875,8 @@
                                         baixarImagens,
                                         latitudeReferencia,
                                         longitudeReferencia,
-                                        filtroDownload
+                                        filtroDownload,
+                                        pastaMaeDownload
                                     })
                                 });
                             } catch (erroRequisicao) {

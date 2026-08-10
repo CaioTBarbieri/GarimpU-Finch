@@ -293,13 +293,27 @@
                 <div id="painelFiltroDownloadLote" class="batch-download-filter app-divider app-surface-deep mt-3 hidden rounded-xl border p-4">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                         <div>
-                            <p class="app-text-secondary text-sm font-medium">Precisão do download</p>
+                            <p class="app-text-secondary text-sm font-medium">Destino e precisão do download</p>
                             <p class="app-text-subtle mt-1 text-xs leading-5">
                                 O hotel é identificado primeiro; as fotos só são salvas quando ele atende ao filtro.
                             </p>
                         </div>
                         <span class="app-status-ai shrink-0 text-xs font-medium">Filtro antes de salvar</span>
                     </div>
+                    <label class="batch-parent-folder mt-4">
+                        <span class="app-label">Salvar dentro da pasta-mãe</span>
+                        <input
+                            id="pastaMaeDownloadLote"
+                            type="text"
+                            class="app-input"
+                            maxlength="100"
+                            placeholder="Ex.: Itacaré (opcional)"
+                            autocomplete="off"
+                        >
+                        <span class="app-text-subtle mt-1 block text-xs leading-5">
+                            Se informada, a pasta será criada dentro do diretório de imagens e cada hotel continuará separado em sua própria subpasta.
+                        </span>
+                    </label>
                     <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <label>
                             <span class="app-label">Filtrar por</span>
@@ -1937,7 +1951,7 @@
     <script src="/js/interface.js"></script>
     <script src="/js/organizacao.js?v=20260810-filtro-pasta-mae"></script>
     <script src="/js/galeria.js?v=20260810-filtro-pasta-mae"></script>
-    <script src="/js/busca.js?v=20260810-pesquisa-uf-cidade"></script>
+    <script src="/js/busca.js?v=20260810-pasta-mae-download"></script>
     <script src="/js/terminal.js?v=20260810-pesquisa-terminal"></script>
 </body>
 </html>

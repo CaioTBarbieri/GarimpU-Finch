@@ -135,6 +135,7 @@ function criarCoordenadorScraper({
     latitudeReferencia = latitudePadrao,
     longitudeReferencia = longitudePadrao,
     filtroDownload = { modo: "nenhum" },
+    pastaImagensDestino = pastaImagensBase,
   ) {
     const entrada =
       typeof nomeHotel === "string"
@@ -208,6 +209,7 @@ function criarCoordenadorScraper({
         longitudeReferencia,
         baixarImagens,
         pastaImagensBase,
+        pastaImagensDestino,
         filtroDownload,
       };
 

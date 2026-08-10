@@ -215,6 +215,7 @@ async function executarPesquisaBooking(page, opcoes) {
     longitudeReferencia,
     baixarImagens,
     pastaImagensBase,
+    pastaImagensDestino = pastaImagensBase,
     filtroDownload,
   } = opcoes;
 
@@ -550,7 +551,7 @@ async function executarPesquisaBooking(page, opcoes) {
       .map((item) => item.url);
 
     const nomeLimpo = criarNomePastaHotel(nomeOficial);
-    const pastaHotel = path.resolve(pastaImagensBase, nomeLimpo);
+    const pastaHotel = path.resolve(pastaImagensDestino, nomeLimpo);
 
     let caminhosImagensLocais = [];
     let altTexts = {};
