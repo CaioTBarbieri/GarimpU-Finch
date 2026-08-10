@@ -63,12 +63,17 @@ async function carregarEstimativaFlorence() {
         'detalhesEstimativaFlorence'
     );
     botao.disabled = true;
+    const reorganizar = document.getElementById(
+        'reorganizarImagensOrganizadas'
+    )?.checked === true;
+    const url = '/api/estimativa-florence' +
+        (reorganizar ? '?reorganizar=true' : '');
 
     try {
-        const response = await fetch('/api/estimativa-florence');
+        const response = await fetch(url);
         const dados = await lerRespostaJsonOrganizacao(
             response,
-            '/api/estimativa-florence'
+            url
         );
         if (!response.ok) {
             throw new Error(

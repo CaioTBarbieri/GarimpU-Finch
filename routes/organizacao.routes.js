@@ -41,10 +41,12 @@ router.get("/api/status-organizacao", (req, res) => {
 
 router.get("/api/estimativa-florence", (req, res) => {
   try {
+    const reorganizar = req.query?.reorganizar === "true";
     res.json(
       calcularEstimativaFlorence({
         pastaImagens: PASTA_FLORENCE,
         pastaLogs: PASTA_LOGS_FLORENCE,
+        reorganizar,
       }),
     );
   } catch (erro) {

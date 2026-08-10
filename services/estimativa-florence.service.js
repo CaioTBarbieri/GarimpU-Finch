@@ -10,6 +10,24 @@ const EXTENSOES_IMAGEM = new Set([
   ".tiff",
   ".tif",
 ]);
+const PASTAS_CATEGORIAS = new Set([
+  "entretenimento",
+  "entreterimento",
+  "gastronomia",
+  "acomodacoes",
+  "criancas",
+]);
+
+function normalizarNomePasta(nome) {
+  return String(nome)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function ehPastaCategoria(nome) {
+  return PASTAS_CATEGORIAS.has(normalizarNomePasta(nome));
+}
 
 function listarImagensSoltas(diretorio, sistemaArquivos = fs) {
   return sistemaArquivos
@@ -31,34 +49,71 @@ function listarImagensSoltas(diretorio, sistemaArquivos = fs) {
     });
 }
 
-function inventariarLoteFlorence(pastaImagens, sistemaArquivos = fs) {
-  const imagensRaiz = listarImagensSoltas(
-    pastaImagens,
-    sistemaArquivos,
-  );
-  let hoteis;
+function lerNomesAltTexts(diretorio, sistemaArquivos) {
+  const caminho = path.join(diretorio, "alt_texts.json");
+  if (!sistemaArquivos.existsSync(caminho)) return new Set();
+  try {
+    const conteudo = JSON.parse(
+      sistemaArquivos.readFileSync(caminho, "utf8"),
+    );
+    return new Set(
+      conteudo && typeof conteudo === "object" && !Array.isArray(conteudo)
+        ? Object.keys(conteudo)
+        : [],
+    );
+  } catch (_) {
+    return new Set();
+  }
+}
 
-  if (imagensRaiz.length > 0) {
-    hoteis = [
-      {
-        nome: path.basename(pastaImagens),
-        imagens: imagensRaiz,
-      },
-    ];
-  } else {
-    hoteis = sistemaArquivos
-      .readdirSync(pastaImagens, { withFileTypes: true })
-      .filter((entrada) => entrada.isDirectory())
-      .map((entrada) => {
-        const diretorio = path.join(pastaImagens, entrada.name);
-        return {
-          nome: entrada.name,
-          imagens: listarImagensSoltas(diretorio, sistemaArquivos),
-        };
-      })
-      .filter((hotel) => hotel.imagens.length > 0);
+function listarImagensCategorizadas(diretorio, sistemaArquivos) {
+  const nomesProcessados = lerNomesAltTexts(diretorio, sistemaArquivos);
+  return sistemaArquivos
+    .readdirSync(diretorio, { withFileTypes: true })
+    .filter(
+      (entrada) => entrada.isDirectory() && ehPastaCategoria(entrada.name),
+    )
+    .flatMap((entrada) =>
+      listarImagensSoltas(
+        path.join(diretorio, entrada.name),
+        sistemaArquivos,
+      ),
+    )
+    .filter((imagem) => !nomesProcessados.has(imagem.nome));
+}
+
+function inventariarLoteFlorence(
+  pastaImagens,
+  sistemaArquivos = fs,
+  { reorganizar = false } = {},
+) {
+  const hoteis = [];
+
+  function encontrarHoteis(diretorio) {
+    const imagens = listarImagensSoltas(diretorio, sistemaArquivos);
+    if (reorganizar) {
+      imagens.push(
+        ...listarImagensCategorizadas(diretorio, sistemaArquivos),
+      );
+    }
+    if (imagens.length > 0) {
+      hoteis.push({ nome: path.basename(diretorio), imagens });
+    }
+
+    const subpastas = sistemaArquivos
+      .readdirSync(diretorio, { withFileTypes: true })
+      .filter(
+        (entrada) =>
+          entrada.isDirectory() &&
+          !entrada.name.startsWith("_") &&
+          !ehPastaCategoria(entrada.name),
+      );
+    for (const subpasta of subpastas) {
+      encontrarHoteis(path.join(diretorio, subpasta.name));
+    }
   }
 
+  encontrarHoteis(pastaImagens);
   const imagens = hoteis.flatMap((hotel) => hotel.imagens);
   return {
     numeroHoteis: hoteis.length,
@@ -198,10 +253,12 @@ function calcularEstimativaFlorence({
   pastaImagens,
   pastaLogs,
   sistemaArquivos = fs,
+  reorganizar = false,
 }) {
   const inventario = inventariarLoteFlorence(
     pastaImagens,
     sistemaArquivos,
+    { reorganizar },
   );
   const execucoes = lerExecucoesHistoricas(
     pastaLogs,
