@@ -181,8 +181,16 @@ function configurarAmbiente() {
       "resources",
       "chromium",
     );
-    process.env.PUPPETEER_EXECUTABLE_PATH =
-      require("puppeteer").executablePath();
+    let chromeLocal = null;
+    try {
+      chromeLocal = require("../config/local").PUPPETEER_EXECUTABLE_PATH;
+    } catch {
+      // config/local.js é opcional.
+    }
+    if (!process.env.PUPPETEER_EXECUTABLE_PATH && !chromeLocal) {
+      process.env.PUPPETEER_EXECUTABLE_PATH =
+        require("puppeteer").executablePath();
+    }
   }
 
   return {
