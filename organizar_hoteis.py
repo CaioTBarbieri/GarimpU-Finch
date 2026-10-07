@@ -73,6 +73,13 @@ from python_organizador.nomes import (
 )
 from python_organizador.log_classificacao import registrar_tempo_classificacao
 from python_organizador.status import emitir_status
+from python_organizador.legendas import (
+    ajustar_legenda_en,
+    ajustar_portugues_brasil,
+    gerar_legendas_paralelas,
+    limitar_ritmo,
+    montar_alt_text,
+)
 
 warnings.filterwarnings("ignore")
 
@@ -149,6 +156,90 @@ def carregar_florence():
     processador = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     print("✅ Florence-2 carregado!")
     return modelo, processador
+
+
+def gerar_legenda_florence(modelo, processador, caminho_imagem):
+    """Gera a legenda em inglês de uma imagem com o Florence-2."""
+    import torch
+    from PIL import Image
+
+    task_prompt = "<CAPTION>"
+    with Image.open(caminho_imagem) as imagem:
+        img_pil = imagem.convert("RGB")
+    inputs = processador(text=task_prompt, images=img_pil, return_tensors="pt")
+
+    # Busca gulosa (1 feixe) e legenda curta: bem mais rápido na CPU.
+    with torch.inference_mode():
+        generated_ids = modelo.generate(
+            input_ids=inputs["input_ids"],
+            pixel_values=inputs["pixel_values"],
+            max_new_tokens=30,
+            num_beams=1,
+            do_sample=False,
+        )
+    generated_text = processador.batch_decode(
+        generated_ids, skip_special_tokens=False
+    )[0]
+    parsed_answer = processador.post_process_generation(
+        generated_text,
+        task=task_prompt,
+        image_size=(img_pil.width, img_pil.height),
+    )
+    return parsed_answer[task_prompt]
+
+
+MODELO_TRADUCAO_LOCAL = "Helsinki-NLP/opus-mt-en-ROMANCE"
+_tradutor_local = {}
+
+
+def carregar_tradutor_local():
+    """Carrega o MarianMT (en -> pt-BR) que roda offline na CPU.
+
+    Retorna False se não for possível; nesse caso a tradução cai no Google.
+    """
+    if "modelo" in _tradutor_local:
+        return True
+    try:
+        from transformers import MarianMTModel, MarianTokenizer
+
+        print("\n🔄 Carregando tradutor local (MarianMT)...")
+        tokenizador = MarianTokenizer.from_pretrained(MODELO_TRADUCAO_LOCAL)
+        modelo = MarianMTModel.from_pretrained(MODELO_TRADUCAO_LOCAL).eval()
+        _tradutor_local["tokenizador"] = tokenizador
+        _tradutor_local["modelo"] = modelo
+        print("✅ Tradutor local carregado!")
+        return True
+    except Exception as e:
+        print(f"⚠️ Tradutor local indisponível, usando Google Tradutor: {e}")
+        return False
+
+
+def traduzir_local(texto_en):
+    import torch
+
+    tokenizador = _tradutor_local["tokenizador"]
+    modelo = _tradutor_local["modelo"]
+    entradas = tokenizador([">>pt_BR<< " + texto_en], return_tensors="pt")
+    with torch.inference_mode():
+        ids = modelo.generate(**entradas, num_beams=1, max_new_tokens=40)
+    return ajustar_portugues_brasil(
+        tokenizador.decode(ids[0], skip_special_tokens=True)
+    )
+
+
+def traduzir_google(texto_en):
+    limitar_ritmo()
+    return GoogleTranslator(source="en", target="pt").translate(texto_en)
+
+
+def traduzir_para_pt(texto_en, categoria=None):
+    texto_en = ajustar_legenda_en(texto_en, categoria)
+    if "modelo" in _tradutor_local:
+        try:
+            return traduzir_local(texto_en)
+        except Exception as e:
+            print(f"   ⚠️ Tradutor local falhou, usando Google: {e}")
+    return traduzir_google(texto_en)
 
 
 def calcular_embeddings(modelo, arquivos, desc="Calculando embeddings"):
@@ -362,6 +453,7 @@ def classificar_e_organizar(
         mensagem="Carregando Florence-2.",
     )
     modelo_florence, processador_florence = carregar_florence()
+    carregar_tradutor_local()
 
     stats_total = {"classificadas": 0, "revisar": 0, "com_humanos": 0, "erros": 0}
     processamento_imagens_iniciado = False
@@ -541,7 +633,26 @@ def classificar_e_organizar(
             for arq, pred, conf in zip(validos, predicoes, confiancas)
         )
 
-        for arq, pred, conf in itens_para_florence:
+        # Legendas: o modelo gera em série e a tradução roda em paralelo.
+        legendas = gerar_legendas_paralelas(
+            (
+                (
+                    arq,
+                    pred
+                    if conf is None or conf >= CONFIANCA_MINIMA
+                    else "_Revisar",
+                )
+                for arq, pred, conf in itens_para_florence
+            ),
+            lambda item: gerar_legenda_florence(
+                modelo_florence, processador_florence, item[0]
+            ),
+            lambda texto, item: traduzir_para_pt(texto, item[1]),
+        )
+
+        for (arq, pred, conf), futuro_legenda in zip(
+            itens_para_florence, legendas
+        ):
             if conf is None:
                 categoria_dest = pred
                 stats[pred] = stats.get(pred, 0) + 1
@@ -565,30 +676,7 @@ def classificar_e_organizar(
             descricao_florence = "imagem"
             descricao_pt = ""
             try:
-                img_pil = Image.open(arq).convert("RGB")
-                task_prompt = "<CAPTION>"
-                inputs = processador_florence(
-                    text=task_prompt, images=img_pil, return_tensors="pt"
-                )
-
-                generated_ids = modelo_florence.generate(
-                    input_ids=inputs["input_ids"],
-                    pixel_values=inputs["pixel_values"],
-                    max_new_tokens=64,
-                )
-                generated_text = processador_florence.batch_decode(
-                    generated_ids, skip_special_tokens=False
-                )[0]
-                parsed_answer = processador_florence.post_process_generation(
-                    generated_text,
-                    task=task_prompt,
-                    image_size=(img_pil.width, img_pil.height),
-                )
-
-                descricao_bruta_en = parsed_answer[task_prompt]
-                descricao_pt = GoogleTranslator(source="en", target="pt").translate(
-                    descricao_bruta_en
-                )
+                descricao_pt = futuro_legenda.result()
                 descricao_florence = limpar_para_nome_arquivo(descricao_pt)
 
             except Exception as e:
@@ -615,7 +703,9 @@ def classificar_e_organizar(
 
                 # Salva no dicionário JSON usando o nome final do arquivo como chave
                 if descricao_pt:
-                    textos_alternativos[dest.name] = descricao_pt
+                    textos_alternativos[dest.name] = montar_alt_text(
+                        descricao_pt, nome_hotel
+                    )
 
                 imagens_processadas_geral += 1
                 imagens_concluidas_hotel += 1

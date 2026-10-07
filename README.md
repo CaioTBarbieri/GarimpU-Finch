@@ -118,7 +118,8 @@ log principal pode ser baixado pelo botão **Baixar log Florence**.
 - Tailwind CSS, JSZip e Papa Parse carregados por CDN;
 - Python;
 - PyTorch, Sentence Transformers/CLIP, Transformers, Pillow, NumPy,
-  scikit-learn, tqdm, Ultralytics/YOLOv8 e deep-translator.
+  scikit-learn, tqdm, Ultralytics/YOLOv8, einops, timm, sentencepiece e
+  deep-translator (reserva da tradução).
 
 ## Estrutura principal
 
@@ -212,7 +213,7 @@ python -m venv venv
 venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-pip install sentence-transformers Pillow numpy scikit-learn tqdm ultralytics transformers accelerate deep-translator
+pip install sentence-transformers Pillow numpy scikit-learn tqdm ultralytics transformers accelerate deep-translator einops timm sentencepiece
 ```
 
 ## Configuração em uma nova máquina

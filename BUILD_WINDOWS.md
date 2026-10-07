@@ -241,8 +241,9 @@ inteira em um ZIP.
 
 - A consulta depende da internet, da estrutura atual da Booking.com e pode ser
   afetada por CAPTCHA, bloqueios, mudanças de seletores ou limites do serviço.
-- Traduções geradas pelo organizador usam um serviço externo e também dependem
-  da internet.
+- As traduções do organizador usam primeiro o MarianMT local (offline, baixado
+  uma vez do Hugging Face). Se ele não carregar, o organizador usa o Google
+  Tradutor, que depende da internet e pode limitar requisições.
 - CLIP, Florence e YOLO são modelos pesados. A primeira inicialização da
   organização pode demorar e o processamento em CPU pode levar bastante tempo.
 - A classificação e as inferências do scraper devem ser revisadas por uma

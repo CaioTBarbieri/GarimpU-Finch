@@ -10,5 +10,8 @@ ultralytics==8.4.104
 transformers==4.44.2
 accelerate==1.14.0
 deep-translator==1.11.4
+einops==0.8.2
+sentencepiece==0.2.2
+timm==1.0.30
 PyInstaller==6.21.0
 lap==0.5.13

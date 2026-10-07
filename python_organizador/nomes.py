@@ -21,6 +21,7 @@ def limpar_para_nome_arquivo(texto):
     texto_limpo = remover_caracteres_invalidos(texto)
     texto_limpo = underscores_para_espacos(texto_limpo)
     texto_limpo = re.sub(r"\s+", " ", texto_limpo).strip().lower()
+    texto_limpo = re.sub(r"[.\s]+$", "", texto_limpo)
     return texto_limpo or "imagem"
 
 
