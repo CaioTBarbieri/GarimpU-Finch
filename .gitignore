@@ -16,3 +16,4 @@ resources/chromium/
 resources/huggingface/
 build-electron.log
 build-electron.exitcode
+.venv/

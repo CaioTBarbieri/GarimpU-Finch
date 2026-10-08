@@ -91,6 +91,11 @@ function copiarSeNecessario(origem, destino) {
   fs.copyFileSync(origem, destino);
 }
 
+function lerConfigLocal(raizProjeto) {
+  const caminho = path.join(raizProjeto, "config", "local.js");
+  return fs.existsSync(caminho) ? require(caminho) : {};
+}
+
 function configurarAmbiente() {
   const raizProjeto = path.resolve(__dirname, "..");
   const raizRecursos = app.isPackaged ? process.resourcesPath : raizProjeto;
@@ -175,7 +180,12 @@ function configurarAmbiente() {
       );
     }
     process.env.ORGANIZADOR_EXECUTABLE = organizador;
-  } else {
+  } else if (
+    !process.env.PUPPETEER_EXECUTABLE_PATH &&
+    !lerConfigLocal(raizProjeto).PUPPETEER_EXECUTABLE_PATH
+  ) {
+    // Em desenvolvimento, respeita um navegador definido por variável de
+    // ambiente ou config/local.js; senão usa o Chrome baixado pelo Puppeteer.
     process.env.PUPPETEER_CACHE_DIR = path.join(
       raizProjeto,
       "resources",
