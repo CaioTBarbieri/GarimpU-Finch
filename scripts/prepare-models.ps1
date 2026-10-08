@@ -144,6 +144,13 @@ foreach ($Modelo in $ModelosObrigatorios) {
 }
 
 foreach ($Auxiliar in $AuxiliaresFlorence) {
+    # O nome com "_hyphen_" so existe em versoes antigas do transformers.
+    if (
+        $Auxiliar -like "*_hyphen_*" -and
+        -not (Test-Path -LiteralPath (Join-Path $Origem $Auxiliar))
+    ) {
+        continue
+    }
     Copy-ItemIncremental `
         -Nome "Modulo Florence: $Auxiliar" `
         -Relativo $Auxiliar

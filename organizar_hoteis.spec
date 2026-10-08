@@ -182,10 +182,18 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
 )
+# Licencas de terceiros muito aninhadas dentro de *.dist-info (ex.: torch)
+# estouram o limite de 260 caracteres do Windows e nao sao usadas em runtime.
+datas_filtrados = [
+    item
+    for item in a.datas
+    if not (".dist-info" in item[0] and len(item[0]) > 120)
+]
+
 coll = COLLECT(
     exe,
     a.binaries,
-    a.datas,
+    datas_filtrados,
     strip=False,
     upx=True,
     upx_exclude=[],

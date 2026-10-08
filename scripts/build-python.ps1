@@ -7,6 +7,9 @@ $Cronometro = [System.Diagnostics.Stopwatch]::StartNew()
 
 $RaizProjeto = Split-Path -Parent $PSScriptRoot
 $Python = Join-Path $RaizProjeto "venv\Scripts\python.exe"
+if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) {
+    $Python = Join-Path $RaizProjeto ".venv\Scripts\python.exe"
+}
 $Spec = Join-Path $RaizProjeto "organizar_hoteis.spec"
 $DistPath = Join-Path $RaizProjeto "build"
 $WorkPath = Join-Path $RaizProjeto "build\pyinstaller-work"
