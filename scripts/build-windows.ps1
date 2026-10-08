@@ -41,6 +41,10 @@ try {
         & npm.cmd run prepare:assets
     }
 
+    Invoke-Etapa "Chromium" {
+        & node.exe (Join-Path $PSScriptRoot "prepare-chromium.js")
+    }
+
     Invoke-Etapa "Modelos Hugging Face" {
         $ArgumentosModelos = @(
             "-NoProfile",
