@@ -47,10 +47,9 @@ import warnings
 
 from python_organizador.arquivos import (
     criar_pasta,
-    escrever_alt_texts,
-    ler_alt_texts,
     listar_hoteis,
     listar_imagens_categorizadas,
+    ja_passou_pelo_florence,
     listar_imagens_soltas,
     mover_ou_copiar,
 )
@@ -70,6 +69,7 @@ from python_organizador.nomes import (
     criar_nome_final,
     limpar_para_nome_arquivo,
     resolver_nome_duplicado,
+    simplificar_descricao,
 )
 from python_organizador.log_classificacao import registrar_tempo_classificacao
 from python_organizador.status import emitir_status
@@ -78,7 +78,6 @@ from python_organizador.legendas import (
     ajustar_portugues_brasil,
     gerar_legendas_paralelas,
     limitar_ritmo,
-    montar_alt_text,
 )
 
 warnings.filterwarnings("ignore")
@@ -409,14 +408,13 @@ def classificar_e_organizar(
         imagens_soltas = listar_imagens_soltas(pasta_hotel)
         imagens_categorizadas = {}
         if reorganizar:
-            nomes_ja_processados = set(ler_alt_texts(pasta_hotel))
             imagens_categorizadas = {
                 imagem: categoria
                 for imagem, categoria in listar_imagens_categorizadas(
                     pasta_hotel,
                     CATEGORIAS,
                 ).items()
-                if imagem.name not in nomes_ja_processados
+                if not ja_passou_pelo_florence(imagem.name)
             }
         imagens_por_hotel[pasta_hotel] = [
             *imagens_soltas,
@@ -623,7 +621,6 @@ def classificar_e_organizar(
 
         stats = {cat: 0 for cat in CATEGORIAS}
         stats["_Revisar"] = 0
-        textos_alternativos = {}
         itens_para_florence = [
             (arq, categorias_por_imagem[arq], None)
             for arq in imagens_organizadas
@@ -677,7 +674,9 @@ def classificar_e_organizar(
             descricao_pt = ""
             try:
                 descricao_pt = futuro_legenda.result()
-                descricao_florence = limpar_para_nome_arquivo(descricao_pt)
+                descricao_florence = limpar_para_nome_arquivo(
+                    simplificar_descricao(descricao_pt)
+                )
 
             except Exception as e:
                 print(f"   ⚠️ Erro no Florence/Tradução para {arq.name}: {e}")
@@ -700,12 +699,6 @@ def classificar_e_organizar(
                     dest,
                     modo_copia=modo_copia,
                 )
-
-                # Salva no dicionário JSON usando o nome final do arquivo como chave
-                if descricao_pt:
-                    textos_alternativos[dest.name] = montar_alt_text(
-                        descricao_pt, nome_hotel
-                    )
 
                 imagens_processadas_geral += 1
                 imagens_concluidas_hotel += 1
@@ -748,10 +741,6 @@ def classificar_e_organizar(
                     ),
                     mensagem=f"{arq.name} terminou com erro ao salvar.",
                 )
-
-        # Salva o JSON com os Alt Texts na pasta do hotel
-        escrever_alt_texts(pasta_hotel, textos_alternativos)
-        print(f"   📝 Arquivo alt_texts.json gerado com sucesso!")
 
         # Resumo do hotel
         print(f"   ✅ Resultado:")

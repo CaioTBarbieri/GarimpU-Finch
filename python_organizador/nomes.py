@@ -13,6 +13,35 @@ def underscores_para_espacos(texto):
     return str(texto).replace("_", " ").strip()
 
 
+MAX_PALAVRAS_DESCRICAO = 6
+_ARTIGOS = {"um", "uma", "uns", "umas", "o", "a", "os", "as"}
+_LIGACOES = {
+    "de", "do", "da", "dos", "das", "com", "em", "no", "na", "nos", "nas",
+    "ao", "à", "e", "para", "por", "ou",
+}
+# A descrição é cortada no primeiro destes pontos: o resto é detalhe.
+_CORTES = re.compile(
+    r"\s+(?:e|ao lado|próximo|perto|em frente|ao fundo|ao redor)(?=\s)|[,;:]",
+    re.IGNORECASE,
+)
+
+
+def simplificar_descricao(texto, max_palavras=MAX_PALAVRAS_DESCRICAO):
+    """Encurta a legenda para o nome do arquivo (o alt text segue completo).
+
+    Ex.: "um quarto de hotel com uma cama grande e uma mesa"
+    -> "quarto de hotel com cama grande".
+    """
+    texto = re.split(_CORTES, str(texto or ""), maxsplit=1)[0]
+    palavras = [
+        p for p in texto.split() if p.lower().strip(".") not in _ARTIGOS
+    ]
+    palavras = palavras[:max_palavras]
+    while palavras and palavras[-1].lower().strip(".") in _LIGACOES:
+        palavras.pop()
+    return " ".join(palavras)
+
+
 def limpar_para_nome_arquivo(texto):
     """Limpa a descrição do Florence preservando espaços."""
     if not texto:

@@ -58,7 +58,7 @@ organização por meio de `spawn("python", ["-u", scriptPython])`.
    Code e obtém ou estima a distância do aeroporto.
 6. As URLs da galeria são coletadas. Com `baixarImagens: true`, os arquivos são
    gravados em `PASTA_IMAGENS`; caso contrário, são retornadas URLs remotas.
-7. Imagens locais e `alt_texts.json` existentes são incorporados à resposta.
+7. Imagens locais (e `alt_texts.json` de pastas antigas, se existir) são incorporados à resposta.
 8. O navegador exibe o resultado e pode acumular os dados em CSV. O modo em
    lote executa buscas sequenciais sem baixar imagens.
 
@@ -77,7 +77,7 @@ organização por meio de `spawn("python", ["-u", scriptPython])`.
    `entretenimento`, `criancas`, `_Com_Humanos` ou `_Revisar`.
 7. O Python emite linhas `STATUS_JSON`; o Node calcula tempo decorrido, média
    móvel e previsão, disponibilizados em `GET /api/status-organizacao`.
-8. Cada hotel pode receber um `alt_texts.json` com as descrições geradas.
+8. As fotos são renomeadas como `<categoria>-<descrição resumida>-<hotel>.ext`, em minúsculo e com hífens.
 
 ## Caminhos e configurações locais
 

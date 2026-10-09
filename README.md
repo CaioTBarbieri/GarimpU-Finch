@@ -51,7 +51,7 @@ Cada pesquisa pode ser executada:
   as URLs remotas encontradas na Booking.com.
 
 Quando há armazenamento local, a aplicação também encontra imagens já existentes
-nas subpastas do hotel e lê arquivos `alt_texts.json` gerados pelo organizador. A
+nas subpastas do hotel (e lê `alt_texts.json` de pastas antigas, se existir). A
 interface exibe a galeria, permite abrir/baixar imagens individualmente e oferece
 o download de toda a galeria em um arquivo
 `<Nome_do_Hotel>_galeria_HD_COMPLETA.zip`. A compactação é feita no navegador.
@@ -95,7 +95,7 @@ aba descarta a lista ainda não exportada.
 O script `organizar_hoteis.py` classifica imagens locais nas categorias
 `entretenimento`, `gastronomia`, `acomodacoes` e `criancas`. Ele usa embeddings
 CLIP, exemplos do diretório `Fotos exemplos`, KNN e YOLOv8 para detectar fotos
-com pessoas. Também pode gerar `alt_texts.json`. Esse processamento é separado da
+com pessoas e renomeia as fotos pela descrição gerada (Florence-2). Esse processamento é separado da
 extração principal e pode ser demorado, especialmente em CPU.
 
 Durante a etapa CLIP/Florence, o organizador registra por hotel o horário de

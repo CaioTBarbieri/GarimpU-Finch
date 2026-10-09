@@ -4,7 +4,6 @@ from python_organizador.legendas import (
     ajustar_legenda_en,
     ajustar_portugues_brasil,
     gerar_legendas_paralelas,
-    montar_alt_text,
 )
 from python_organizador.nomes import limpar_para_nome_arquivo
 
@@ -100,33 +99,6 @@ class GlossarioHotelTest(unittest.TestCase):
             ajustar_portugues_brasil("Um salão com filas de cadeiras nele"),
             "Um salão com filas de cadeiras",
         )
-
-
-class MontarAltTextTest(unittest.TestCase):
-    def test_descricao_mais_hotel(self):
-        self.assertEqual(
-            montar_alt_text(
-                "Um quarto de hotel com duas camas.",
-                "EL ARAM IMIRÁ BEACH RESORT",
-            ),
-            "Quarto de hotel com duas camas em EL ARAM IMIRÁ BEACH RESORT",
-        )
-
-    def test_respeita_limite_sem_cortar_palavra(self):
-        alt = montar_alt_text(
-            "Uma mesa com " + "comida muito variada " * 10,
-            "HOTEL TESTE",
-            limite=60,
-        )
-        self.assertLessEqual(len(alt), 60)
-        self.assertTrue(alt.endswith(" em HOTEL TESTE"))
-        self.assertNotIn("  ", alt)
-
-    def test_sem_descricao_nao_gera_alt(self):
-        self.assertEqual(montar_alt_text("", "HOTEL"), "")
-
-    def test_sem_hotel_devolve_so_a_descricao(self):
-        self.assertEqual(montar_alt_text("Uma piscina.", ""), "Piscina")
 
 
 class LimparNomeArquivoTest(unittest.TestCase):

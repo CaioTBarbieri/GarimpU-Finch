@@ -97,13 +97,9 @@ test("estima reorganização de hotéis dentro de pastas mães", (t) => {
       "Itacaré",
       "Hotel B",
       "gastronomia",
-      "processada.jpg",
+      "gastronomia-prato-hotel-b.jpg",
     ),
     300,
-  );
-  fs.writeFileSync(
-    path.join(pastaImagens, "Itacaré", "Hotel B", "alt_texts.json"),
-    JSON.stringify({ "processada.jpg": "Descrição existente" }),
   );
   fs.mkdirSync(pastaLogs, { recursive: true });
   fs.writeFileSync(

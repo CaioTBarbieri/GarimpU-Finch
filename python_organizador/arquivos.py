@@ -1,4 +1,3 @@
-import json
 import shutil
 import unicodedata
 from pathlib import Path
@@ -56,16 +55,18 @@ def listar_imagens_categorizadas(pasta_hotel, categorias):
     return imagens
 
 
-def ler_alt_texts(pasta_hotel):
-    caminho_json = Path(pasta_hotel) / "alt_texts.json"
-    if not caminho_json.is_file():
-        return {}
-    try:
-        with open(caminho_json, encoding="utf-8") as arquivo:
-            conteudo = json.load(arquivo)
-        return conteudo if isinstance(conteudo, dict) else {}
-    except (OSError, json.JSONDecodeError):
-        return {}
+def ja_passou_pelo_florence(nome_arquivo):
+    """Arquivos renomeados pelo Florence começam com o nome da categoria.
+
+    Ex.: "acomodacoes-quarto-de-hotel-hotel-x.jpg" (ou, nas versões antigas,
+    "acomodacoes quarto de hotel Hotel X.jpg").
+    """
+    nome = _normalizar_nome_categoria(nome_arquivo)
+    return any(
+        nome.startswith(f"{categoria}{separador}")
+        for categoria in CATEGORIAS
+        for separador in ("-", " ")
+    )
 
 
 def listar_hoteis(pasta_raiz, categorias_organizadas=None):
@@ -110,17 +111,3 @@ def mover_ou_copiar(origem, destino, modo_copia=True):
     if modo_copia:
         return shutil.copy2(origem, destino)
     return shutil.move(str(origem), destino)
-
-
-def escrever_alt_texts(pasta_hotel, textos_alternativos):
-    caminho_json = Path(pasta_hotel) / "alt_texts.json"
-    textos_atualizados = ler_alt_texts(pasta_hotel)
-    textos_atualizados.update(textos_alternativos)
-    with open(caminho_json, "w", encoding="utf-8") as arquivo:
-        json.dump(
-            textos_atualizados,
-            arquivo,
-            indent=4,
-            ensure_ascii=False,
-        )
-    return caminho_json

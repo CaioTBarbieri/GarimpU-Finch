@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from python_organizador.arquivos import (
-    escrever_alt_texts,
+    ja_passou_pelo_florence,
     listar_hoteis,
     listar_imagens_categorizadas,
     listar_imagens_soltas,
@@ -16,6 +16,7 @@ from python_organizador.nomes import (
     limpar_para_nome_arquivo,
     remover_caracteres_invalidos,
     resolver_nome_duplicado,
+    simplificar_descricao,
     underscores_para_espacos,
 )
 from python_organizador.status import serializar_status
@@ -41,6 +42,22 @@ class TestNomes(unittest.TestCase):
                 ".jpg",
             ),
             "revisar-quarto-com-vista-hotel-teste.jpg",
+        )
+
+    def test_simplifica_descricao_para_nome(self):
+        self.assertEqual(
+            simplificar_descricao(
+                "um quarto de hotel com uma cama grande e uma mesa"
+            ),
+            "quarto de hotel com cama grande",
+        )
+        self.assertEqual(
+            simplificar_descricao("uma piscina ao lado de um prédio"),
+            "piscina",
+        )
+        self.assertEqual(
+            simplificar_descricao("um grande salão de festas com mesas redondas"),
+            "grande salão de festas com mesas",
         )
 
     def test_remove_caracteres_invalidos(self):
@@ -181,15 +198,10 @@ class TestArquivos(unittest.TestCase):
 
             self.assertEqual(listar_hoteis(raiz), [])
 
-    def test_preserva_alt_texts_existentes_ao_escrever(self):
-        with tempfile.TemporaryDirectory() as diretorio:
-            pasta = Path(diretorio)
-            escrever_alt_texts(pasta, {"antiga.jpg": "Descrição antiga"})
-            escrever_alt_texts(pasta, {"nova.jpg": "Descrição nova"})
-
-            conteudo = (pasta / "alt_texts.json").read_text(encoding="utf-8")
-            self.assertIn('"antiga.jpg": "Descrição antiga"', conteudo)
-            self.assertIn('"nova.jpg": "Descrição nova"', conteudo)
+    def test_reconhece_arquivos_ja_renomeados_pelo_florence(self):
+        self.assertTrue(ja_passou_pelo_florence("acomodacoes-quarto-hotel-x.jpg"))
+        self.assertTrue(ja_passou_pelo_florence("Acomodacoes quarto Hotel X.jpg"))
+        self.assertFalse(ja_passou_pelo_florence("hotel-x_001.jpg"))
 
 
 class TestStatus(unittest.TestCase):

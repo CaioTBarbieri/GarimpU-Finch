@@ -49,25 +49,17 @@ function listarImagensSoltas(diretorio, sistemaArquivos = fs) {
     });
 }
 
-function lerNomesAltTexts(diretorio, sistemaArquivos) {
-  const caminho = path.join(diretorio, "alt_texts.json");
-  if (!sistemaArquivos.existsSync(caminho)) return new Set();
-  try {
-    const conteudo = JSON.parse(
-      sistemaArquivos.readFileSync(caminho, "utf8"),
-    );
-    return new Set(
-      conteudo && typeof conteudo === "object" && !Array.isArray(conteudo)
-        ? Object.keys(conteudo)
-        : [],
-    );
-  } catch (_) {
-    return new Set();
-  }
+// Arquivos renomeados pelo Florence começam com o nome da categoria
+// ("acomodacoes-quarto-..." ou, nas versões antigas, "acomodacoes quarto ...").
+function jaPassouPeloFlorence(nomeArquivo) {
+  const nome = normalizarNomePasta(nomeArquivo);
+  return [...PASTAS_CATEGORIAS].some(
+    (categoria) =>
+      nome.startsWith(`${categoria}-`) || nome.startsWith(`${categoria} `),
+  );
 }
 
 function listarImagensCategorizadas(diretorio, sistemaArquivos) {
-  const nomesProcessados = lerNomesAltTexts(diretorio, sistemaArquivos);
   return sistemaArquivos
     .readdirSync(diretorio, { withFileTypes: true })
     .filter(
@@ -79,7 +71,7 @@ function listarImagensCategorizadas(diretorio, sistemaArquivos) {
         sistemaArquivos,
       ),
     )
-    .filter((imagem) => !nomesProcessados.has(imagem.nome));
+    .filter((imagem) => !jaPassouPeloFlorence(imagem.nome));
 }
 
 function inventariarLoteFlorence(

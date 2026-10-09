@@ -129,31 +129,6 @@ def ajustar_portugues_brasil(texto):
     return texto
 
 
-LIMITE_ALT_TEXT = 125
-
-
-def montar_alt_text(descricao_pt, nome_hotel, limite=LIMITE_ALT_TEXT):
-    """Monta o alt text: descrição + nome do hotel, sem passar do limite.
-
-    Ex.: "Quarto de hotel com duas camas em EL ARAM IMIRÁ BEACH RESORT".
-    "em" evita errar o gênero do hotel (no/na).
-    """
-    descricao = re.sub(r"\s+", " ", str(descricao_pt or "")).strip(" .")
-    hotel = re.sub(r"\s+", " ", str(nome_hotel or "")).strip()
-    if not descricao:
-        return ""
-    # Artigo inicial ("um quarto…") é dispensável num alt text.
-    descricao = re.sub(r"^(?:uma?|uns|umas)\s+", "", descricao, flags=re.IGNORECASE)
-    descricao = descricao[:1].upper() + descricao[1:]
-    if not hotel:
-        return descricao
-    sufixo = f" em {hotel}"
-    maximo = limite - len(sufixo)
-    if len(descricao) > maximo > 20:
-        descricao = descricao[:maximo].rsplit(" ", 1)[0].rstrip(" ,;")
-    return descricao + sufixo
-
-
 def traduzir_com_tentativas(traduzir, texto, tentativas=TENTATIVAS_TRADUCAO):
     """Traduz com novas tentativas, esperando mais se o serviço limitar."""
     for tentativa in range(1, tentativas + 1):
