@@ -32,18 +32,19 @@ def criar_nome_final(categoria, descricao, nome_hotel, extensao):
     nome_sem_extensao = (
         f"{categoria_nome} {descricao_nome} {hotel_nome}"
     )
+    # Tudo em minúsculo e com hífen no lugar de cada espaço.
     nome_sem_extensao = re.sub(
         r"\s+",
-        " ",
-        nome_sem_extensao,
-    ).strip()
+        "-",
+        nome_sem_extensao.strip().lower(),
+    )
     return f"{nome_sem_extensao}{extensao}"
 
 
 def resolver_nome_duplicado(
     pasta_destino,
     nome_arquivo,
-    separador=" ",
+    separador="-",
 ):
     pasta_destino = Path(pasta_destino)
     destino = pasta_destino / nome_arquivo

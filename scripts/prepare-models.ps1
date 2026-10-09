@@ -17,6 +17,12 @@ $ModelosObrigatorios = @(
     @{
         Nome = "clip-ViT-B-32"
         Relativo = "hub\models--sentence-transformers--clip-ViT-B-32"
+    },
+    @{
+        # Sem ele o app (offline) cai no Google Tradutor, que bloqueia o IP
+        # e faz os arquivos ficarem como "<categoria> imagem <hotel>".
+        Nome = "opus-mt-en-ROMANCE"
+        Relativo = "hub\models--Helsinki-NLP--opus-mt-en-ROMANCE"
     }
 )
 

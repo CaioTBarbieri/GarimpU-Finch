@@ -163,6 +163,7 @@ A preparação de modelos copia somente:
 ```text
 hub\models--microsoft--Florence-2-base-ft
 hub\models--sentence-transformers--clip-ViT-B-32
+hub\models--Helsinki-NLP--opus-mt-en-ROMANCE
 modules\transformers_modules\microsoft\Florence-2-base-ft
 modules\transformers_modules\microsoft\Florence_hyphen_2_hyphen_base_hyphen_ft
 ```

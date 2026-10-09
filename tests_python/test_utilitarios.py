@@ -40,7 +40,7 @@ class TestNomes(unittest.TestCase):
                 "Hotel_Teste",
                 ".jpg",
             ),
-            "Revisar quarto com vista Hotel Teste.jpg",
+            "revisar-quarto-com-vista-hotel-teste.jpg",
         )
 
     def test_remove_caracteres_invalidos(self):
@@ -54,13 +54,13 @@ class TestNomes(unittest.TestCase):
     def test_trata_nomes_duplicados(self):
         with tempfile.TemporaryDirectory() as diretorio:
             pasta = Path(diretorio)
-            (pasta / "foto hotel.jpg").touch()
-            (pasta / "foto hotel 1.jpg").touch()
+            (pasta / "foto-hotel.jpg").touch()
+            (pasta / "foto-hotel-1.jpg").touch()
             (pasta / "pessoa.jpg").touch()
 
             destino = resolver_nome_duplicado(
                 pasta,
-                "foto hotel.jpg",
+                "foto-hotel.jpg",
             )
             destino_com_humano = resolver_nome_duplicado(
                 pasta,
@@ -68,7 +68,7 @@ class TestNomes(unittest.TestCase):
                 separador="_",
             )
 
-            self.assertEqual(destino.name, "foto hotel 2.jpg")
+            self.assertEqual(destino.name, "foto-hotel-2.jpg")
             self.assertEqual(
                 destino_com_humano.name,
                 "pessoa_1.jpg",
