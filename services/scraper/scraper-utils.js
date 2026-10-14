@@ -287,31 +287,75 @@ function validarUrlPermitida(urlTexto, dominiosPermitidos) {
 // ==========================================
 // IMAGENS
 // ==========================================
-async function baixarImagemComoArquivo(page, url, caminhoCompleto) {
-  const resultado = await page.evaluate(async (imageUrl) => {
-    try {
-      const res = await fetch(imageUrl);
-      if (!res.ok) return { sucesso: false };
-      const blob = await res.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () =>
-          resolve({ sucesso: true, base64: reader.result.split(",")[1] });
-        reader.readAsDataURL(blob);
-      });
-    } catch {
-      return { sucesso: false };
-    }
-  }, url);
+const QUALIDADE_WEBP = 0.9;
 
-  if (!resultado || !resultado.sucesso) return false;
+// Baixa a imagem e grava em `caminhoSemExtensao` + extensão final.
+// Com `converterParaWebp`, a conversão é feita no próprio Chromium (canvas);
+// se falhar, mantém o JPEG original. Retorna a extensão gravada ou null.
+async function baixarImagemComoArquivo(
+  page,
+  url,
+  caminhoSemExtensao,
+  { converterParaWebp = false } = {},
+) {
+  const resultado = await page.evaluate(
+    async (imageUrl, webp, qualidade) => {
+      try {
+        const res = await fetch(imageUrl);
+        if (!res.ok) return { sucesso: false };
+        let blob = await res.blob();
+        let extensao = "jpg";
+
+        if (webp) {
+          try {
+            const bitmap = await createImageBitmap(blob);
+            const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+            canvas.getContext("2d").drawImage(bitmap, 0, 0);
+            bitmap.close();
+            const convertido = await canvas.convertToBlob({
+              type: "image/webp",
+              quality: qualidade,
+            });
+            if (convertido.type === "image/webp") {
+              blob = convertido;
+              extensao = "webp";
+            }
+          } catch {
+            // Mantém o arquivo original se a conversão falhar.
+          }
+        }
+
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () =>
+            resolve({
+              sucesso: true,
+              extensao,
+              base64: reader.result.split(",")[1],
+            });
+          reader.readAsDataURL(blob);
+        });
+      } catch {
+        return { sucesso: false };
+      }
+    },
+    url,
+    converterParaWebp,
+    QUALIDADE_WEBP,
+  );
+
+  if (!resultado || !resultado.sucesso) return null;
 
   try {
     fs.writeFileSync(
-      caminhoCompleto,
+      `${caminhoSemExtensao}.${resultado.extensao}`,
       Buffer.from(resultado.base64, "base64"),
     );
-    return true;
+    // Evita duplicata quando a pasta já tinha o JPG de uma busca anterior.
+    if (resultado.extensao === "webp") {
+      fs.rmSync(`${caminhoSemExtensao}.jpg`, { force: true });
+    }
+    return resultado.extensao;
   } catch (erro) {
     throw new ErroArmazenamento(
       `Falha ao gravar imagem em disco: ${erro.message}`,
@@ -325,6 +369,7 @@ async function baixarImagensParaPasta({
   imagensUrls,
   pastaHotel,
   prefixoArquivo = "foto_HD_",
+  converterParaWebp = false,
 }) {
   try {
     if (!fs.existsSync(pastaHotel)) {
@@ -343,14 +388,15 @@ async function baixarImagensParaPasta({
   for (let i = 0; i < imagensUrls.length; i++) {
     const url = imagensUrls[i];
     const nomeArquivo = `${prefixoArquivo}${i + 1}`;
-    const caminhoCompleto = path.resolve(pastaHotel, `${nomeArquivo}.jpg`);
+    const caminhoSemExtensao = path.resolve(pastaHotel, nomeArquivo);
 
-    let baixouComSucesso = false;
+    let extensao = null;
     try {
-      baixouComSucesso = await baixarImagemComoArquivo(
+      extensao = await baixarImagemComoArquivo(
         page,
         url,
-        caminhoCompleto,
+        caminhoSemExtensao,
+        { converterParaWebp },
       );
     } catch (erro) {
       // Falha individual de imagem não deve derrubar o hotel inteiro.
@@ -358,9 +404,9 @@ async function baixarImagensParaPasta({
       continue;
     }
 
-    if (baixouComSucesso) {
+    if (extensao) {
       caminhosLocais.push(
-        `/img/${encodeURIComponent(nomePasta)}/${nomeArquivo}.jpg`,
+        `/img/${encodeURIComponent(nomePasta)}/${nomeArquivo}.${extensao}`,
       );
     }
   }

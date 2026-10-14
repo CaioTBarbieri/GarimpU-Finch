@@ -853,6 +853,9 @@
                 const baixarImagens = document.getElementById(
                     'baixarImagensLoteInput'
                 ).checked;
+                const converterParaWebp = document.getElementById(
+                    'converterWebpLoteInput'
+                ).checked;
                 let filtroDownload;
                 let pastaMaeDownload;
                 try {
@@ -907,6 +910,7 @@
                     'csvWixInput',
                     'listaHoteisInput',
                     'baixarImagensLoteInput',
+                    'converterWebpLoteInput',
                     'usarEstadoDownloadLote',
                     'usarCidadeDownloadLote',
                     'usarRaioDownloadLote',
@@ -995,7 +999,8 @@
                                         latitudeReferencia,
                                         longitudeReferencia,
                                         filtroDownload,
-                                        pastaMaeDownload
+                                        pastaMaeDownload,
+                                        converterParaWebp
                                     })
                                 });
                             } catch (erroRequisicao) {
@@ -1249,7 +1254,10 @@
                         nome: nomeInput,
                         baixarImagens,
                         latitudeReferencia,
-                        longitudeReferencia
+                        longitudeReferencia,
+                        converterParaWebp: document.getElementById(
+                            'converterWebpInput'
+                        ).checked
                         })
                     });
 

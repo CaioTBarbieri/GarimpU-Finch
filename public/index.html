@@ -204,8 +204,16 @@
                     >
                     Baixar imagens automaticamente
                 </label>
+                <label class="app-text-secondary inline-flex cursor-pointer items-center gap-3 text-sm">
+                    <input
+                        id="converterWebpInput"
+                        type="checkbox"
+                        class="app-checkbox h-4 w-4 rounded"
+                    >
+                    Converter imagens para WebP
+                </label>
                 <p class="app-text-subtle text-xs leading-5">
-                    Desative para consultar somente os dados do hotel.
+                    Desative o download para consultar somente os dados do hotel.
                 </p>
             </div>
             <p id="mensagemPesquisa" class="mt-4 hidden text-sm" role="status" aria-live="polite"></p>
@@ -287,6 +295,19 @@
                         Baixar imagens de todos os hotéis da lista
                         <span class="app-text-subtle mt-1 block text-xs leading-5">
                             Aumenta o tempo de processamento e salva as fotos na pasta configurada.
+                        </span>
+                    </span>
+                </label>
+                <label class="app-divider app-surface-deep app-text-secondary mt-3 flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm">
+                    <input
+                        id="converterWebpLoteInput"
+                        type="checkbox"
+                        class="app-checkbox mt-0.5 h-4 w-4 rounded"
+                    >
+                    <span>
+                        Converter imagens para WebP
+                        <span class="app-text-subtle mt-1 block text-xs leading-5">
+                            Vale para as imagens baixadas neste lote.
                         </span>
                     </span>
                 </label>

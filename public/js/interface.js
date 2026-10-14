@@ -370,7 +370,9 @@ let dadosAtuais = null;
                         const src = imagens[i];
                         const response = await fetch(src);
                         const blob = await response.blob();
-                        zip.file(`foto_HD_${i + 1}.jpg`, blob);
+                        const extensao = blob.type === 'image/webp' ||
+                            /\.webp(?:$|\?)/i.test(src) ? 'webp' : 'jpg';
+                        zip.file(`foto_HD_${i + 1}.${extensao}`, blob);
                     }
 
                     const conteudoZip = await zip.generateAsync({ type: 'blob' });

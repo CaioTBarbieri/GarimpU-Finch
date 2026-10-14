@@ -626,6 +626,7 @@ async function executarPesquisaExpedia(page, opcoes) {
     pastaImagensBase,
     pastaImagensDestino = pastaImagensBase,
     filtroDownload,
+    converterParaWebp = false,
   } = opcoes;
 
   await ativarBloqueioDeMidia(page);
@@ -701,6 +702,7 @@ async function executarPesquisaExpedia(page, opcoes) {
         page,
         imagensUrls: dados.imagens,
         pastaHotel,
+        converterParaWebp,
       });
       await desativarBloqueioDeMidia(page);
 

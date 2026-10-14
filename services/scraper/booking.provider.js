@@ -217,6 +217,7 @@ async function executarPesquisaBooking(page, opcoes) {
     pastaImagensBase,
     pastaImagensDestino = pastaImagensBase,
     filtroDownload,
+    converterParaWebp = false,
   } = opcoes;
 
   const linkBookingDireto = ehLink ? normalizarLinkBooking(entrada) : null;
@@ -569,6 +570,7 @@ async function executarPesquisaBooking(page, opcoes) {
         page,
         imagensUrls: imagensArray,
         pastaHotel,
+        converterParaWebp,
       });
 
       console.log(`\n[+] Download concluído. Imagens salvas na pasta do hotel.`);

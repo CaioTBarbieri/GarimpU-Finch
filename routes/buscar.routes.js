@@ -42,6 +42,7 @@ function criarBuscarRouter({
       longitudeReferencia,
       filtroDownload,
       pastaMaeDownload,
+      converterParaWebp,
     } = req.body;
 
     const nomeNormalizado =
@@ -107,6 +108,7 @@ function criarBuscarRouter({
       longitudeFinal,
       filtroDownloadFinal,
       destinoDownload.caminho,
+      converterParaWebp === true,
     );
 
     if (resultado.sucesso) {

@@ -21,6 +21,7 @@ const {
 } = require("./scraper/scraper-utils");
 const { ErroEntrada, ehErroQueAcionaFallback } = require("./scraper/scraper-errors");
 const { normalizarFiltroDownload } = require("./filtro-download.service");
+const { resolverExecutavelNavegador } = require("./navegador.service");
 
 puppeteer.use(StealthPlugin());
 
@@ -136,6 +137,7 @@ function criarCoordenadorScraper({
     longitudeReferencia = longitudePadrao,
     filtroDownload = { modo: "nenhum" },
     pastaImagensDestino = pastaImagensBase,
+    converterParaWebp = false,
   ) {
     const entrada =
       typeof nomeHotel === "string"
@@ -211,6 +213,7 @@ function criarCoordenadorScraper({
         pastaImagensBase,
         pastaImagensDestino,
         filtroDownload,
+        converterParaWebp: converterParaWebp === true,
       };
 
       let resultado;
@@ -302,7 +305,9 @@ const coordenadorPadrao = criarCoordenadorScraper({
   lancarBrowser: () =>
     puppeteer.launch({
       headless: "new",
-      executablePath: PUPPETEER_EXECUTABLE_PATH || undefined,
+      executablePath: resolverExecutavelNavegador({
+        configurado: PUPPETEER_EXECUTABLE_PATH,
+      }),
       args: ["--disable-blink-features=AutomationControlled"],
     }),
   pastaImagensBase: PASTA_IMAGENS,
